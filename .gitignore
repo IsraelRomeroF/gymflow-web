@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.env
+*.tsbuildinfo
+e2e/.totp-ultimo
+# Bitácoras y capturas de los recorridos (auditoría 8, 27-12): las capturas
+# pesan 89 MB y traen datos de la base de pruebas. e2e/.gitignore ya las
+# excluye; aquí quedan también, y las bitácoras en cualquier carpeta.
+*.log
+e2e/shots/
+e2e/.salida/

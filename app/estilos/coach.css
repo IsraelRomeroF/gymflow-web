@@ -1,0 +1,41 @@
+/* ── Coach (2.6): inicio del coach, «Asignar rutina», pestaña Rutina y hoja de la rutina ── */
+/* Las cifras de «Tus socios»: una abre Mis socios y las demás su lista aquí mismo. */
+.coach-cifra { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r-control); background: var(--surface); color: inherit; font: inherit; text-align: left; text-decoration: none; cursor: pointer; transition: border-color var(--dur-1) var(--ease-out); }
+.coach-cifra:hover { border-color: var(--line-strong); }
+.coach-cifra[aria-pressed="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
+.coach-cifra-num { font-size: var(--t-h2); font-weight: 700; line-height: 1.1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.coach-cifra-que { font-size: var(--t-xs); color: var(--muted); }
+.coach-cifra[data-tono="warn"] .coach-cifra-num { color: var(--warn); }
+.coach-cifra[data-tono="danger"] .coach-cifra-num { color: var(--danger); }
+.coach-clase { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.coach-buscar { width: 220px; max-width: 100%; }
+.coach-lista .list { border: 1px solid var(--line); border-radius: var(--r-control); overflow: hidden; }
+.coach-lista .list-item { padding: 10px 14px; }
+.coach-rutina { min-height: 120px; }
+/* «Asignar rutina»: las rutinas en tarjetas que se eligen, con su vista previa. */
+.rt-elegir-socio { display: inline; }
+.rt-opciones { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow: auto; }
+.rt-opcion { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-control); background: var(--surface); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.rt-opcion:hover { border-color: var(--line-strong); }
+.rt-opcion[aria-checked="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); background: var(--surface-2); }
+.rt-opcion-meta { gap: 12px; }
+.rt-previa { margin: 6px 0 2px; padding: 10px 14px; border-left: 2px solid var(--line-strong); }
+.rt-previa summary { cursor: pointer; }
+.rt-previa-dias { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 8px; }
+/* Pestaña Rutina: desde cuándo la tiene, cuándo se revisa y cómo va la semana. */
+.rt-cifras { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 0; }
+.rt-cifras > div { flex: 1 1 150px; padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--r-control); }
+.rt-cifras dt { font-size: var(--t-xs); color: var(--muted); }
+.rt-cifras dd { margin: 0; font-size: var(--t-base); font-weight: 600; }
+.rt-cifras > div[data-tono="warn"] { background: var(--warn-soft); border-color: var(--warn-line); }
+.rt-cifras > div[data-tono="warn"] dd { color: var(--warn); }
+.rt-cifras > div[data-tono="ok"] dd { color: var(--ok); }
+/* La hoja de la rutina (misma hoja blanca del estado de cuenta): un día no se parte entre dos páginas. */
+.rutina-doc-nota { margin-top: 8px !important; }
+.rutina-doc-dia { break-inside: avoid; }
+.rutina-doc td:first-child, .rutina-doc th:first-child { width: 28px; color: #555; }
+@media (max-width: 720px) {
+  .rt-previa-dias { grid-template-columns: minmax(0, 1fr); }
+  .coach-buscar { width: 100%; }
+}
+

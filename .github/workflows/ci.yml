@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push: { branches: [main] }
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      # Desde la auditoría 8 (fase 1.1) el panel lee contratos y vocabulario de
+      # `@gymflow/core` (`link:../gymflow-core`): el núcleo se baja como HERMANO
+      # dentro del workspace, sin clave (es un repo público), y se
+      # compila antes de verificar.
+      - uses: actions/checkout@v4
+        with: { path: gymflow-web }
+      - uses: actions/checkout@v4
+        with:
+          repository: IsraelRomeroF/gymflow-core
+          path: gymflow-core
+
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.26.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+
+      - name: Construir dominio
+        working-directory: gymflow-core
+        run: pnpm install --frozen-lockfile && pnpm build
+
+      - name: Instalar
+        working-directory: gymflow-web
+        run: pnpm install --frozen-lockfile
+
+      - name: Verificar
+        working-directory: gymflow-web
+        run: pnpm typecheck && pnpm lint && pnpm test:contraste && pnpm test:tokens && pnpm test:estilos
+
+      - name: Construir
+        working-directory: gymflow-web
+        run: pnpm build

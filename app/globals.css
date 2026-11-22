@@ -1,0 +1,58 @@
+@import './tokens.css';
+@import './compartido.css';
+
+/*
+ * ESTILOS DEL PANEL — ÍNDICE (auditoría 8, bloque 2.12; hallazgo 27-08).
+ *
+ * Este archivo ya no tiene reglas: solo importa, EN ORDEN, los archivos de
+ * `app/estilos/`. Era un solo archivo de más de 2,100 líneas con una sección
+ * por bloque al final; se partió en segmentos contiguos, sin mover ni una
+ * regla, así que la hoja que recibe el navegador es la misma de antes.
+ *
+ * EL ORDEN ES LA CASCADA: no se reordena. Varias reglas de abajo corrigen a
+ * las de arriba con la misma fuerza (`acabado.css` a las piezas, `movil.css`
+ * al marco, cada bloque a lo anterior). Un archivo nuevo va AL FINAL.
+ *
+ * Dónde va una clase nueva: en el archivo de su área, al final de ese archivo
+ * (ya no «al final de globals.css»). Los tokens derivados y el oscuro están
+ * en `estilos/base.css`; `scripts/contraste.mjs` los lee de ahí siguiendo
+ * estos @import. `tokens.css` y `compartido.css` son espejo con el portal
+ * (`pnpm test:tokens`) y no se tocan aquí.
+ *
+ *   base.css                    Tokens derivados (claro, oscuro elegido y oscuro del sistema) y la base: tipografía, enlaces, foco.
+ *   marco.css                   El marco del panel: menú lateral, barra superior, contenido.
+ *   piezas.css                  Las piezas: cabecera, tarjetas, indicadores, botones, insignias, formularios, interruptor, tablas, avatar, pestañas, avisos, vacíos, diálogo, avisos flotantes, pasos y opciones.
+ *   pantallas.css               Pantallas de la primera época: documento legal, captura biométrica, perfil del socio, lista de actividad, paleta de comandos, inicio de sesión, barras, horario semanal y cartel de alta.
+ *   movil.css                   El panel en el teléfono: el marco y las reglas generales por debajo de 860 px.
+ *   operacion-y-direccion.css   Caja, entrada y alta en el mostrador, comprobante, rutinas, punto de venta, Movimientos, Módulos, la fila que se apila y el inicio de la dueña.
+ *   consola.css                 Lo que el panel comparte con la consola de plataforma (lo propio de la consola vive en app/plataforma.css).
+ *   acabado.css                 Las dos pasadas de acabado de octubre: corrigen y unifican lo anterior, por eso van DESPUÉS de todo lo de arriba.
+ *   piezas-de-diseno.css        Piezas de la fase 1: diálogo chico, principal apagado, Opciones, segmentado desplazable, motivos, Cambio, VistaPrevia (1.5) y la pieza de cobro (1.4).
+ *   cumplimiento.css            Privacidad (1.10) y firma a distancia (2.10).
+ *   ficha.css                   La ficha del socio (2.2).
+ *   direccion.css               Planes, Lista de precios, Mi gimnasio, Personal e Importar (2.7).
+ *   mostrador.css               El mostrador: buscador, resultados, tarjeta del socio, «Por resolver en la puerta», cifras del inicio y barra inferior de la dueña (2.1, 2.12).
+ *   captacion.css               Interesados, altas digitales, «¿ya existe?», pasos del alta (2.4) y el aviso suelto del Inicio.
+ *   biometria.css               Biometría (2.3).
+ *   coach.css                   Coach y rutinas del socio (2.6).
+ *   mensajes.css                La campana y la lista de Mensajes (2.9).
+ *   clases.css                  Clases (2.5).
+ */
+@import './estilos/base.css';
+@import './estilos/marco.css';
+@import './estilos/piezas.css';
+@import './estilos/pantallas.css';
+@import './estilos/movil.css';
+@import './estilos/operacion-y-direccion.css';
+@import './estilos/consola.css';
+@import './estilos/acabado.css';
+@import './estilos/piezas-de-diseno.css';
+@import './estilos/cumplimiento.css';
+@import './estilos/ficha.css';
+@import './estilos/direccion.css';
+@import './estilos/mostrador.css';
+@import './estilos/captacion.css';
+@import './estilos/biometria.css';
+@import './estilos/coach.css';
+@import './estilos/mensajes.css';
+@import './estilos/clases.css';

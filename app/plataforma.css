@@ -1,0 +1,75 @@
+/*
+ * CONSOLA DE PLATAFORMA — el panel de mayor rango. Se distingue a primera
+ * vista de los paneles de los gimnasios: barra oscura y un sello que dice
+ * dónde estás. Archivo propio de la consola (se carga desde su marco).
+ */
+.plataforma > .plataforma-barra {
+  background: var(--side-bg); color: var(--side-fg); border-bottom: 1px solid var(--side-line);
+  backdrop-filter: none;
+}
+.plataforma-barra .consola-marca { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #fff; }
+.plataforma-barra .consola-sello {
+  display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--volt) 45%, transparent); color: var(--volt);
+  font-size: var(--t-micro); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+}
+.plataforma-barra .consola-sello svg { width: 13px; height: 13px; }
+.plataforma-barra .btn-ghost { color: var(--side-fg); }
+.plataforma-barra .btn-ghost:hover:not(:disabled), .plataforma-barra .btn-ghost.is-active { background: var(--side-active); color: #fff; }
+.plataforma-barra .btn-ghost.is-active { box-shadow: inset 0 -2px 0 var(--volt); }
+.plataforma-barra .consola-quien { color: var(--side-muted); }
+@media (max-width: 860px) { .plataforma-barra .consola-sello span { display: none; } }
+
+/* Primer uso: los pasos para dejar lista la plataforma. */
+.primeros-pasos { counter-reset: paso; display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.primeros-pasos > li { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--c-radius); background: var(--surface); }
+.primeros-pasos > li::before {
+  counter-increment: paso; content: counter(paso); flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--surface-2); color: var(--fg-2); font-weight: 700; font-size: var(--t-sm);
+}
+.primeros-pasos > li[data-hecho]::before { content: "✓"; background: var(--ok-soft); color: var(--ok); }
+.primeros-pasos > li[data-hecho] .strong { color: var(--muted); }
+
+/* Cobro: una lista o una vista previa larga (veinte marcas) se desplaza dentro del diálogo, sin empujar el pie. */
+.lista-acotada { max-height: 280px; overflow: auto; }
+/* Un pago deshecho sigue a la vista, tachado. */
+.pago-deshecho .num, .pago-deshecho .pago-dato { text-decoration: line-through; color: var(--muted); }
+/* El aviso de que la sesión de la consola está por cerrarse. */
+.aviso-consola { margin-bottom: var(--s-4); }
+/* El comprobante: ancho de hoja. */
+.factura-hoja { max-width: 760px; }
+
+/* ── Consola · bloque 2.11: alta en tres pasos, entrega de accesos y ficha ── */
+/* La barra de pasos de «Nueva marca»: dónde estás, lo ya hecho y, si un paso tiene un error, cuál. */
+.alta-pasos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-2); margin: 0; padding: 0; list-style: none; }
+.alta-pasos > li > button {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border: 0; border-top: 3px solid var(--line);
+  background: none; color: var(--muted); font: inherit; font-size: var(--t-sm); font-weight: 600; text-align: left; cursor: default;
+}
+.alta-pasos > li > button:not(:disabled) { cursor: pointer; }
+.alta-pasos > li[data-estado="actual"] > button { border-top-color: var(--fg); color: var(--fg); }
+.alta-pasos > li[data-estado="hecho"] > button { border-top-color: var(--ok); color: var(--fg-2); }
+.alta-pasos > li[data-con-error] > button { border-top-color: var(--danger); color: var(--danger); }
+.alta-paso-n {
+  flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--surface-2); font-size: var(--t-micro); font-weight: 700;
+}
+.alta-pasos > li[data-estado="actual"] .alta-paso-n { background: var(--fg); color: var(--bg); }
+.alta-pasos > li[data-estado="hecho"] .alta-paso-n { background: var(--ok-soft); color: var(--ok); }
+.alta-paso-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 520px) { .alta-pasos > li:not([data-estado="actual"]) .alta-paso-t { display: none; } }
+/* Un atajo marca módulos; no es un módulo: borde punteado para que no se confunda con ellos. */
+.chip.alta-atajo { border-style: dashed; }
+.chip.alta-atajo[aria-pressed="true"] { background: var(--surface-2); color: var(--fg); border-style: solid; border-color: var(--fg); }
+.alta-persona-cabeza { margin-bottom: 6px; }
+/* «Liberar el software al terminar»: la última decisión del alta, separada de las cuentas. */
+.alta-liberar { display: grid; gap: 6px; padding-top: var(--s-3); border-top: 1px solid var(--line); }
+/* Entrega de accesos: una persona por renglón, con su clave legible por teléfono. */
+.entrega-lista { list-style: none; margin: 0; padding: 0; }
+.entrega-persona { padding: 10px 0; }
+.entrega-clave { font-size: var(--t-md); letter-spacing: .06em; }
+/* Marcas: el buscador de la lista. */
+.buscar-marca { width: 260px; max-width: 100%; }
+.buscar-marca .input { height: 36px; }
+/* Un error que ocupa todo el renglón dentro de una fila de chips. */
+.stack-full-fila { flex-basis: 100%; }

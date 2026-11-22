@@ -1,0 +1,40 @@
+/* ── Bandeja de salida (2.9): la campana del panel y la lista de Mensajes ── */
+.campana { position: relative; flex-shrink: 0; }
+.campana-boton { position: relative; }
+/* El contador va montado en la esquina del botón, a la derecha del icono: no lo tapa ni cambia el ancho (360 px). */
+.campana-cuenta {
+  position: absolute; top: -3px; left: 20px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  background: var(--volt); color: var(--volt-ink); font-size: var(--t-micro); font-weight: 700; line-height: 1;
+  display: grid; place-items: center; pointer-events: none;
+}
+/* Fijo y en `body`, en la capa de los menús: por encima de la franja de firmas y de la barra inferior. */
+.campana-panel {
+  position: fixed; z-index: 70; width: 300px; max-width: calc(100vw - 16px); max-height: calc(100vh - 76px); overflow: auto;
+  padding: var(--s-4); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card);
+  box-shadow: var(--shadow-raise); display: flex; flex-direction: column; gap: var(--s-3);
+}
+.campana-titulo { margin: 0; font-size: var(--t-sm); font-weight: 700; }
+.campana-vacio, .campana-pie { margin: 0; }
+.campana-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.campana-renglon {
+  display: flex; align-items: center; gap: var(--s-3); min-height: 40px; padding: 0 var(--s-2);
+  border-radius: var(--r-control); color: var(--fg); font-size: var(--t-base); text-decoration: none;
+}
+.campana-renglon:hover, .campana-renglon:focus-visible { background: var(--surface-2); outline: none; }
+.campana-renglon-cifra { min-width: 28px; font-weight: 700; text-align: right; }
+.campana-renglon[data-tono="danger"] .campana-renglon-cifra { color: var(--danger); }
+.campana-renglon[data-tono="warn"] .campana-renglon-cifra { color: var(--warn); }
+/* Mensajes: quién, qué se le manda y el botón, en una fila; en pantalla angosta, apilados. */
+.mensajes-ancla { scroll-margin-top: 84px; }
+.mensaje-fila { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr) auto; align-items: center; gap: var(--s-3) var(--s-4); }
+.mensaje-texto { margin: 0; }
+.mensaje-acciones { justify-content: flex-end; flex-wrap: wrap; }
+.mensaje-mandado { min-width: 0; }
+.mensaje-mandado summary { cursor: pointer; }
+.mensaje-mandado[open] summary { margin-bottom: var(--s-2); }
+@media (max-width: 1100px) {
+  .mensaje-fila { grid-template-columns: minmax(0, 1fr); }
+  .mensaje-acciones { justify-content: flex-start; }
+  .mensaje-acciones .btn { min-height: 40px; }
+}
+

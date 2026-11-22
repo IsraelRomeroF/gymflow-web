@@ -1,0 +1,186 @@
+/* ── Auditoría UX 2026-10-08 ────────────────────────────────────────────── */
+.dialog-foot { flex-wrap: wrap; }
+/* Pestañas en el teléfono: se acomodan en renglones en vez de esconderse a la derecha. */
+@media (max-width: 520px) { .tabs { flex-wrap: wrap; overflow: visible; } }
+/* En el teléfono el diálogo es una hoja inferior a todo lo ancho. */
+@media (max-width: 520px) {
+  .dialog-backdrop { place-items: end stretch; padding: 0; }
+  .dialog, .dialog-lg { width: 100%; max-height: 92dvh; border-radius: var(--r-float) var(--r-float) 0 0; }
+  .dialog-foot { border-radius: 0; padding-bottom: calc(14px + env(safe-area-inset-bottom)); flex-direction: column-reverse; align-items: stretch; }
+  .dialog-foot .btn, .dialog-foot a.btn { min-height: 44px; width: 100%; justify-content: center; }
+  .dialog-foot > span[style*="flex"] { display: none; }
+  /* La ayuda de teclado no sirve en el teléfono. */
+  .ayuda-teclado { display: none; }
+}
+/* El nombre del día en el editor de rutinas ocupa su renglón. */
+.rt-dia-titulo { flex: 1 1 220px; min-width: 0; }
+/* Objetivos táctiles de 44 px en listas y tablas apiladas del teléfono. */
+@media (max-width: 720px) {
+  .table-stack .btn, .table-stack select, .table-stack .select, .list-item .btn { min-height: 44px; }
+  .table-stack a.btn-icon, .table-stack .btn-icon { min-width: 44px; }
+  .semana-quitar { min-width: 32px; min-height: 32px; }
+}
+.stat--feature { box-shadow: inset 0 3px 0 var(--volt), var(--shadow-card); }
+/* Barra de plataforma en el teléfono: las secciones se desplazan dentro de la barra, "Salir" siempre visible. */
+@media (max-width: 860px) {
+  .plataforma-barra { gap: 8px; }
+  .plataforma-barra nav { flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; margin-left: 4px !important; }
+  .plataforma-barra .topbar-spacer, .plataforma-barra > .small.muted { display: none; }
+  .plataforma-barra > a > span:last-child { display: none; }
+}
+
+/* ── Una sola generación de tokens (UX 2026-10-08) ─────────────────────────
+   Los nombres viejos apuntan a los del sistema v2: quien use cualquiera de
+   los dos obtiene el mismo valor. Las alturas salen de la escala común. */
+:root:root {
+  --radius-sm: var(--r-control); --radius: var(--r-card); --radius-lg: var(--r-float);
+  --shadow-sm: var(--shadow-card); --shadow: var(--shadow-raise);
+}
+.btn, .input, .select, .topbar-search { min-height: var(--h-md); }
+.btn { height: var(--h-md); }
+.input:not(textarea), .select { height: var(--h-md); }
+.btn-sm { height: var(--h-sm); min-height: var(--h-sm); }
+.btn-lg, .input-lg { height: var(--h-lg); min-height: var(--h-lg); }
+.topbar-search { height: var(--h-md); }
+.side-link, .list-item.is-link, .menu-mas-lista button { transition: background var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out); }
+
+/* Inscribir a clase: la cotización se despliega bajo la fila elegida (UX7 Mostrador 7). */
+.list-item[aria-current="true"] { background: var(--surface-2); }
+.cotizacion-fila { flex-wrap: wrap; gap: 10px; background: var(--surface-2); border-left: 3px solid var(--ok); }
+.cotizacion-fila[data-tono="warn"] { border-left-color: var(--warn); }
+.cotizacion-fila[data-tono="danger"] { border-left-color: var(--danger); }
+/* Caja: el corte que no cuadró se distingue del resto (UX7 Mostrador 9). */
+.table tr.fila-descuadre td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+/* Ticket del punto de venta: nombre completo arriba, controles abajo (UX7 Mostrador 10). */
+.pos-lineas li.pos-linea { flex-direction: column; align-items: stretch; gap: 2px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.pos-linea-nombre { overflow-wrap: anywhere; }
+.pos-linea-ctrl { display: flex; align-items: center; gap: 8px; }
+/* "Transferencia" ya no toca los bordes de su opción en columnas angostas. */
+/* Nunca a media palabra (26-04: «Transferenci / a», «WhatsAp p»): en una opción angosta
+   la letra baja de --t-sm hasta --t-micro según el ancho de la opción, y no se parte. */
+.metodos-cobro .choice { container-type: inline-size; }
+.metodos-cobro .choice-title { font-size: clamp(var(--t-micro), 12.5cqi, var(--t-sm)); text-align: center; overflow-wrap: normal; line-height: 1.2; }
+
+/* Medidas del panel para los componentes compartidos. */
+:root:root { --c-radius: var(--r-card); --c-iconbtn: 32px; }
+/* EstadoCarga con `relleno` (lib/carga.tsx): el error o el esqueleto con el margen de una tarjeta. */
+.estado-carga { padding: var(--s-5) var(--s-6); }
+
+/* Altas: lista → detalle en tableta y teléfono (UX7 Clases 3). */
+.solo-movil { display: none; }
+@media (max-width: 1080px) {
+  .solo-movil { display: inline-flex; }
+  .grid-inbox[data-vista="lista"] > :nth-child(2) { display: none; }
+  .grid-inbox[data-vista="detalle"] > :first-child { display: none; }
+}
+@media (max-width: 520px) { .kv-altas { grid-template-columns: 1fr; gap: 2px 0; } .kv-altas dd { margin-bottom: 8px; } }
+
+/* Horario semanal: hoy marcado; en el teléfono, los 7 días uno bajo otro (UX7 Clases 9). */
+.semana-card { overflow-x: auto; }
+.semana-largo { display: none; }
+.semana-hoy { margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: var(--volt); color: var(--volt-ink); font-size: var(--t-nano); letter-spacing: .04em; }
+.semana-dia[data-hoy] { background: color-mix(in srgb, var(--volt) 7%, transparent); }
+@media (max-width: 720px) {
+  .semana-card { overflow-x: visible; }
+  .semana { grid-template-columns: 1fr; min-width: 0; }
+  .semana-dia { border-right: 0; border-bottom: 1px solid var(--line); min-height: 0; padding: 12px 14px; }
+  .semana-dia:last-child { border-bottom: 0; }
+  .semana-cab { text-align: left; border-bottom: 0; padding-bottom: 0; display: flex; align-items: center; text-transform: none; letter-spacing: 0; font-size: var(--t-base); color: var(--fg); }
+  .semana-corto { display: none; }
+  .semana-largo { display: inline; text-transform: capitalize; }
+  .semana-dia[data-vacio] .semana-cab::after { content: "Sin clases"; margin-left: auto; font-weight: 400; color: var(--muted); font-size: var(--t-sm); }
+  .semana-dia[data-vacio] { flex-direction: row; align-items: center; flex-wrap: wrap; }
+  .semana-dia[data-vacio] .semana-cab { flex: 1; }
+  .bloque { width: 100%; padding-right: 48px; }
+  .bloque-quitar { width: 44px; height: 44px; top: 50%; transform: translateY(-50%); opacity: 1; }
+  .bloque-nuevo { min-height: 44px; }
+}
+/* Retención: los ya contactados, plegados debajo (UX7). */
+.ya-contactados > summary { cursor: pointer; border-top: 1px solid var(--line); list-style: none; }
+.ya-contactados > summary::-webkit-details-marker { display: none; }
+.ya-contactados > summary::before { content: "▸"; margin-right: 8px; color: var(--muted); }
+.ya-contactados[open] > summary::before { content: "▾"; }
+/* Tablero: al cambiar de rango, las cifras anteriores atenuadas mientras llegan las nuevas. */
+.tablero-cifras { transition: opacity var(--dur-2) var(--ease-out); }
+.tablero-cifras[data-cargando] { opacity: .45; pointer-events: none; }
+/* Módulos: lo de consulta plegado; chips de sede con ícono, no con "✓" de texto (UX7 Dirección 9). */
+.mod-mas { margin-top: 6px; }
+.mod-mas > summary { cursor: pointer; color: var(--muted); width: fit-content; }
+.mod-mas > summary:hover { color: var(--fg); }
+.mod-mas > p { margin-top: 4px; }
+.chip-sede { display: inline-flex; align-items: center; gap: 4px; }
+.chip-sede[aria-pressed="true"] { background: var(--ok-soft); color: var(--ok); border-color: var(--ok-line); }
+.mod-siempre > summary { cursor: pointer; list-style: none; }
+.mod-siempre > summary::-webkit-details-marker { display: none; }
+.mod-siempre > summary::after { content: " ▸"; color: var(--muted); }
+.mod-siempre[open] > summary::after { content: " ▾"; }
+.mod-siempre[open] > summary { margin-bottom: 8px; }
+/* Movimientos en el teléfono: un renglón de 44 px por día, con cabecera de 3 columnas (UX7 Dirección 7). */
+@media (max-width: 720px) {
+  .table-dias thead { display: block; }
+  .table-dias thead tr, .table-dias tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) 84px 92px; gap: 0 10px; padding: 0 16px; align-items: center; }
+  .table-dias thead th { display: none; padding: 8px 0; }
+  .table-dias thead th:nth-child(1), .table-dias thead th:nth-child(2), .table-dias thead th:last-child { display: block; }
+  .table-dias tbody tr { min-height: 48px; }
+  .table-dias tbody td:first-child { flex: none; min-width: 0; }
+  .table-dias tbody td.right { margin-left: 0; justify-content: flex-end; }
+  .table-dias tbody td .row-link { min-height: 44px; display: inline-flex; align-items: center; }
+  .table-dias td[data-label]::before { display: none; }
+}
+/* Precios de la plataforma: el pie con "Guardar" queda a la vista al bajar la tabla. */
+.precios-pie { position: sticky; bottom: 0; background: var(--surface); z-index: 2; flex-wrap: wrap; }
+/* Alta de marca más corta (UX7 Plataforma 7). */
+.alta-modulos > summary { cursor: pointer; }
+.alta-persona { padding-top: 12px; border-top: 1px solid var(--line); }
+.plan-clases { padding: 12px; border: 1px solid var(--line); border-radius: var(--c-tile-r); background: var(--surface-2); }
+.alta-persona-rol { height: 32px; padding-top: 0; padding-bottom: 0; font-weight: 600; width: auto; }
+
+/* El último renglón del menú no queda detrás del pie con la cuenta (pantallas de 900 px). */
+.side-nav { min-height: 0; padding-bottom: 40px; scroll-padding-bottom: 40px; }
+:root[data-side="rail"] .side-nav { padding-bottom: 40px; }
+/* Paso del arranque ya hecho: palomita y texto apagado, sin tachar. */
+.paso-hecho { color: var(--muted); font-weight: 500; }
+
+/* Inicio de sesión: título sin palabras huérfanas. */
+.auth-titulo { font-size: var(--t-h2); font-weight: 700; text-wrap: balance; }
+/* Historial de accesos en la ficha: la hora en columna fija. */
+.acceso-hora { width: 52px; flex-shrink: 0; }
+/* Alta facial con la cámara: acciones centradas bajo el video. */
+.capture-acciones { display: flex; justify-content: center; gap: 8px; }
+.capture-sin { z-index: 1; }
+
+/* Estación de acceso: la cámara de recepción como lector facial (2026-10-09). */
+.estacion { position: relative; border-radius: var(--r-card); overflow: hidden; background: #0b0c0f; margin: 0 auto; width: 100%; display: flex; flex-direction: column; }
+.estacion-camara { position: relative; aspect-ratio: 4 / 3; max-height: 64vh; width: 100%; display: grid; place-items: center; overflow: hidden; }
+.estacion:fullscreen .estacion-camara { flex: 1; aspect-ratio: auto; max-height: none; }
+.estacion:fullscreen .estacion-ovalo { height: 82%; }
+/* La cuenta regresiva antes de grabar: tiempo para leer la instrucción y prepararse. */
+.estacion-cuenta, .capture-cuenta { font-size: 72px; font-weight: 800; color: #fff; line-height: 1; text-shadow: 0 2px 16px rgb(0 0 0 / .6); }
+.capture-cuenta { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2; }
+.estacion:fullscreen { border-radius: 0; height: 100vh; }
+.estacion-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.estacion-guia { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; }
+.estacion-guia > .estacion-ovalo { grid-area: 1 / 1; }
+.estacion-guia > .estacion-cuenta { grid-area: 1 / 1; }
+.estacion-ovalo { height: 84%; width: auto; aspect-ratio: 3 / 4; border-radius: 50%; border: 3px solid color-mix(in srgb, #fff 60%, transparent); box-shadow: 0 0 0 9999px rgb(0 0 0 / .35); }
+.estacion-ovalo[data-leyendo] { border-color: var(--volt); animation: estacion-pulso 1s ease-in-out infinite; }
+@keyframes estacion-pulso { 50% { border-color: color-mix(in srgb, var(--volt) 40%, transparent); } }
+.estacion-instruccion { color: #fff; font-size: var(--t-h3); font-weight: 700; text-align: center; margin: 0; }
+.estacion-aviso { position: relative; z-index: 1; color: #d8dbe0; text-align: center; display: grid; gap: 10px; place-items: center; padding: 24px; }
+.estacion-resultado { position: absolute; inset: 0; z-index: 3; display: grid; place-content: center; justify-items: center; gap: 10px; text-align: center; padding: 24px; color: #fff; animation: estacion-entra var(--dur-2) var(--ease-out); }
+.estacion-resultado[data-tono="ok"] { background: color-mix(in srgb, #117a3e 88%, transparent); }
+.estacion-resultado[data-tono="no"] { background: color-mix(in srgb, #b42318 88%, transparent); }
+.estacion-resultado[data-tono="neutro"] { background: color-mix(in srgb, #111317 86%, transparent); }
+.estacion-titulo { font-size: var(--t-display); font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+.estacion-detalle { font-size: var(--t-lg); opacity: .92; }
+@keyframes estacion-entra { from { opacity: 0; transform: scale(.98); } }
+@media (prefers-reduced-motion: reduce) { .estacion-ovalo[data-leyendo], .estacion-resultado { animation: none; } }
+/* Estación: el socio decide cuándo empezar (botón Ingresar, como en HRFlow). */
+.estacion-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 24px; padding: 16px; min-height: 92px; background: #111317; border-top: 1px solid rgb(255 255 255 / .08); }
+.estacion-ingresar {
+  display: inline-flex; align-items: center; gap: 10px; height: 64px; padding: 0 36px; border-radius: 999px; border: 0; cursor: pointer;
+  background: var(--volt); color: var(--volt-ink); font: 800 var(--t-lg) var(--font-sans); box-shadow: 0 8px 28px rgb(0 0 0 / .35);
+}
+.estacion-ingresar svg { width: 26px; height: 26px; }
+.estacion-ingresar:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+

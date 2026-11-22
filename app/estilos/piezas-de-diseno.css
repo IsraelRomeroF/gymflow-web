@@ -1,0 +1,99 @@
+/* ── Piezas de diseño (auditoría 8, fase 1.5) ──────────────────────────────── */
+
+/* Diálogo chico (`size="sm"`): confirmar con un motivo no necesita 560 px (26 §3.A). */
+.dialog-sm { width: min(440px, 100%); }
+
+/* El principal apagado no se lee como un secundario, sobre todo en oscuro (26-12): sin fondo,
+   con borde y letra tenues. Mientras envía conserva su color con el giro: trabajando no es apagado. */
+.btn:disabled:not(.btn-ghost):not(.btn-secondary):not([aria-busy="true"]) { background: transparent; color: var(--faint); border-color: var(--line-strong); box-shadow: none; }
+.btn-primary[aria-busy="true"]:disabled { background: var(--primary); color: var(--primary-fg); border-color: transparent; }
+.btn-danger[aria-busy="true"]:disabled { background: var(--danger-solid); color: var(--danger-solid-fg); border-color: transparent; }
+.btn-volt[aria-busy="true"]:disabled { background: var(--volt); color: var(--volt-ink); border-color: transparent; }
+.btn[aria-busy="true"] { cursor: progress; }
+
+/* Opciones (ui/opciones.tsx, 26-11): una forma por uso, con los estilos que ya existían.
+   Una sola opción es un grupo de radio (`aria-checked`); varias, botones que se encienden. */
+.opciones-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.opciones-casillas { display: flex; flex-direction: column; gap: 10px; }
+.opcion-cuerpo { display: flex; flex-direction: column; min-width: 0; }
+.opciones-tarjetas .opcion-cuerpo { flex: 1; }
+@media (min-width: 861px) {
+  .opciones-col-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .opciones-col-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+/* Compactas: ícono arriba y una palabra abajo (canal, método). Caben en un renglón también en el
+   teléfono; la letra baja según el ancho de la opción y no se parte (como `.metodos-cobro`, 0.10). */
+.opciones-compactas.opciones-col-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.opciones-compactas.opciones-col-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.opciones-compactas .choice { flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px; container-type: inline-size; }
+.opciones-compactas .opcion-cuerpo { align-items: center; }
+.opciones-compactas .choice-title { font-size: clamp(var(--t-micro), 12.5cqi, var(--t-sm)); text-align: center; overflow-wrap: normal; line-height: 1.2; }
+.chip[aria-checked="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.choice[aria-checked="true"] { border-color: var(--fg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fg) 8%, transparent); }
+.choice[aria-checked="true"] .choice-icon { background: var(--volt); color: var(--volt-ink); }
+.chip:disabled { opacity: .5; cursor: not-allowed; }
+.chip:focus-visible, .choice:focus-visible, .segmented button:focus-visible, .day-chip:focus-visible { outline: none; box-shadow: var(--focus); }
+.check.is-disabled { opacity: .6; cursor: not-allowed; }
+
+/* Segmentado que se desliza (26-04): una fila, el borde se desvanece del lado donde hay más
+   y la elegida queda a la vista (ui/opciones.tsx). Sin barra de desplazamiento encima. */
+.segmented--desplazable { position: relative; flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scroll-padding-inline: 3px; scrollbar-width: none; }
+.segmented--desplazable::-webkit-scrollbar { display: none; }
+.segmented--desplazable button { flex: 0 0 auto; padding: 0 12px; scroll-snap-align: start; }
+.segmented--desplazable[data-despues] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); }
+.segmented--desplazable[data-antes] { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent); }
+.segmented--desplazable[data-antes][data-despues] { -webkit-mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent); }
+
+/* Motivo con sus motivos de un toque (ui/motivo.tsx, 26-09). */
+.motivos-rapidos { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+
+/* Cambio (ui/cambio.tsx): contra antes, con flecha y color solo si es notable; o de → a. */
+.cambio-valor { display: inline-flex; align-items: center; gap: 4px; font-size: var(--t-xs); color: var(--muted); }
+.cambio-valor[data-tono="ok"] { color: var(--ok); }
+.cambio-valor[data-tono="danger"] { color: var(--danger); }
+.cambio-valor svg, .cambio-paso svg { width: 13px; height: 13px; flex-shrink: 0; }
+.cambio-paso { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+.cambio-paso svg { color: var(--muted); }
+.cambio-antes { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line-strong); }
+.cambio-despues { font-weight: 600; color: var(--fg); }
+.cambio-paso[data-tono="ok"] .cambio-despues { color: var(--ok); }
+.cambio-paso[data-tono="warn"] .cambio-despues { color: var(--warn); }
+.cambio-paso[data-tono="danger"] .cambio-despues { color: var(--danger); }
+
+/* Vista previa (ui/vista-previa.tsx): bloqueos, avisos y las cifras, una por renglón. */
+.vista-previa { display: flex; flex-direction: column; gap: var(--s-3); }
+.vista-previa-lista { margin: 4px 0 0; padding-left: 18px; }
+.vista-previa-lista li + li { margin-top: 2px; }
+.vista-previa-cifras { border: 1px solid var(--line); border-radius: var(--r-card); padding: var(--s-3) var(--s-4); background: var(--surface); }
+.vista-previa-cifras dl { margin: var(--s-2) 0 0; }
+.vista-previa-fila { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-4); padding: var(--s-2) 0; border-top: 1px solid var(--line); }
+.vista-previa-fila:first-child { border-top: 0; padding-top: 0; }
+.vista-previa-fila dt { min-width: 0; color: var(--fg-2); }
+.vista-previa-fila dd { margin: 0; font-weight: 600; text-align: right; white-space: nowrap; }
+.vista-previa-fila[data-tono="ok"] dd { color: var(--ok); }
+.vista-previa-fila[data-tono="warn"] dd { color: var(--warn); }
+.vista-previa-fila[data-tono="danger"] dd { color: var(--danger); }
+
+/* Bloques dentro de un diálogo largo («Cuenta · Puesto y sucursales · Qué ve», 17-11): un rótulo
+   `eyebrow` arriba y una línea que los separa; el primero sin línea. Lo pidió 1.14 para el diálogo
+   de la persona, que hoy separa con `.alta-persona`. */
+.dialog-seccion { display: flex; flex-direction: column; gap: var(--s-3); padding-top: var(--s-4); border-top: 1px solid var(--line); }
+.dialog-seccion:first-child { padding-top: 0; border-top: 0; }
+
+/* ── Piezas del mostrador (1.4): la pieza de cobro y resolver un rechazo ─── */
+.items-end { align-items: flex-end !important; }
+.cambio-paga { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px; }
+.cambio-campo { width: 120px; }
+.cobro-importe { width: 140px; font-size: var(--t-h3); text-align: right; }
+.cobro-total { font-size: var(--t-h1-alt); letter-spacing: -0.02em; }
+.cobro-debe { text-align: right; }
+.cobro-debe .cobro-total { color: var(--danger); }
+.resolver-pie { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.excepcion { max-width: 560px; margin: 0 auto; }
+
+/* Bitácora (1.11): la columna de la hora de un asiento; con fecha (ficha del socio) crece lo que necesite. */
+.asiento-hora { flex: none; min-width: 44px; padding-top: 2px; line-height: 1.35; }
+.asiento-grupo > summary { cursor: pointer; }
+.asiento-grupo-lista { margin: 6px 0 0; padding-left: 18px; columns: 2 260px; column-gap: 24px; }
+.asiento-grupo-lista > li { margin-bottom: 2px; }
+

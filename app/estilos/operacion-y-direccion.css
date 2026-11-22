@@ -1,0 +1,295 @@
+/* ── Caja ────────────────────────────────────────────────────────────────── */
+
+.caja-cerrada { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.caja-icono {
+  display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px;
+  background: var(--surface-2); color: var(--muted);
+}
+.caja-icono svg { width: 20px; height: 20px; }
+.caja-datos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.caja-datos--cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.caja-datos dt { display: flex; align-items: center; gap: 6px; font-size: var(--t-xs); color: var(--muted); }
+.caja-datos dt svg { width: 14px; height: 14px; }
+.caja-datos dd { margin: 4px 0 0; font-weight: 600; }
+.caja-datos--cifras dd { font-size: var(--t-h3); letter-spacing: -0.01em; }
+.caja-cobros { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+.section-label { margin: 0 0 8px; }
+.input-money { position: relative; }
+.input-money > span { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.input-money .input { padding-left: 26px; font-variant-numeric: tabular-nums; }
+.conteo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.conteo-grid { display: flex; flex-direction: column; gap: 8px; }
+.conteo-fila { display: grid; grid-template-columns: 64px 12px 88px 1fr; align-items: center; gap: 8px; }
+.conteo-fila .input { text-align: right; font-variant-numeric: tabular-nums; }
+.conteo-fila .num { text-align: right; }
+.conteo-denom { font-weight: 600; font-variant-numeric: tabular-nums; }
+.conteo-total {
+  display: flex; align-items: baseline; justify-content: space-between; margin-top: 20px;
+  padding: 14px 16px; border-radius: var(--radius); background: var(--surface-2);
+}
+.conteo-total strong { font-size: var(--t-h2); letter-spacing: -0.01em; }
+.corte-veredicto { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: var(--radius); border: 1px solid var(--ok-line); background: var(--ok-soft); }
+.corte-veredicto svg { width: 22px; height: 22px; color: var(--ok); flex: none; }
+.corte-veredicto:not([data-kind="EXACT"]) { border-color: var(--warn-line); background: var(--warn-soft); }
+.corte-veredicto:not([data-kind="EXACT"]) svg { color: var(--warn); }
+
+/* El corte impreso: una hoja, sin el marco del panel. */
+.corte-doc { max-width: 720px; }
+.corte-doc h2 { font-size: var(--t-sm); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 22px 0 8px; }
+.corte-tabla { width: 100%; border-collapse: collapse; font-size: var(--t-base); }
+.corte-tabla td { padding: 7px 0; border-bottom: 1px dashed var(--line); }
+.corte-tabla td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.corte-tabla tr.total td { border-bottom: 0; border-top: 1px solid var(--fg); font-weight: 700; }
+.corte-firmas { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 56px; }
+.corte-firmas div { border-top: 1px solid var(--fg); padding-top: 6px; font-size: var(--t-xs); color: var(--muted); text-align: center; }
+
+/* Tabla que en el teléfono se vuelve tarjetas (UI-03): la primera celda
+   arriba a todo lo ancho, las marcadas `stack-hide` se omiten y el resto
+   se acomoda debajo sin desplazar la pantalla de lado. */
+@media (max-width: 720px) {
+  .table-stack thead { display: none; }
+  .table-stack tbody tr { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  /* `height: auto`: la altura fija de 52 px de la celda de escritorio dejaba
+     que los botones y las notas se salieran a la tarjeta de abajo (10-02). */
+  .table-stack tbody td { padding: 0; border: 0; height: auto; }
+  .table-stack tbody td:first-child { flex: 1 0 100%; }
+  .table-stack tbody td.stack-hide { display: none; }
+  .table-stack tbody td.stack-full { flex: 1 0 100%; }
+  .table-stack td[data-label] { display: inline-flex; align-items: center; gap: 6px; }
+  .table-stack tbody td.right { margin-left: auto; }
+  /* Las acciones de una fila en su propio renglón, dentro de su tarjeta (10-02). */
+  .table-stack tbody td.acciones-fila { flex: 1 0 100%; margin-left: 0; }
+  /* La celda angosta de escritorio (un ícono) toma lo que mide su botón: con 1 px el botón se salía de la tarjeta. */
+  .table-stack tbody td.celda-minima { width: auto; }
+  .table-stack tbody tr.is-link:hover td { background: transparent; }
+  .table-stack td[data-label]::before { content: attr(data-label) " "; color: var(--muted); font-weight: 400; font-size: var(--t-xs); }
+}
+
+@media (max-width: 720px) {
+  .caja-datos { grid-template-columns: 1fr 1fr; }
+  .conteo { grid-template-columns: 1fr; }
+}
+
+@media print {
+  .side, .topbar, .no-print, .toasts { display: none !important; }
+  .shell { display: block; }
+  .content { padding: 0; max-width: none; }
+  .corte-doc { max-width: none; padding: 14mm; }
+  .card { box-shadow: none; border: 0; }
+}
+
+/* ── Mostrador: entrada, alta ────────────────────────────────────────────── */
+
+.entrada-veredicto {
+  display: flex; gap: 14px; align-items: flex-start; padding: 18px;
+  border-radius: var(--radius-lg); border: 1px solid var(--danger-line); background: var(--danger-soft);
+}
+.entrada-veredicto[data-ok="true"] { border-color: var(--ok-line); background: var(--ok-soft); }
+.entrada-veredicto > svg { width: 30px; height: 30px; flex: none; color: var(--danger); }
+.entrada-veredicto[data-ok="true"] > svg { color: var(--ok); }
+.entrada-veredicto[data-estado="cargando"], .entrada-veredicto[data-estado="neutro"] { border-color: var(--line); background: var(--surface-2); }
+.entrada-veredicto[data-estado="neutro"] > svg { color: var(--muted); }
+.entrada-veredicto[data-estado="cargando"] .spinner { width: 28px; height: 28px; flex: none; }
+.entrada-titulo { font-size: var(--t-h2); font-weight: 700; letter-spacing: -0.015em; line-height: 1.2; margin: 0 0 6px; }
+/* El verde se cierra solo: la barra dice cuánto falta (UX5-M-01). */
+.entrada-cuenta { height: 3px; margin-top: 12px; border-radius: 3px; background: var(--ok); transform-origin: left; animation: entrada-cuenta linear forwards; }
+@keyframes entrada-cuenta { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) { .entrada-cuenta { animation: none; } }
+.card-pad-sm { padding: 12px 14px; box-shadow: none; }
+.doc-texto {
+  margin-top: 10px; max-height: 220px; overflow: auto; padding: 12px; border-radius: var(--radius);
+  background: var(--surface-2); font-size: var(--t-sm); line-height: 1.6; white-space: pre-wrap;
+}
+.acciones-ficha { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+
+/* ── Comprobante (tamaño ticket, 80 mm) ──────────────────────────────────── */
+
+.recibo {
+  width: 320px; max-width: 100%; padding: 22px 20px; background: #fff; color: #111;
+  border: 1px solid var(--line); border-radius: 10px; font-size: var(--t-sm); line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+.recibo header { text-align: center; padding-bottom: 12px; border-bottom: 1px dashed #999; margin-bottom: 12px; }
+.recibo p { margin: 0; }
+.recibo-org { font-size: var(--t-md); font-weight: 700; }
+.recibo-folio { font-family: var(--font-mono, monospace); font-weight: 700; margin-top: 4px !important; }
+.recibo-aviso { text-align: center; font-weight: 700; margin-bottom: 8px !important; }
+.recibo-socio { font-weight: 600; margin-bottom: 10px !important; }
+.recibo-socio span { font-weight: 400; color: #555; }
+.recibo table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+.recibo td { padding: 4px 0; vertical-align: top; }
+.recibo td:last-child { text-align: right; white-space: nowrap; padding-left: 10px; }
+.recibo tr.total td { border-top: 1px solid #111; font-weight: 700; font-size: var(--t-card); padding-top: 8px; }
+.recibo footer { margin-top: 14px; padding-top: 10px; border-top: 1px dashed #999; font-size: var(--t-micro); color: #555; text-align: center; }
+
+@media print {
+  .recibo { border: 0; width: 72mm; padding: 0; }
+}
+
+/* ── Rutinas ─────────────────────────────────────────────────────────────── */
+
+.rt-card { display: flex; flex-direction: column; gap: 8px; min-height: 170px; color: inherit; text-decoration: none; transition: border-color .15s, transform .15s; }
+.rt-card:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+.rt-card-nombre { font-size: var(--t-ui-lg); font-weight: 700; letter-spacing: -0.01em; margin: 4px 0 0; }
+.rt-dias { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 2px; }
+.rt-dia {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 150px; padding: 12px 14px;
+  border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); cursor: pointer; text-align: left; color: inherit;
+}
+.rt-dia[aria-pressed="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
+.rt-dia-num { font-size: var(--t-micro); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.rt-dia-nombre { font-weight: 600; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rt-dia-nuevo { flex-direction: row; align-items: center; justify-content: center; gap: 6px; border-style: dashed; color: var(--muted); min-width: 130px; }
+.rt-dia-nuevo svg { width: 16px; height: 16px; }
+.rt-dia-titulo { font-size: var(--t-md); font-weight: 700; border-color: transparent; background: transparent; padding-left: 0; max-width: 360px; }
+.rt-dia-titulo:hover, .rt-dia-titulo:focus { border-color: var(--line); background: var(--surface); padding-left: 10px; }
+.rt-tabla .input, .rt-tabla .select { height: 34px; }
+.rt-num { width: 64px; text-align: center; }
+.rt-reps { width: 90px; }
+.rt-desc { width: 96px; }
+.rt-grupos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.rt-grupos button {
+  height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: inherit; font-weight: 600; font-size: var(--t-sm); cursor: pointer;
+}
+.rt-grupos button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.rt-catalogo { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 360px; overflow: auto; }
+.rt-catalogo button {
+  display: flex; gap: 12px; align-items: center; width: 100%; padding: 10px 12px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--surface); color: inherit; text-align: left; cursor: pointer;
+}
+.rt-catalogo button[aria-pressed="true"] { border-color: var(--fg); background: var(--surface-2); }
+.rt-check {
+  display: grid; place-items: center; width: 24px; height: 24px; flex: none; border-radius: 7px;
+  border: 1.5px solid var(--line-strong); font-size: var(--t-xs); font-weight: 700;
+}
+.rt-catalogo button[aria-pressed="true"] .rt-check { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.rt-catalogo .badge { margin-left: 6px; }
+@media (max-width: 720px) { .rt-grupos { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.rt-lista { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.grid > .field + .field { margin-top: 0; }
+
+/* ── Punto de venta ──────────────────────────────────────────────────────── */
+.pos { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 20px; align-items: start; }
+.pos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding: 0 20px 20px; }
+.pos-producto {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 104px; padding: 12px;
+  border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: inherit; text-align: left; cursor: pointer;
+}
+.pos-producto:hover:not(:disabled) { border-color: var(--line-strong); }
+.pos-producto:disabled { opacity: .5; cursor: not-allowed; }
+.pos-precio { margin-top: auto; font-weight: 700; font-size: var(--t-md); font-variant-numeric: tabular-nums; }
+.pos-cuenta { position: absolute; top: 8px; right: 8px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; background: var(--fg); color: var(--bg); font-size: var(--t-xs); font-weight: 700; display: grid; place-items: center; }
+.pos-lineas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.pos-lineas li { display: flex; align-items: center; gap: 8px; }
+.danger { color: var(--danger); }
+@media (max-width: 1080px) { .pos { grid-template-columns: 1fr; } }
+
+/* Explicación desplegable: la respuesta está a un clic, no ocupando pantalla. */
+.explica summary { cursor: pointer; color: var(--fg-2); list-style: none; }
+.explica summary::-webkit-details-marker { display: none; }
+.explica summary::before { content: "+ "; color: var(--muted); }
+.explica[open] summary::before { content: "− "; }
+
+/* ── Movimientos: ganancia real por día ──────────────────────────────────── */
+/* Una sola serie: el título la nombra, no lleva leyenda. Barras delgadas con
+   la punta redondeada sobre una línea base; las negativas bajan en rojo. */
+.mov-chart {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(6px, 1fr); gap: 2px; align-items: center;
+  height: 140px; padding: 16px 20px; border-bottom: 1px solid var(--line);
+  background: linear-gradient(var(--line), var(--line)) center / 100% 1px no-repeat;
+}
+.mov-barra { position: relative; height: 100%; border: 0; padding: 0; background: transparent; cursor: pointer; border-radius: 4px; }
+.mov-barra:hover { background: var(--surface-2); }
+.mov-barra[aria-pressed="true"] { box-shadow: inset 0 -3px 0 var(--fg); background: transparent; }
+.mov-ejes { display: flex; justify-content: space-between; padding: 6px 20px 10px; border-bottom: 1px solid var(--line); }
+.mov-chart { border-bottom: 0; }
+.mov-barra-fill {
+  position: absolute; left: 20%; right: 20%; bottom: 50%; max-height: 50%;
+  background: var(--fg); border-radius: 4px 4px 0 0;
+}
+.mov-barra-fill.neg { bottom: auto; top: 50%; background: var(--danger); border-radius: 0 0 4px 4px; }
+.mov-chart.solo-pos { background-position: bottom; }
+.mov-chart.solo-pos .mov-barra-fill { bottom: 0; max-height: 100%; }
+.mov-metodos { margin-bottom: 16px; }
+.chip {
+  height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
+  color: var(--fg-2); font: inherit; font-size: var(--t-sm); cursor: pointer;
+}
+.chip:hover { border-color: var(--line-strong); }
+.chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+/* Matriz de roles: la acción a lo ancho, las marcas centradas y estrechas. */
+.table th.center, .table td.center { text-align: center; width: 110px; }
+.roles-tabla td:first-child { min-width: 260px; }
+@media (max-width: 720px) { .roles-tabla td:first-child { min-width: 170px; } .table th.center, .table td.center { width: 72px; } }
+
+/* Solo para lectores de pantalla. */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* Sesiones de clase: una línea en escritorio; en el teléfono, cuándo y qué
+   arriba, cupo y acción abajo (UI2-04). Antes "Reservados" se encimaba. */
+/* La fila envuelve siempre: con "Inscribir" + "Cancelar sesión" las acciones no caben en 150 px (2026-10-08). */
+.sesion-fila { flex-wrap: wrap; row-gap: 10px; }
+.sesion-cuando { width: 92px; flex-shrink: 0; }
+.sesion-que { flex: 1 1 200px; min-width: 0; }
+.sesion-cupo { width: 150px; flex-shrink: 0; }
+.sesion-accion { flex: 0 0 auto; min-width: 150px; margin-left: auto; display: flex; justify-content: flex-end; align-items: center; }
+@media (max-width: 720px) {
+  .sesion-fila { flex-wrap: wrap; row-gap: 10px; }
+  .sesion-cuando { width: auto; min-width: 84px; }
+  /* Qué ocupa el resto de la primera línea; cupo y acción bajan juntos. */
+  .sesion-que { flex: 1 1 calc(100% - 110px); }
+  .sesion-cupo { flex: 1 1 140px; width: auto; }
+  .sesion-accion { width: auto; margin-left: auto; }
+}
+
+/* Aviso de firmas pendientes en la barra superior: también en el teléfono,
+   donde el menú está escondido. */
+.topbar-firma { white-space: nowrap; flex-shrink: 0; }
+
+/* Inicio de la dueña (UXD-01): dos cifras grandes arriba, lo demás debajo. */
+.duena-arriba { margin-bottom: 16px; }
+.duena-cifra { font-size: var(--t-display); font-weight: 700; letter-spacing: -.035em; line-height: 44px; }
+.duena-cifra-chica { font-size: var(--t-h2); font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.duena-alertas { margin-bottom: 16px; }
+.duena-sede { padding: 6px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; gap: 6px; }
+.duena-sede:last-child { border-bottom: 0; }
+.duena-alerta { display: flex; align-items: flex-start; gap: 8px; }
+.duena-alerta > svg { flex-shrink: 0; margin-top: 3px; }
+
+/* ── Módulos ─────────────────────────────────────────────────────────────── */
+
+.mod-grupo { margin: 8px 0 8px 4px; }
+.mod { display: flex; align-items: flex-start; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.mod:last-child { border-bottom: 0; }
+.mod-texto { flex: 1; min-width: 0; }
+/* El interruptor nunca cambia nada solo: abre el diálogo que explica qué pasa. */
+.switch {
+  flex-shrink: 0; width: 40px; height: 24px; padding: 2px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--field-line); background: var(--surface-2); transition: background .15s ease, border-color .15s ease;
+}
+.switch > span { display: block; width: 18px; height: 18px; border-radius: 50%; background: var(--muted); transition: transform .15s ease, background .15s ease; }
+.switch[aria-checked="true"] { background: var(--fg); border-color: var(--fg); }
+.switch[aria-checked="true"] > span { transform: translateX(16px); background: var(--bg); }
+.switch:disabled { cursor: not-allowed; opacity: .75; }
+
+/* ── Fila que se apila ───────────────────────────────────────────────────── */
+
+/* En el teléfono, una fila con nombre, insignias y botones no cabe en un
+   renglón: el nombre se quedaba en 0 px (VM-01). Arriba va quién es; abajo,
+   su estado y lo que se puede hacer, con botones del tamaño de un dedo. */
+@media (max-width: 720px) {
+  .list-item.se-apila { flex-wrap: wrap; row-gap: 10px; }
+  /* Gana al `flex: 1` que la fila trae en línea: el nombre ocupa su renglón. */
+  .list-item.se-apila > .fila-titulo { flex: 1 1 calc(100% - 64px) !important; }
+  .list-item.se-apila > .fila-fin { display: none; }
+  .list-item.se-apila > .fila-dato { width: auto !important; text-align: left !important; flex: 1 1 auto; }
+  .list-item.se-apila > .btn { min-height: 44px; }
+  .list-item.se-apila > .btn:not(.btn-icon) { flex: 1 1 auto; }
+  .list-item.se-apila > .btn-icon { min-width: 44px; }
+}
+
+/* ── Inicio de la dueña: puertas ─────────────────────────────────────────── */
+.duena-entradas { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--line); padding-top: 10px; }
+.duena-entradas a { text-decoration: none; }
+

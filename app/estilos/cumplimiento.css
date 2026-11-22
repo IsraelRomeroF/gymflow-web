@@ -1,0 +1,48 @@
+/* ── Privacidad (1.10): leer un texto firmado y «Revisar y publicar» ───────── */
+.doc-lectura { max-height: 55vh; }
+.revisar-texto { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--s-5); align-items: start; }
+.revisar-texto .doc { max-height: 60vh; }
+.revisar-lista { display: flex; flex-direction: column; gap: 10px; }
+.revisar-lista .check.falta span { color: var(--danger); }
+.diff-linea { display: block; white-space: pre-wrap; overflow-wrap: anywhere; padding: 1px 6px; border-left: 3px solid transparent; }
+.diff-mas { border-left-color: var(--ok); background: var(--ok-soft); }
+.diff-menos { border-left-color: var(--danger); background: var(--danger-soft); text-decoration: line-through; color: var(--muted); }
+.textarea-alta { min-height: 46vh; }
+.fila-texto { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.fila-texto:last-child { border-bottom: 0; }
+@media (max-width: 760px) { .revisar-texto { grid-template-columns: minmax(0, 1fr); } }
+/* Lo que una tabla apilada (teléfono) muestra en lugar de las columnas que esconde (21-22). */
+.stack-only { display: none; }
+@media (max-width: 720px) { .table-stack .stack-only { display: block; } }
+
+/* ── Firma a distancia (2.10) ──────────────────────────────────────────────
+   La franja «Seguir atendiendo» va bajo la barra superior: una fila por firma
+   que el mostrador espera. Neutra mientras espera; el fondo dice el desenlace. */
+.franja-firmas { position: sticky; top: 60px; z-index: 19; }
+.franja-firma {
+  display: flex; align-items: center; gap: 10px; min-height: var(--h-md); padding: 4px 28px;
+  background: var(--surface-2); border-bottom: 1px solid var(--line); font-size: var(--t-sm); color: var(--fg);
+}
+.franja-firma > svg { flex: none; color: var(--muted); }
+.franja-firma-texto { flex: 1 1 auto; min-width: 0; margin: 0; }
+.franja-firma-danger { background: var(--danger-soft); border-bottom-color: var(--danger-line); }
+.franja-firma-warn { background: var(--warn-soft); border-bottom-color: var(--warn-line); }
+.franja-firma-ok { background: var(--ok-soft); border-bottom-color: var(--ok-line); }
+/* La cuenta regresiva de la espera, grande: es lo único que cambia mientras se espera. */
+.firma-cuenta { margin: 0; text-align: center; }
+.firma-cuenta-reloj { font-size: var(--t-title); font-weight: 700; letter-spacing: -.02em; }
+/* El motivo de un «no», como cita de quien lo dijo. */
+.firma-cita { margin: 0 0 6px; font-size: var(--t-base); color: var(--fg); }
+.firma-quien { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.firma-quien > p { margin: 0; }
+.firma-quien > .field { flex: 1 1 220px; }
+/* «Resueltas hoy»: el desenlace de cada solicitud, en una fila. */
+.resuelta { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.resuelta:last-child { border-bottom: 0; }
+.resuelta-importe { font-size: var(--t-h3); font-weight: 700; }
+@media (max-width: 720px) {
+  .franja-firma { padding: 4px 16px; min-height: 44px; }
+  .resuelta { flex-direction: column; gap: 6px; }
+}
+@media print { .franja-firmas { display: none !important; } }
+

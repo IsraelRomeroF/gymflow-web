@@ -1,0 +1,106 @@
+/* ── Mostrador como un solo acto (2.1) ─────────────────────────────────────
+   El buscador con su tarjeta del socio (Socios, inicio, Caja, Ctrl K), «Por
+   resolver en la puerta», las cifras tocables del inicio y la barra inferior
+   de la dueña. Ningún color nuevo: solo tokens. */
+.mostrador-buscador { margin-bottom: var(--s-3); }
+.mostrador-linea { display: flex; justify-content: space-between; gap: 12px; min-height: 18px; margin-top: var(--s-2); }
+.mostrador-cuerpo { margin-bottom: var(--s-4); transition: opacity var(--dur-1) var(--ease-out); }
+/* En espera (5-01): la lista es de la búsqueda anterior; se atenúa y no responde. */
+.mostrador-cuerpo[data-en-espera] { opacity: .55; pointer-events: none; }
+.mostrador-rejilla { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-5); align-items: start; }
+/* Entre 1024 y 1279 la columna de la tarjeta cede 40 px a la lista (2.12). */
+@media (min-width: 1024px) { .mostrador-rejilla { grid-template-columns: minmax(0, 1fr) 340px; gap: var(--s-4); } }
+@media (min-width: 1280px) { .mostrador-rejilla { grid-template-columns: minmax(0, 1fr) 380px; gap: var(--s-5); } }
+/* La fila se parte en dos renglones cuando SU lista es angosta, no la ventana (2.12): con la tarjeta al
+   lado a 1024 px la lista mide unos 330 px y el nombre desaparecía bajo la insignia. */
+.mostrador-lista { min-width: 0; container-type: inline-size; }
+.mostrador-fila-quien { flex: 1 1 0; min-width: 0; }
+@container (max-width: 480px) {
+  .mostrador-fila { flex-wrap: wrap; row-gap: 6px; }
+  .mostrador-fila > .avatar, .mostrador-fila-fin { display: none; }
+  .mostrador-fila-quien { flex: 1 0 100%; }
+}
+.mostrador-vacio .empty { padding: var(--s-6) var(--s-4); }
+/* En Caja el mostrador va sobre la página, con su título, no dentro de otra tarjeta. */
+.mostrador-seccion > .section-title { margin: 0; }
+.mostrador-seccion-sub { margin: 2px 0 var(--s-3); }
+.mostrador-columna { position: sticky; top: 76px; min-width: 0; }
+.mostrador-fila[data-elegido] { background: var(--surface-2); box-shadow: inset 3px 0 0 var(--volt-strong); }
+.mostrador-fila-fin { flex: none; }
+.mostrador-ajeno { color: var(--fg-2); font-weight: 600; }
+.mostrador-alta { display: flex; justify-content: center; margin-top: var(--s-3); }
+
+.tarjeta-socio {
+  display: flex; flex-direction: column; gap: 14px; min-width: 0;
+  padding: var(--s-5); background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-card); box-shadow: var(--shadow-card);
+}
+.tarjeta-socio-cabeza { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.tarjeta-socio-nombre { font-size: var(--t-lg); line-height: 26px; font-weight: 600; letter-spacing: -.015em; overflow-wrap: anywhere; }
+.tarjeta-socio-estado { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.tarjeta-socio-acciones { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.tarjeta-socio-acciones:empty { display: none; }
+/* Un primario, a todo lo ancho: lo que toca con este socio. Los demás, de dos en dos; el que queda solo llena su renglón (2.12). */
+.tarjeta-socio-acciones .btn { flex: 1 1 calc(50% - var(--s-2)); min-width: 0; justify-content: center; min-height: var(--h-lg); }
+.tarjeta-socio-acciones .btn-primary { flex-basis: 100%; }
+.tarjeta-socio-ficha { align-self: flex-start; }
+/* Dentro de una hoja o de Ctrl K la tarjeta no lleva su propio marco. */
+.dialog .tarjeta-socio { padding: 0; border: 0; box-shadow: none; background: transparent; }
+.cmd-tarjeta { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px 18px; max-height: 76vh; overflow-y: auto; }
+.cmd-tarjeta > .btn { align-self: flex-start; }
+.cmd-nota { padding: 18px 12px; }
+
+/* Por resolver en la puerta: cada rechazo es un renglón que se toca, con la marca lateral de lo vencido. */
+button.puerta-fila {
+  width: 100%; background: transparent; border: 0; border-bottom: 1px solid var(--line);
+  font: inherit; color: inherit; text-align: left; box-shadow: inset 3px 0 0 var(--danger);
+}
+li:last-child > button.puerta-fila { border-bottom: 0; }
+
+/* Las cifras del inicio llevan a su pantalla. */
+.stat-enlace { display: block; color: inherit; text-decoration: none; border-radius: var(--r-card); }
+.stat-enlace > .stat { height: 100%; transition: border-color var(--dur-1) var(--ease-out); }
+.stat-enlace:hover > .stat { border-color: var(--line-strong); }
+
+.padron-sede { width: auto; min-width: 180px; height: 36px; }
+.stack-only-inline { display: none; }
+
+/* La barra inferior de la dueña: solo en el teléfono. */
+.barra-inferior { display: none; }
+
+@media (max-width: 860px) {
+  /* El buscador se queda a la vista al bajar por el padrón (2-09). */
+  .mostrador-buscador.es-pegajoso { position: sticky; top: 60px; z-index: 15; background: var(--bg); padding: var(--s-2) 0; margin-top: calc(-1 * var(--s-2)); }
+  .barra-inferior {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+    background: var(--surface); border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .barra-inferior-pestana {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    min-height: 56px; padding: 6px 4px; color: var(--muted); text-decoration: none;
+    font-size: var(--t-xs); font-weight: 500;
+  }
+  .barra-inferior-pestana[aria-current="page"] { color: var(--fg); font-weight: 600; box-shadow: inset 0 2px 0 var(--volt-strong); }
+  .barra-inferior-icono { position: relative; display: grid; place-items: center; }
+  .barra-inferior-icono svg { width: 20px; height: 20px; }
+  .barra-inferior-icono .side-count { position: absolute; top: -6px; left: 14px; margin: 0; }
+  /* Lo último de cada pantalla no queda debajo de la barra. */
+  .shell[data-barra] .content { padding-bottom: calc(48px + 64px + env(safe-area-inset-bottom)); }
+}
+@media (max-width: 720px) {
+  /* El padrón en dos renglones por socio: nombre y código; insignia y adeudo (2-09). Los resultados del mostrador se parten por el ancho de su lista (arriba). */
+  .table-stack .stack-only-inline { display: inline; }
+  .padron-tabla tbody tr { row-gap: 4px; }
+}
+@media (max-width: 520px) {
+  /* En la hoja inferior los botones de la tarjeta son de 48 px y apilados. */
+  .dialog .tarjeta-socio-acciones .btn { flex-basis: 100%; min-height: 48px; }
+}
+@media print { .barra-inferior { display: none !important; } }
+/* La fila elegida no se sale de las esquinas redondeadas de su lista (2.12). */
+.mostrador-lista > .card { overflow: hidden; }
+/* Una lista sin viñetas ni sangría (avisos dentro de una tarjeta). */
+.lista-limpia { list-style: none; padding: 0; margin: 0; }
+

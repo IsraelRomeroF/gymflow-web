@@ -1,0 +1,209 @@
+
+/*
+ * Sistema de diseño de GymFlow.
+ *
+ * Todo color, radio y sombra sale de un token: así el modo oscuro es un
+ * cambio de valores y no una segunda hoja de estilos, y una pantalla nueva
+ * se ve de la familia sin que nadie tenga que acordarse de nada.
+ *
+ * El acento ("volt") es de marca y se usa con moderación: marca lo activo y lo
+ * que importa. Las acciones principales van en tinta en modo claro, porque un
+ * botón verde lima con texto blanco no se lee.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Superficies */
+  --bg: #f5f6f4;
+  --surface: #ffffff;
+  --surface-2: #f0f1ee;
+  --surface-sunken: #eceee9;
+  --line: #e2e4df;
+  --line-strong: #cfd2cb;
+  /* Contorno de un campo: 3:1 sobre la tarjeta y sobre el fondo (UI3-03). */
+  --field-line: #868b84;
+
+  /* Texto */
+  --fg: #14161a;
+  --fg-2: #3d424b;
+  /* AA (≥4.5:1) también sobre --surface-2 y --surface-sunken (UI2-01). */
+  --muted: #5c626b;
+  --faint: #71777f;
+
+  /* Marca */
+  --volt: #c8f23d;
+  --volt-strong: #a9d61a;
+  --volt-ink: #1b2400;
+  --volt-soft: #f1fbd2;
+
+  /* Acción principal */
+  --primary: #14161a;
+  --primary-hover: #2a2e35;
+  --primary-fg: #ffffff;
+
+  /* Estados */
+  --ok: #117a3e;       --ok-soft: #e5f5ea;      --ok-line: #bfe5cc;
+  --warn: #9a5b00;     --warn-soft: #fff4de;    --warn-line: #f5d9a3;
+  --danger: #b42318;   --danger-soft: #fdeceb;  --danger-line: #f6c7c3;
+  --info: #1d5bd6;     --info-soft: #e8f0fe;    --info-line: #c4d6fb;
+  /* Botón de peligro: fondo sólido con texto blanco legible en ambos temas (UI2-02). */
+  --danger-solid: #b42318; --danger-solid-fg: #ffffff;
+  /* La tarjeta destacada: tinta en claro; en oscuro se separa del fondo. */
+  --feature-bg: #111317; --feature-line: #111317;
+  --feature-fg: #ffffff; --feature-muted: #a3a9b3;
+
+  /* Avatares: pastel con tinta en claro; tinta oscura con texto claro en oscuro. */
+  --av0-bg: #e8f5d0; --av0-fg: #3b5a00;  --av1-bg: #dfe9ff; --av1-fg: #1f4fb5;
+  --av2-bg: #ffe6d5; --av2-fg: #9a3d00;  --av3-bg: #f3e1ff; --av3-fg: #6b2a9c;
+  --av4-bg: #d9f4ef; --av4-fg: #0b6a57;  --av5-bg: #ffe0e6; --av5-fg: #a3163a;
+  --av6-bg: #fff1c2; --av6-fg: #7a5600;  --av7-bg: #e3e6ea; --av7-fg: #3a414b;
+
+  /* Barra lateral: siempre oscura, es la firma visual del panel */
+  --side-bg: #111317;
+  --side-fg: #c9ccd2;
+  --side-muted: #7c828d;
+  --side-hover: #1c1f25;
+  --side-active: #23272e;
+  --side-line: #22262c;
+
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px rgba(16, 18, 22, .05);
+  --shadow: 0 1px 2px rgba(16, 18, 22, .04), 0 4px 16px rgba(16, 18, 22, .06);
+  --shadow-lg: 0 12px 40px rgba(16, 18, 22, .18);
+  --ring: 0 0 0 3px color-mix(in srgb, var(--volt) 70%, transparent);
+  /* Foco de teclado: tinta con un respiro del fondo. El lima sobre blanco
+     daba 1.2:1 y no se veía (UI-01); la tinta contrasta en claro y oscuro. */
+  --focus: 0 0 0 2px var(--surface), 0 0 0 4px var(--fg);
+
+  /* ── Sistema v2 (auditoría 5, UX5-UI-01/02/09/10) ── */
+  /* Escala tipográfica: 8 pasos. Ningún tamaño en línea; si falta uno, es un token. */
+  /* La escala --t-* vive en tokens.css (compartida con el portal). */
+  /* Espaciado en múltiplos de 4. */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px; --s-6: 24px; --s-8: 32px; --s-10: 40px; --s-12: 48px; --s-16: 64px;
+  /* Tres radios: control, tarjeta, superficie flotante. */
+  --r-control: 8px; --r-card: 12px; --r-float: 16px;
+  /* Tres sombras: reposo, elevada, flotante. */
+  --shadow-card: 0 1px 2px rgba(16,18,22,.05);
+  --shadow-raise: 0 2px 4px -2px rgba(16,18,22,.06), 0 6px 16px -4px rgba(16,18,22,.10);
+  --shadow-float: 0 24px 48px -12px rgba(16,18,22,.28), 0 0 0 1px rgba(16,18,22,.04);
+  /* Íconos: dos tamaños de trabajo, uno de navegación, uno de avisos. */
+  --icon-sm: 14px; --icon: 16px; --icon-nav: 18px; --icon-lg: 20px;
+  /* El lima como TEXTO (6.6:1 sobre blanco); como fondo sigue siendo --volt. */
+  --volt-text: #4a6600;
+  --toast-bg: #111317;
+  --bar: #2a2e35;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
+}
+
+/* Oscuro: lo pide el sistema (salvo que se elija Claro) o se elige en el menú
+   de la cuenta (UI2-10). Mismos valores en las dos reglas. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0b0c0f;
+    --surface: #171a1f;
+    --surface-2: #1e2228;
+    --surface-sunken: #111418;
+    --line: #2e333c;
+    --line-strong: #3b414b;
+    --field-line: #6b727d;
+    --fg: #eef0f2;
+    --fg-2: #c5c9cf;
+    --muted: #9097a1;
+    --faint: #858b95;
+    --volt-soft: #1e2610;
+    --primary: #eef0f2;
+    --primary-hover: #ffffff;
+    --primary-fg: #0b0c0f;
+    --ok: #4ccf7f;     --ok-soft: #102a1a;     --ok-line: #1d4a2e;
+    --warn: #f2b54a;   --warn-soft: #2d2210;   --warn-line: #4f3a14;
+    --danger: #ff7a6e; --danger-soft: #2f1512; --danger-line: #57241f;
+    --info: #7aa7ff;   --info-soft: #121d33;   --info-line: #213a66;
+    --side-bg: #111317;
+    --side-hover: #1c1f25;
+    --side-active: #262a31;
+    --side-line: #22262c;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 16px rgba(0, 0, 0, .25);
+    --shadow-lg: 0 12px 40px rgba(0, 0, 0, .55);
+    --danger-solid: #d93a2f; --danger-solid-fg: #ffffff;
+    --feature-bg: #1b2010; --feature-line: #3a4a12;
+  --bar: #c5c9cf; --volt-text: #c8f23d; --toast-bg: #262b33;
+  --shadow-card: 0 0 0 1px rgba(255,255,255,.02);
+  --shadow-raise: 0 8px 24px rgba(0,0,0,.45);
+  --shadow-float: 0 24px 64px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.06);
+    --bar: #c5c9cf; --volt-text: #c8f23d; --toast-bg: #262b33;
+    --shadow-card: 0 0 0 1px rgba(255,255,255,.02);
+    --shadow-raise: 0 8px 24px rgba(0,0,0,.45);
+    --shadow-float: 0 24px 64px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.06);
+    --av0-bg: #26331a; --av0-fg: #c9e98e;  --av1-bg: #1c2740; --av1-fg: #a9c3ff;
+    --av2-bg: #36241a; --av2-fg: #ffbf94;  --av3-bg: #2e2238; --av3-fg: #dcb3ff;
+    --av4-bg: #15302b; --av4-fg: #8fe0cf;  --av5-bg: #361c23; --av5-fg: #ffa6b8;
+    --av6-bg: #33290f; --av6-fg: #f5d27a;  --av7-bg: #252a31; --av7-fg: #c5c9cf;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b0c0f;
+  --surface: #171a1f;
+  --surface-2: #1e2228;
+  --surface-sunken: #111418;
+  --line: #2e333c;
+  --line-strong: #3b414b;
+  --field-line: #6b727d;
+  --fg: #eef0f2;
+  --fg-2: #c5c9cf;
+  --muted: #9097a1;
+  --faint: #858b95;
+  --volt-soft: #1e2610;
+  --primary: #eef0f2;
+  --primary-hover: #ffffff;
+  --primary-fg: #0b0c0f;
+  --ok: #4ccf7f;     --ok-soft: #102a1a;     --ok-line: #1d4a2e;
+  --warn: #f2b54a;   --warn-soft: #2d2210;   --warn-line: #4f3a14;
+  --danger: #ff7a6e; --danger-soft: #2f1512; --danger-line: #57241f;
+  --info: #7aa7ff;   --info-soft: #121d33;   --info-line: #213a66;
+  --side-bg: #111317;
+  --side-hover: #1c1f25;
+  --side-active: #262a31;
+  --side-line: #22262c;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 16px rgba(0, 0, 0, .25);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, .55);
+  --danger-solid: #d93a2f; --danger-solid-fg: #ffffff;
+  --feature-bg: #1b2010; --feature-line: #3a4a12;
+  --av0-bg: #26331a; --av0-fg: #c9e98e;  --av1-bg: #1c2740; --av1-fg: #a9c3ff;
+  --av2-bg: #36241a; --av2-fg: #ffbf94;  --av3-bg: #2e2238; --av3-fg: #dcb3ff;
+  --av4-bg: #15302b; --av4-fg: #8fe0cf;  --av5-bg: #361c23; --av5-fg: #ffa6b8;
+  --av6-bg: #33290f; --av6-fg: #f5d27a;  --av7-bg: #252a31; --av7-fg: #c5c9cf;
+  --bar: #c5c9cf; --volt-text: #c8f23d; --toast-bg: #262b33;
+  --shadow-card: 0 0 0 1px rgba(255,255,255,.02);
+  --shadow-raise: 0 8px 24px rgba(0,0,0,.45);
+  --shadow-float: 0 24px 64px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.06);
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 14.5px/1.5 var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "cv11", "ss01";
+}
+h1, h2, h3, h4 { margin: 0; letter-spacing: -.015em; line-height: 1.2; }
+p { margin: 0; }
+a { color: inherit; }
+code, .mono { font-family: var(--font-mono); font-size: .92em; }
+/* Los controles no heredan la letra por omisión y caían en Arial (UI2-05). */
+button, input, select, textarea { font: inherit; color: inherit; letter-spacing: inherit; }
+.num { font-variant-numeric: tabular-nums; }
+:focus-visible { outline: none; box-shadow: var(--focus) !important; border-radius: 6px; }
+::selection { background: var(--volt); color: var(--volt-ink); }
+

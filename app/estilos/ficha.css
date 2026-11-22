@@ -1,0 +1,52 @@
+/* ── Ficha del socio (2.2): estado de cuenta en una lista, «Devolver dinero», historia, portal y hoja para el socio ── */
+.cuenta-totales { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-3); margin: 0; }
+.cuenta-totales > div { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card, 14px); padding: var(--s-3) var(--s-4); min-width: 0; }
+.cuenta-totales dt { font-size: var(--t-xs); color: var(--muted); }
+.cuenta-totales dd { margin: 2px 0 0; font-size: var(--t-lg); font-weight: 600; letter-spacing: -.015em; overflow-wrap: anywhere; }
+/* Un renglón del estado de cuenta: qué es, cuánto y su corrección, sin tabla (3-13). */
+.mov { flex-wrap: wrap; }
+.mov-titulo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; overflow-wrap: anywhere; }
+.mov-importe { display: flex; flex-direction: column; align-items: flex-end; text-align: right; white-space: nowrap; padding-top: 2px; }
+.mov-acciones { display: flex; align-items: center; justify-content: flex-end; gap: 4px; min-width: 132px; }
+.mov-acciones:empty { min-width: 0; }
+@media (max-width: 720px) {
+  .cuenta-totales { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cuenta-totales > div:last-child { grid-column: 1 / -1; }
+  .mov-acciones { flex-basis: 100%; min-width: 0; padding-left: 40px; justify-content: flex-start; }
+  .mov-acciones:empty { display: none; }
+}
+/* El pago que se va a devolver, como contexto del diálogo. */
+.pago-contexto { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: var(--s-3) var(--s-4); }
+.pago-contexto p { margin: 0; }
+.pago-contexto-importe { font-size: var(--t-lg); font-weight: 700; white-space: nowrap; }
+.cor-importe { width: 150px; }
+.historia-detalle { color: var(--fg-2); overflow-wrap: anywhere; }
+.portal-codigo { font-size: var(--t-h1-alt); font-weight: 700; letter-spacing: .12em; padding: 18px 24px; background: var(--surface-sunken); border: 1px solid var(--line); border-radius: 14px; }
+/* La hoja para el socio: papel blanco también en tema oscuro, como el comprobante. */
+.estado-doc {
+  width: 760px; max-width: 100%; padding: 32px 36px; background: #fff; color: #111;
+  border: 1px solid var(--line); border-radius: 10px; font-size: var(--t-sm); line-height: 1.45; font-variant-numeric: tabular-nums;
+}
+.estado-doc p { margin: 0; }
+.estado-doc header { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 2px solid #111; margin-bottom: 14px; }
+.estado-doc-org { font-size: var(--t-lg); font-weight: 700; }
+.estado-doc-titulo { text-align: right; }
+.estado-doc h1 { margin: 0; font-size: var(--t-lg); font-weight: 700; }
+.estado-doc h2 { margin: 20px 0 6px; font-size: var(--t-base); font-weight: 700; }
+.estado-doc-socio { font-size: var(--t-md); font-weight: 600; }
+.estado-doc-socio span, .estado-doc-nota, .estado-doc-vacio { font-weight: 400; color: #555; }
+.estado-doc-vacio { margin-top: 8px !important; }
+.estado-doc-saldo { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 14px 0 4px; padding: 12px 14px; border: 1px solid #999; border-radius: 8px; }
+.estado-doc-saldo dt { font-size: var(--t-xs); color: #555; }
+.estado-doc-saldo dd { margin: 0; font-size: var(--t-md); font-weight: 700; }
+.estado-doc table { width: 100%; border-collapse: collapse; }
+.estado-doc th { text-align: left; font-size: var(--t-xs); font-weight: 600; color: #555; padding: 6px 8px 6px 0; border-bottom: 1px solid #111; }
+.estado-doc td { padding: 6px 8px 6px 0; vertical-align: top; border-bottom: 1px solid #ddd; overflow-wrap: anywhere; }
+.estado-doc th.num, .estado-doc td.num { text-align: right; white-space: nowrap; padding-right: 0; padding-left: 8px; }
+.estado-doc tfoot td { border-top: 1px solid #111; border-bottom: 0; font-weight: 700; }
+.estado-doc footer { margin-top: 22px; padding-top: 10px; border-top: 1px dashed #999; font-size: var(--t-micro); color: #555; text-align: center; }
+@media print {
+  .estado-doc { border: 0; width: 100%; padding: 0; }
+  .estado-doc tr { break-inside: avoid; }
+}
+

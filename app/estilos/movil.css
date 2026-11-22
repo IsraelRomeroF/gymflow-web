@@ -1,0 +1,46 @@
+/* ── Móvil ────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 1080px) {
+  .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Tres tarjetas en 1024 px dejaban 228 px a cada una y los datos (`.kv`, 150 px de etiqueta) se salían (D2 de 1.17a). */
+  .grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid-main, .grid-inbox { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 860px) {
+  .shell { grid-template-columns: 1fr; }
+  .side {
+    position: fixed; z-index: 70; left: 0; top: 0; width: 272px;
+    transform: translateX(-100%); transition: transform .2s ease;
+  }
+  .shell[data-nav="open"] .side { transform: none; box-shadow: var(--shadow-lg); }
+  .shell[data-nav="open"]::after { content: ""; position: fixed; inset: 0; z-index: 65; background: rgba(0, 0, 0, .45); }
+  .topbar { padding: 0 16px; }
+  .topbar .topbar-menu { margin-left: 0; }
+  .topbar-menu-movil { display: block; }
+  .topbar-menu-escritorio { display: none; }
+  /* En el teléfono no hay teclado: el atajo solo ocupa espacio (UI-02). */
+  .topbar-search { flex: 1 1 auto; }
+  .topbar-search kbd { display: none; }
+  .content { padding: 20px 16px 48px; }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .auth { grid-template-columns: 1fr; }
+  .auth-art { display: none; }
+  .kv { grid-template-columns: 1fr; gap: 2px 0; }
+  .kv dd { margin-bottom: 10px; }
+  .choice-grid { grid-template-columns: 1fr; }
+  .profile { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .profile .avatar { --size: 52px; }
+  .profile-name { font-size: var(--t-h3); }
+}
+
+@media (max-width: 520px) {
+  .grid-4 { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat { padding: 14px; }
+  .stat-value { font-size: var(--t-h3); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+

@@ -1,0 +1,77 @@
+/* ── Dirección (2.7): Planes, Lista de precios, Mi gimnasio, Personal e Importar ── */
+/* Planes: el grupo es una etiqueta pequeña sobre la rejilla; el precio, el foco de la tarjeta. */
+.plan-grupo { margin: 0 0 var(--s-3) 4px; font-size: var(--t-xs); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.plan-grupo-nota { font-weight: 400; text-transform: none; letter-spacing: 0; }
+.plan-tarjeta { min-height: 190px; }
+.plan-nombre { font-size: var(--t-md); }
+.plan-precio { font-size: 26px; font-weight: 700; letter-spacing: -.03em; }
+.plan-precio-sede { color: var(--fg-2); }
+.plan-nombre-codigo { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+.plan-duracion { width: 70px; }
+.plan-sede { display: inline-flex; flex-direction: column; gap: 2px; }
+/* Lista de precios: tabla de consulta; el precio manda. */
+.precios td { vertical-align: top; }
+.precios-precio { font-size: var(--t-md); }
+/* Mi gimnasio: las tres pestañas (Datos, Sucursales, Módulos) son enlaces con forma de pestaña. */
+.gimnasio-nav .eyebrow { margin: 0 0 4px 2px; }
+.gimnasio-nav .tabs { margin-bottom: 0; }
+.gimnasio-nav .tab { text-decoration: none; }
+/* Personal: «Ve y hace» en su columna, con pastillas; la cuenta dada de baja, atenuada. */
+.personal-buscar { max-width: 240px; }
+/* La contraseña temporal, grande y legible: se dicta o se copia una sola vez. */
+.personal-temporal { font-size: 26px; font-weight: 700; letter-spacing: .08em; padding: 16px 22px; background: var(--surface-sunken); border: 1px solid var(--line); border-radius: 14px; }
+.personal-baja { opacity: .55; }
+.personal-ve, .personal-cuenta { display: inline-flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.personal-chip { display: inline-block; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font-size: var(--t-xs); color: var(--fg-2); line-height: 1.5; }
+.personal-chip.text-warn { color: var(--warn); }
+/* Importar en cuatro pasos: el indicador, las cifras, las acciones de cada caso y la barra de aplicar. */
+.importar-pasos { display: flex; flex-wrap: wrap; gap: var(--s-2); list-style: none; margin: 0; padding: 0; }
+.importar-paso { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); font-size: var(--t-sm); color: var(--muted); }
+.importar-paso-num { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--surface-2); font-size: var(--t-xs); font-weight: 700; }
+.importar-paso[data-estado="actual"] { color: var(--fg); border-color: var(--fg); font-weight: 600; }
+.importar-paso[data-estado="actual"] .importar-paso-num { background: var(--fg); color: var(--bg); }
+.importar-paso[data-estado="hecho"] { color: var(--ok); border-color: var(--ok-line); }
+.importar-paso[data-estado="hecho"] .importar-paso-num { background: var(--ok-soft); }
+.importar-cifra { font-size: 26px; overflow-wrap: anywhere; }
+.importar-cifra[data-alerta] { color: var(--warn); }
+.importar-dinero { margin-top: calc(-1 * var(--s-3)); }
+.importar-buscar { max-width: 320px; }
+.importar-que-pasa { min-width: 140px; }
+.importar-debe { max-width: 130px; }
+.importar-par { display: contents; }
+.importar-caso-cabeza { margin-bottom: 10px; gap: 8px; flex-wrap: wrap; }
+.importar-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.importar-problemas > summary { cursor: pointer; }
+.importar-hallados { border: 1px solid var(--line); border-radius: var(--r-control); }
+.importar-hallado { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.importar-hallado:last-child { border-bottom: 0; }
+.importar-plantilla { display: inline; text-decoration: underline; }
+.importar-progreso { width: 100%; height: 8px; accent-color: var(--ok); }
+.importar-tabs .tabs { margin-bottom: 0; }
+/* La barra de aplicar se queda a la vista: en el teléfono el botón estaba a 2,600 px de alto (18-08). */
+.importar-barra {
+  position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: var(--s-3) var(--s-4) calc(var(--s-3) + env(safe-area-inset-bottom)); background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--r-card); box-shadow: var(--shadow-card);
+}
+.importar-barra p { margin: 0; }
+@media (max-width: 720px) {
+  .plan-grupo-nota { display: none; }
+  /* El mapeo, apilado: la columna del archivo como título, sus ejemplos debajo y el selector a todo lo ancho. */
+  .importar-columnas thead { display: none; }
+  .importar-columnas tr { display: block; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .importar-columnas td { display: block; border: 0; padding: 2px 16px; }
+  .importar-columnas .select { min-width: 0; width: 100%; margin-top: 4px; }
+  .importar-acciones > .btn { flex: 1 1 100%; }
+  .importar-barra > .row { width: 100%; }
+  .importar-barra > .row > .btn { flex: 1 1 auto; }
+}
+@media (max-width: 520px) {
+  .plan-nombre-codigo { grid-template-columns: 1fr; }
+  .gimnasio-nav .tabs { flex-wrap: nowrap; overflow-x: auto; }
+  /* Las pestañas de la revisión se deslizan en una fila, en vez de partirse en tres renglones (18-08). */
+  .importar-tabs .tabs { flex-wrap: nowrap; overflow-x: auto; }
+}
+/* «Mi gimnasio»: la misma distancia entre las pestañas y el título en sus tres pantallas (Módulos no va dentro de una pila) (2.12). */
+:not(.stack) > .gimnasio-nav { margin-bottom: var(--s-5); }
+

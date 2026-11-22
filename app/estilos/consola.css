@@ -1,0 +1,210 @@
+/* ── Plataforma ──────────────────────────────────────────────────────────── */
+.plataforma { min-height: 100dvh; display: flex; flex-direction: column; }
+.plataforma-barra {
+  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px; height: 60px; padding: 0 28px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--line);
+}
+@media (max-width: 860px) { .plataforma-barra { padding: 0 16px; } }
+
+/* ══ Sistema v2 · auditoría 5 (UX5-UI-01…10) ═════════════════════════════════
+   Capa final: escala tipográfica, rejilla de 4 px, tres radios, tres sombras,
+   tablas, toques de 44 px e íconos uniformes. Va al final para ganar a las
+   reglas de arriba sin reescribirlas una por una. */
+
+body { font-size: var(--t-base); line-height: 22px; }
+.input, .select, .textarea { font-size: var(--t-base); border-radius: var(--r-control); }
+.lucide { stroke-width: 1.75; }
+.brand-mark .lucide { stroke-width: 2.4; }
+
+/* Tipografía */
+.page-title { font-size: var(--t-xl); line-height: 34px; font-weight: 700; letter-spacing: -.025em; }
+.page-sub { font-size: var(--t-base); line-height: 22px; }
+.card-title { font-size: var(--t-md); line-height: 24px; font-weight: 600; letter-spacing: -.01em; }
+.card-sub { font-size: var(--t-sm); line-height: 20px; }
+.dialog-title { font-size: var(--t-lg); line-height: 28px; font-weight: 600; letter-spacing: -.015em; }
+.label { font-size: var(--t-sm); font-weight: 500; }
+.hint, .stat-label, .stat-note, .choice-text { font-size: var(--t-xs); }
+.callout, .empty-text, .topbar-search { font-size: var(--t-sm); }
+.empty-title { font-size: var(--t-md); }
+.stat-value { font-size: var(--t-num); line-height: 36px; letter-spacing: -.03em; }
+.stat-value--text { font-size: var(--t-lg) !important; line-height: 28px; font-weight: 600; letter-spacing: -.015em; }
+.badge { font-size: var(--t-xs); }
+.section-title { font-size: var(--t-md); line-height: 24px; font-weight: 600; margin: var(--s-8) 0 var(--s-3); }
+
+/* Superficies: tres radios, tres sombras, rejilla de 4 */
+.card { border-radius: var(--r-card); box-shadow: var(--shadow-card); }
+.card-head { padding: var(--s-4) var(--s-6); }
+.card-body, .card-pad { padding: var(--s-5) var(--s-6); }
+.card-foot { padding: var(--s-4) var(--s-6); border-radius: 0 0 var(--r-card) var(--r-card); }
+.stat { padding: var(--s-5) var(--s-6); gap: var(--s-2); }
+.callout, .choice, .entrada-veredicto { border-radius: var(--r-card); }
+.dialog { border-radius: var(--r-float); box-shadow: var(--shadow-float); }
+.dialog-head { padding: var(--s-6) var(--s-6) 0; }
+.dialog-body { padding: var(--s-4) var(--s-6) var(--s-6); }
+.dialog-foot { padding: var(--s-4) var(--s-6); border-radius: 0 0 var(--r-float) var(--r-float); }
+/* El error de la acción del diálogo, junto a sus botones y siempre a la vista (bloque 1.2). */
+.dialog-aviso { flex-shrink: 0; padding: 0 var(--s-6) var(--s-4); }
+.toast { background: var(--toast-bg); border-radius: var(--r-card); box-shadow: var(--shadow-float); }
+.btn { border-radius: var(--r-control); }
+.btn-lg { border-radius: var(--r-card); }
+.side-link { border-radius: var(--r-control); }
+.page-head { margin-bottom: var(--s-6); }
+
+/* Tarjeta destacada: una línea de acento, no una mancha (UX5-UI-10) */
+.stat--feature { border-top: 1px solid var(--feature-line); }
+.stat--feature::after { display: none; }
+
+/* Enlaces de acción en el color del acento legible */
+.card a.strong.row { color: var(--volt-text); }
+
+/* Tablas (UX5-UI-04): cabecera discreta, filas con aire, números a la derecha */
+.table th {
+  font-size: var(--t-xs); font-weight: 500; text-transform: none; letter-spacing: 0;
+  background: transparent; height: 40px; padding: 0 var(--s-4); color: var(--muted);
+}
+.table td { height: 52px; padding: var(--s-2) var(--s-4); }
+.table td:first-child { min-width: 180px; }
+/* Tablas a media pantalla (Cargos y Pagos en la ficha): la primera celda cede
+   y el texto se parte; con 180 px fijos la tabla medía 515 px en una tarjeta
+   de 476 y las acciones quedaban fuera (D1 de los recorridos, 2026-11-19). */
+.table.tabla-angosta td:first-child { min-width: 0; }
+.table .num, .table td.right { font-variant-numeric: tabular-nums; }
+.table tbody tr.is-link:hover td { background: color-mix(in srgb, var(--fg) 4%, transparent); }
+
+/* Teléfono: 44 px en todo lo que se toca (UX5-UI-06) */
+@media (max-width: 860px) {
+  .side-link { min-height: 44px; }
+  .side-group-title { min-height: 40px; }
+  .topbar-search { height: 44px; }
+  .btn { min-height: 44px; }
+  .btn-sm { min-height: 40px; }
+  .switch { width: 52px; height: 32px; }
+  .switch > span { width: 24px; height: 24px; }
+  .switch[aria-checked="true"] > span { transform: translateX(20px); }
+  .chip, .segmented button, .day-chip { min-height: 40px; }
+  .content { padding: var(--s-5) var(--s-4) var(--s-12); }
+  .page-title { font-size: var(--t-h2); line-height: 30px; }
+  .stat-value { font-size: var(--t-h1-alt); line-height: 32px; }
+}
+
+/* Formularios (UX5-UI-08): obligatorio y error en el campo */
+.req { color: var(--danger); }
+.field[data-error="true"] .input, .field[data-error="true"] .select, .field[data-error="true"] .textarea { border-color: var(--danger); }
+.field-error { font-size: var(--t-xs); color: var(--danger); font-weight: 500; }
+
+/* Cambio en efectivo (UX5-M-05) */
+.cambio { display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-3) var(--s-4); border: 1px dashed var(--line-strong); border-radius: var(--r-card); }
+.cambio-total { display: flex; align-items: baseline; justify-content: space-between; }
+.cambio-total span { font-size: var(--t-sm); color: var(--muted); }
+.cambio-total strong { font-size: var(--t-num); line-height: 36px; color: var(--ok); }
+.cambio-total[data-falta="true"] strong { color: var(--danger); }
+
+/* Inicio de la dueña: una fila por sede (UX5-D-02) */
+.duena-sede-fila { display: flex; flex-direction: column; gap: var(--s-1); padding: var(--s-4) var(--s-6); border-bottom: 1px solid var(--line); }
+.duena-sede-fila:last-child { border-bottom: 0; }
+.duena-entradas-plegadas { padding: var(--s-3) var(--s-6) var(--s-4); border-top: 1px solid var(--line); }
+.duena-entradas-plegadas summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; }
+
+/* Esqueletos con forma (UX5-UI-07) */
+.esq-fila { display: flex; align-items: center; gap: var(--s-4); height: 52px; padding: 0 var(--s-4); border-bottom: 1px solid var(--line); }
+.esq-fila:last-child { border-bottom: 0; }
+.esq-celda-principal { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+@media (max-width: 720px) { .esq-tabla .esq-fila > .skeleton:nth-child(n+3) { display: none; } }
+
+/* Consola de la plataforma compacta (UX5-PL-09) */
+.plat-arriba > .card { height: 100%; }
+.mod-compacto { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.mod-compacto li { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-3) var(--s-6); border-bottom: 1px solid var(--line); }
+.mod-compacto li:nth-child(odd) { border-right: 1px solid var(--line); }
+@media (max-width: 720px) { .mod-compacto { grid-template-columns: 1fr; } .mod-compacto li:nth-child(odd) { border-right: 0; } }
+
+/* Migas de pan en una línea */
+.breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: var(--t-sm); color: var(--muted); margin-bottom: var(--s-2); }
+.breadcrumb a { color: var(--muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--fg); text-decoration: underline; }
+.breadcrumb [aria-current="page"] { color: var(--fg); }
+
+/* Factura como documento (UX5-PL-08) */
+.factura-encabezado { display: flex; justify-content: space-between; gap: var(--s-6); padding-bottom: var(--s-5); margin-bottom: var(--s-5); border-bottom: 2px solid var(--fg); }
+.factura-marca { font-size: var(--t-lg); font-weight: 700; letter-spacing: -.02em; }
+.factura-total { font-size: var(--t-num); line-height: 36px; font-weight: 700; margin-top: var(--s-2); }
+@media print {
+  @page { margin: 18mm; }
+  body { background: #fff !important; }
+  .plataforma-barra, .breadcrumb, .page-head, .toasts, .side, .topbar { display: none !important; }
+  .content { padding: 0 !important; max-width: none !important; }
+  .factura-doc { border: 0 !important; box-shadow: none !important; }
+  .factura-doc + p { color: #555 !important; }
+}
+
+/* Línea acumulada del día (UX5-D-01) */
+.duena-linea { margin: var(--s-3) 0 var(--s-1); }
+.duena-linea svg { width: 100%; height: 64px; display: block; overflow: visible; }
+.duena-linea-hoy { fill: none; stroke: var(--fg); stroke-width: 2.5; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.duena-linea-pasada { fill: none; stroke: var(--faint); stroke-width: 1.5; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+.duena-linea-punto { fill: var(--volt); stroke: var(--fg); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.duena-leyenda-hoy, .duena-leyenda-pasada { display: inline-block; width: 14px; height: 0; vertical-align: middle; margin-right: 4px; border-top: 2px solid var(--fg); }
+.duena-leyenda-pasada { border-top: 2px dashed var(--faint); }
+
+/* Menú "Más" (UX5-UI-03) */
+.menu-mas { position: relative; display: inline-flex; }
+/* Fija y en `body` (ver MenuMas): la coloca su botón; por encima de todo, también de un diálogo. */
+.menu-mas-lista { position: fixed; z-index: 70; min-width: 220px; max-width: calc(100vw - 16px); padding: var(--s-1); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); box-shadow: var(--shadow-raise); display: flex; flex-direction: column; }
+.menu-mas-item { display: flex; align-items: center; gap: var(--s-2); min-height: 40px; padding: 0 var(--s-3); border: 0; background: transparent; border-radius: var(--r-control); font: 500 var(--t-base)/1 var(--font-sans); color: var(--fg); cursor: pointer; text-align: left; }
+.menu-mas-item:hover, .menu-mas-item:focus-visible { background: var(--surface-2); outline: none; }
+.menu-mas-item svg { width: var(--icon); height: var(--icon); color: var(--muted); }
+.menu-mas-item.is-peligro { color: var(--danger); }
+
+.canceladas-plegadas { border-top: 1px solid var(--line); }
+.canceladas-plegadas > summary { cursor: pointer; padding: var(--s-3) var(--s-6); color: var(--muted); min-height: 44px; display: flex; align-items: center; }
+.canceladas-plegadas .list-item { opacity: .6; }
+
+/* Roles y permisos: cada área plegada en una línea con su conteo por puesto. */
+.area-plegable { padding: 0; }
+.area-plegable > summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); padding: var(--s-4) var(--s-6); min-height: 52px; flex-wrap: wrap; }
+.area-plegable > summary::-webkit-details-marker { display: none; }
+.area-plegable > summary::after { content: '▸'; color: var(--muted); margin-left: var(--s-2); }
+.area-plegable[open] > summary::after { content: '▾'; }
+.area-plegable[open] > summary { border-bottom: 1px solid var(--line); }
+.area-conteo { display: flex; gap: var(--s-3); flex-wrap: wrap; margin-left: auto; }
+
+/* Inicio del dueño: dos columnas en escritorio (UX5-D-09). En el DOM va
+   primero lo que pide atención, que en el teléfono queda arriba. */
+.duena-columnas { display: grid; gap: var(--s-4); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1180px) {
+  .duena-columnas { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); align-items: start; }
+  .duena-col-lado { grid-column: 2; grid-row: 1; }
+  .duena-col-principal { grid-column: 1; grid-row: 1; }
+}
+
+/* Punto de venta en tableta/teléfono: barra fija con lo que lleva el ticket. */
+.pos-barra { display: none; }
+@media (max-width: 1080px) {
+  .pos-barra {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--s-3);
+    position: sticky; bottom: 0; z-index: 20; margin: var(--s-4) calc(-1 * var(--s-4)) 0;
+    padding: var(--s-3) var(--s-4) calc(var(--s-3) + env(safe-area-inset-bottom));
+    background: var(--surface); border-top: 1px solid var(--line); box-shadow: var(--shadow-float);
+  }
+}
+
+/* Importar socios */
+.importar-zona {
+  display: flex; flex-direction: column; align-items: center; gap: var(--s-2); width: 100%;
+  padding: var(--s-8) var(--s-4); border: 1.5px dashed var(--line-strong); border-radius: var(--r-card);
+  background: var(--surface-2); color: var(--fg); cursor: pointer; text-align: center;
+}
+.importar-zona:hover { border-color: var(--fg); }
+.importar-columnas td { vertical-align: middle; }
+.importar-columnas .select { min-width: 200px; }
+.importar-comparar { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
+@media (max-width: 720px) { .importar-comparar { grid-template-columns: 1fr; } }
+.importar-lado { border: 1px solid var(--line); border-radius: var(--r-control); padding: var(--s-3) var(--s-4); background: var(--surface); }
+.importar-lado dl { display: grid; grid-template-columns: auto 1fr; gap: 2px var(--s-3); margin: var(--s-2) 0 0; font-size: var(--t-sm, 13px); }
+.importar-lado dt { color: var(--muted); }
+.importar-lado dd { margin: 0; overflow-wrap: anywhere; }
+.importar-lado .igual { color: var(--ok); font-weight: 600; }
+.importar-caso[data-decision="MERGE"] { border-color: var(--ok-line); }
+.importar-caso[data-decision="CREATE"] { border-color: var(--info-line, var(--line-strong)); }
+.importar-caso[data-decision="SKIP"] { opacity: .7; }
+

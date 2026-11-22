@@ -1,0 +1,47 @@
+{
+  "name": "@gymflow/web",
+  "version": "0.10.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 3003",
+    "build": "next build",
+    "start": "next start -p 3003",
+    "typecheck": "tsc --noEmit",
+    "test:contraste": "node scripts/contraste.mjs",
+    "e2e:preparar": "bash e2e/preparar.sh",
+    "e2e": "bash e2e/regresion.sh",
+    "lint": "eslint app components lib modules",
+    "verify": "pnpm typecheck && pnpm lint",
+    "test:textos": "node scripts/textos-puestos.mjs",
+    "test:tokens": "node scripts/tokens-iguales.mjs",
+    "test:estilos": "node scripts/estilos-en-linea.mjs",
+    "test": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test modules/registro.test.ts modules/tabla-puestos.test.ts lib/format.test.ts"
+  },
+  "dependencies": {
+    "@gymflow/core": "link:../gymflow-core",
+    "lucide-react": "^1.48.0",
+    "next": "^16.3.6",
+    "qrcode-generator": "^2.0.4",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "read-excel-file": "^9.3.10"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.17.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "playwright-core": "1.62.1",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.19.0"
+  },
+  "description": "Panel web de GymFlow (Next.js).",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "packageManager": "pnpm@10.26.0"
+}

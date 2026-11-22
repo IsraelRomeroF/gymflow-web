@@ -1,0 +1,69 @@
+/* ── Clases (2.5) ─────────────────────────────────────────────────────────── */
+/* Sesiones agrupadas por día, la tira de días, la lista de la sesión con su
+   pago, el horario que se edita, la tarjeta «Clases» de la ficha y las reglas. */
+.clases-sede { width: 180px; }
+/* La tira de días: salta al día que se busca (como la del portal). */
+.dias-tira { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; margin-bottom: var(--s-6); }
+.dia-ficha {
+  display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 8px 4px; min-height: 64px;
+  border: 1px solid var(--line); border-radius: var(--r-control); background: var(--surface); color: var(--fg); font: inherit; cursor: pointer;
+}
+.dia-ficha:hover:not(:disabled) { border-color: var(--line-strong); background: var(--surface-2); }
+.dia-ficha:disabled { cursor: default; color: var(--muted); background: transparent; }
+.dia-ficha[data-hoy] { border-color: var(--volt-strong); box-shadow: inset 0 3px 0 var(--volt); }
+.dia-ficha-nombre { font-size: var(--t-micro); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.dia-ficha-num { font-size: var(--t-lg); font-weight: 700; line-height: 1.1; }
+.dia-ficha-cuantas { font-size: var(--t-micro); color: var(--muted); white-space: nowrap; }
+.dia-cabecera { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; margin-bottom: var(--s-3); scroll-margin-top: 80px; }
+section[id^="dia-"] { scroll-margin-top: 80px; }
+/* La fila de la sesión: la hora manda (el día ya lo dice su bloque). */
+.sesion-hora { font-size: var(--t-ui-lg); font-weight: 700; line-height: 1.2; }
+.sesion-fila[data-cancelada] { opacity: .55; }
+.sesion-estado { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; color: var(--fg-2); }
+.sesion-estado::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--volt-strong); }
+.sesion-estado[data-estado="curso"]::before { background: var(--ok); }
+.sesion-accion { min-width: 0; }
+/* La lista de la sesión: la ocupación arriba, grande; la lista de socios es el cuerpo. */
+.lista-cabecera { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; padding-bottom: var(--s-4); border-bottom: 1px solid var(--line); }
+.lista-ocupacion { font-size: var(--t-xl); font-weight: 700; line-height: 1.1; margin: 0; }
+.lista-por-pagar { color: var(--warn); }
+.lista-cabecera-fin { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.lista-cabecera-fin .row-link { display: inline-flex; align-items: center; gap: 4px; color: var(--fg-2); }
+.lista-cupo { width: 76px; }
+.lista-socios { border: 1px solid var(--line); border-radius: var(--r-control); overflow: hidden; }
+.lista-socios .list-item[data-pago="PENDING"] { box-shadow: inset 3px 0 0 var(--warn); }
+.empty-icon-ok { background: var(--ok-soft); color: var(--ok); border-color: var(--ok-line); }
+/* Un bloque del horario que se abre para editarlo. */
+button.bloque-editable { width: 100%; font: inherit; cursor: pointer; padding-right: 10px; }
+button.bloque-editable:hover { background: var(--surface); }
+.bloque-meta[data-sin-coach] { color: var(--warn); font-weight: 600; }
+.tipo-nombre { font-size: var(--t-md); }
+.tipo-datos { gap: 12px; margin-top: auto; }
+.tipo-retirado { height: 34px; padding-right: 4px; }
+/* Reglas de reserva, dichas en frases. */
+.reglas-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: var(--t-sm); }
+.reglas-lista li { display: flex; align-items: flex-start; gap: 8px; }
+.reglas-lista li svg { flex-shrink: 0; margin-top: 3px; color: var(--muted); }
+/* La tarjeta «Clases» de la ficha. */
+.ficha-clases-titulo { padding: var(--s-3) var(--s-6) var(--s-1); }
+.ficha-clases-vacio { padding: 0 var(--s-6) var(--s-3); }
+.ficha-clases-aviso { padding: var(--s-4) var(--s-6) 0; }
+.ficha-clases-mas { padding: var(--s-2) var(--s-6) var(--s-3); }
+.ficha-clases-pie { padding: var(--s-3) var(--s-6); border-top: 1px solid var(--line); }
+.ficha-clases-cuando::first-letter { text-transform: uppercase; }
+@media (max-width: 720px) {
+  .clases-sede { width: 100%; }
+  .dias-tira { gap: 4px; }
+  .dia-ficha { padding: 6px 2px; min-height: 56px; }
+  .dia-ficha-cuantas { display: none; }
+  .dia-ficha:not(:disabled)::after { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--volt-strong); margin-top: 2px; }
+  .lista-cabecera-fin { align-items: flex-start; }
+  /* En el teléfono, «Llegó» y «Cobrar y marcar» a todo lo ancho de su renglón y a 44 px. */
+  .lista-acciones { flex: 1 1 100%; }
+  .lista-acciones > .btn:first-child { flex: 1 1 auto; min-height: 44px; }
+}
+/* Tabla corta de cifras (nombre y uno o dos números): en teléfono cabe sin desplazarse. */
+@media (max-width: 720px) {
+  .tabla-cifras th, .tabla-cifras td { padding-left: 10px; padding-right: 10px; }
+  .tabla-cifras th { white-space: normal; }
+}

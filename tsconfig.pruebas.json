@@ -1,0 +1,15 @@
+// Solo para el perfil de PRUEBAS (gymflow.sh pruebas, puertos 4002/4003): Next
+// compila en .next/dev-pruebas y anota aquí sus tipos, sin reescribir tsconfig.json.
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/dev-pruebas/types/**/*.ts",
+    ".next/dev-pruebas/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

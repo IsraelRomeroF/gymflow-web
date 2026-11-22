@@ -1,0 +1,54 @@
+/* ── Captación (2.4): bandeja de interesados, altas digitales, «¿ya existe?» y pasos del alta ── */
+/* La línea del último contacto: se parte dentro de su celda en vez de empujarla. */
+.ultimo-contacto { gap: 6px; min-width: 0; max-width: 100%; }
+.ultimo-contacto > span { min-width: 0; overflow-wrap: anywhere; }
+/* Teléfono y WhatsApp del interesado: el control más usado del mostrador no puede medir 22 px (10-03). */
+.enlace-contacto { min-height: 28px; align-items: center; }
+.grupo-vacio { padding: var(--s-4) var(--s-5); margin: 0; }
+/* Un botón que se lee como enlace dentro de una frase («Completar ahora»). */
+.enlace-en-linea { display: inline-flex; align-items: center; gap: 4px; background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; text-decoration: underline; }
+.enlace-en-linea:disabled { opacity: .5; cursor: default; }
+/* «¿Ya existe?»: las personas encontradas, dentro de un diálogo. */
+.identidad { border: 1px solid var(--line); border-radius: var(--r-control); overflow: hidden; }
+.identidad-fila { gap: var(--s-3); flex-wrap: wrap; background: var(--surface-2); }
+/* El mensaje que se va a mandar por WhatsApp, tal cual. */
+.mensaje-previo { padding: var(--s-3) var(--s-4); border: 1px solid var(--line); border-radius: var(--r-control); background: var(--surface-2); font-size: var(--t-sm); overflow-wrap: anywhere; white-space: pre-wrap; }
+/* Bandeja de altas: el alta abierta, sus insignias y su título. */
+.list-item.is-actual { background: var(--surface-2); box-shadow: inset 3px 0 0 var(--fg); }
+.insignias-alta { margin-top: 4px; }
+.titulo-alta { font-size: var(--t-h3); font-weight: 700; }
+.self-start { align-self: flex-start; }
+.filtros-altas { margin-bottom: var(--s-4); }
+.veredicto-ok { margin: 0; background: var(--ok-soft); color: var(--ok); border-color: var(--ok-line); }
+/* Los pasos para terminar un alta: hecho en verde, el que sigue resaltado. */
+.pasos-alta { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-control); overflow: hidden; }
+.paso-alta { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-3) var(--s-4); border-top: 1px solid var(--line); }
+.paso-alta:first-child { border-top: 0; }
+.paso-alta p { margin: 0; }
+.paso-alta-marca { display: inline-flex; flex-shrink: 0; color: var(--muted); }
+.paso-alta-marca svg { width: 18px; height: 18px; }
+.paso-alta[data-hecho="true"] .paso-alta-marca { color: var(--ok); }
+.paso-alta[data-siguiente="true"] { background: var(--surface-2); }
+/* El QR del enlace de inscripción: siempre sobre blanco, también en oscuro (un QR invertido no se lee). */
+.qr-marco { justify-content: center; padding: 8px 0; }
+.qr-papel { padding: 12px; background: #fff; border-radius: var(--r-float); border: 1px solid var(--line); }
+.enlace-alta { font-size: var(--t-sm); }
+/* El cartel avisa (solo en pantalla) cuando la dirección del QR no sirve fuera del gimnasio. */
+.cartel-aviso { position: fixed; top: 20px; left: 20px; right: 180px; z-index: 5; max-width: 560px; }
+@media print { .cartel-aviso { display: none !important; } }
+@media (max-width: 520px) {
+  .paso-alta { flex-wrap: wrap; }
+  .identidad-fila .btn { width: 100%; justify-content: center; }
+}
+/* Los pasos del alta en el teléfono (2.12): el texto ocupa su renglón y el botón baja, alineado con él
+   (`.flex-1` es `!important` y dejaba el texto en una columna de 80 px junto al botón). */
+@media (max-width: 640px) {
+  .paso-alta > .flex-1 { flex: 1 1 calc(100% - 18px - var(--s-3)) !important; }
+  .paso-alta > .btn { margin-left: calc(18px + var(--s-3)); min-height: 44px; }
+}
+
+/* ── Integración de la oleada A de la fase 2 ── */
+/* Un aviso suelto del Inicio: ocupa su renglón solo cuando existe. */
+.aviso-inicio { margin-bottom: 24px; }
+.aviso-inicio:empty { display: none; }
+

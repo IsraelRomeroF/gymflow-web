@@ -1,0 +1,29 @@
+/* ── Biometría (2.3): «Cómo entra», el asistente de rostro y la medición ── */
+.bio-sede + .bio-sede { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.bio-otra { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.bio-nota { margin-top: 14px; }
+/* Historial compacto: cabe en la columna angosta de la ficha y en el teléfono. */
+.bio-historial { list-style: none; margin: 0; padding: 0; }
+.bio-historial > li { padding: 14px 20px; border-top: 1px solid var(--line); }
+.bio-historial > li:first-child { border-top: 0; }
+/* Comprobación previa del asistente: motor, cámara y texto, cada uno con su estado. */
+.bio-revision { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.bio-revision-fila { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.bio-revision-fila[data-ok="false"] { background: var(--warn-soft); border-color: var(--warn-line); }
+.bio-revision-fila[data-ok="true"] .bio-slot-icon { background: var(--ok-soft); color: var(--ok); }
+/* «Rostro registrado»: el veredicto, centrado. */
+.bio-cierre { display: grid; justify-items: center; gap: 8px; text-align: center; padding: 12px 0 4px; }
+/* El sello «Rostro detectado» sobre la captura revisada. */
+.capture-sello { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 2; }
+/* Cifras en pares (motor facial y medición). */
+.bio-cifras { margin: 0; display: grid; gap: 6px; }
+.bio-cifras > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.bio-cifras > div:last-child { border-bottom: 0; }
+.bio-cifras dt { font-size: var(--t-sm); color: var(--muted); }
+.bio-cifras dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+/* Medición: los socios hallados al buscar. */
+.bio-hallados { display: grid; gap: 4px; margin-top: 8px; }
+.bio-hallados[data-espera] { opacity: .55; }
+.bio-hallado { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; width: 100%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); text-align: left; cursor: pointer; color: var(--fg); }
+.bio-hallado:hover, .bio-hallado:focus-visible { border-color: var(--line-strong); background: var(--surface-2); }
+
