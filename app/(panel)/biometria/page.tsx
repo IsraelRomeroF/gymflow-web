@@ -171,7 +171,7 @@ export default function BiometriaPage() {
                       <div><dt>Ventaja sobre el segundo</dt><dd>{motor.datos.margen?.toFixed(2) ?? '—'}</dd></div>
                       <div><dt>Dónde vale un rostro</dt><dd>{motor.datos.alcance === 'organization' ? 'Todo el gimnasio' : 'Su sucursal'}</dd></div>
                     </dl>
-                    <p className="tiny muted">El parecido mínimo todavía es el de fábrica: falta medirlo con socios del gimnasio. <Link href="/biometria/medicion" className="row-link">Medir el reconocimiento</Link></p>
+                    <p className="tiny muted">El parecido mínimo todavía es el de fábrica: falta medirlo con socios del gimnasio. <Link href="/biometria/medicion" className="enlace-en-linea">Medir el reconocimiento</Link></p>
                   </div>
                 )}
           </Card>

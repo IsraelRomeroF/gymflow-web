@@ -97,3 +97,7 @@
 .asiento-grupo-lista { margin: 6px 0 0; padding-left: 18px; columns: 2 260px; column-gap: 24px; }
 .asiento-grupo-lista > li { margin-bottom: 2px; }
 
+
+/* ── Fase 3 · bloque 3.14 · Visual ───────────────────────────────────────── */
+/* Un dato corto de una celda («El mismo», «Sin costo», un SKU) no se parte en dos renglones. */
+.sin-corte { white-space: nowrap; }

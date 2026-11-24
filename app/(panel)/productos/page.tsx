@@ -78,9 +78,9 @@ export default function ProductosPage() {
                       <td className="strong">{p.name}</td>
                       <td className="stack-hide"><code>{p.sku}</code></td>
                       <td className="num" data-label="Precio">{pesos(p.priceCents)}</td>
-                      <td className="num" data-label="Socios">{p.memberPriceCents != null ? pesos(p.memberPriceCents) : <span className="muted">El mismo</span>}</td>
+                      <td className="num" data-label="Socios">{p.memberPriceCents != null ? pesos(p.memberPriceCents) : <span className="muted sin-corte">El mismo</span>}</td>
                       {conCosto(productos) && <>
-                        <td className="num" data-label="Costo">{p.costCents != null ? pesos(p.costCents) : <span className="muted">Sin costo</span>}</td>
+                        <td className="num" data-label="Costo">{p.costCents != null ? pesos(p.costCents) : <span className="muted sin-corte">Sin costo</span>}</td>
                         <td className="num" data-label="Deja">{p.costCents != null ? pesos(BigInt(p.priceCents) - BigInt(p.costCents)) : <span className="muted">—</span>}</td>
                       </>}
                       <td className="num" data-label="Existencia">{p.tracksInventory ? <span className={hay <= 3 ? 'danger strong' : ''}>{hay}</span> : <span className="muted">No se controla</span>}</td>

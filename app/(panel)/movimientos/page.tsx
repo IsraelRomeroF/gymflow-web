@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ArrowDownLeft, ArrowUpRight, Receipt, TrendingUp, Download, Landmark, Wallet, Plus, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { METODO } from '@/lib/caja';
-import { capital, dia, fecha, hora, pesos } from '@/lib/format';
+import { capital, dia, fecha, hora, nombreMes, pesos } from '@/lib/format';
 import { useSession, errorText, useToast } from '@/components/session';
 import { Badge, Button, ButtonLink, Callout, CampoFecha, CampoMotivo, Card, Dialog, Empty, ERROR_MOTIVO, ErrorCarga, faltaMotivo, Field, PageHeader, Segmented, Skeleton, Stat, EsqueletoTabla } from '@/components/ui';
 import { useFormulario } from '@/lib/formulario';
@@ -248,7 +248,8 @@ export default function MovimientosPage() {
       {sinNada && (
         <Card pad={false}>
           <Empty icon={<Receipt />} title="Todavía no hay movimientos" text="Aquí verás cada cobro, venta y gasto del día en cuanto pase por la caja."
-            action={<ButtonLink href="/caja" variant="primary">Abre la caja para empezar a cobrar</ButtonLink>} />
+            // Solo a quien abre turnos: la dueña consulta y no cobra (3.13).
+            action={can('cash:session:open') ? <ButtonLink href="/caja" variant="primary">Abre la caja para empezar a cobrar</ButtonLink> : undefined} />
         </Card>
       )}
       {r && !unDia && !sinNada && (
@@ -304,7 +305,7 @@ export default function MovimientosPage() {
       )}
 
       <GastosFijos sede={sede} hoy={hoy} compacto={sinNada} onCambio={() => void resumen.recargar()} />
-      {!sinNada && <Card pad={false} title={diaCorto(dia, { weekday: 'long', day: 'numeric', month: 'long' })}
+      {!sinNada && <Card pad={false} className="mt-16" title={diaCorto(dia, { weekday: 'long', day: 'numeric', month: 'long' })}
         sub={movs ? `${movs.length} movimientos` : undefined}
         actions={movs && movs.length > 0 && <Button size="sm" variant="secondary" icon={<Download />} onClick={exportar}>Exportar</Button>}>
         {tiposDelDia.length > 1 && (
@@ -370,8 +371,8 @@ const CATEGORIA: Record<string, string> = {
   // Se anota junto a los gastos, pero no resta de la ganancia (D-23).
   [RETIRO]: GLOSARIO.retiroDueno.nombre,
 };
-const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-const nombreMes = (m: string) => `${MESES[Number(m.slice(5, 7)) - 1]} ${m.slice(0, 4)}`;
+// El mes se nombra como en el Tablero y en el cierre («octubre de 2026», `lib/format`): antes aquí decía «octubre 2026» y el
+// mismo mes se leía de dos maneras entre «Cerrar octubre de 2026» y «Ajuste de octubre 2026» (3.13).
 const otroMes = (m: string, n: number) => { const d = new Date(`${m}-01T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() + n); return d.toISOString().slice(0, 7); };
 
 /**
@@ -406,7 +407,7 @@ function GastosFijos({ sede, hoy, compacto, onCambio }: { sede: string; hoy: str
   const quien = 'Los anotan la dueña y la gerencia.';
 
   return (
-    <Card title={cerrado ? <>Gastos fijos <Badge tone="ok">Mes cerrado</Badge></> : 'Gastos fijos'} pad={false}
+    <Card className="mt-16" title={cerrado ? <>Gastos fijos <Badge tone="ok">Mes cerrado</Badge></> : 'Gastos fijos'} pad={false}
       sub={gastos ? `${nombreMes(mes)} · ${pesos(total, { decimals: false })} en gastos${retiros > 0n ? ` · ${pesos(retiros, { decimals: false })} en retiros del dueño (no restan)` : ''}` : nombreMes(mes)}
       actions={<div className="row gap-6">
         <Button size="sm" variant="ghost" aria-label="Mes anterior" onClick={() => setMes(otroMes(mes, -1))}>‹</Button>

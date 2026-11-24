@@ -163,7 +163,7 @@ export function EntradaDialog({ memberId, memberName, onClose, onDone }: {
         <Callout tone="ok" title={`${memberName} sí entra: falta el motivo`}>
           {previa.policy.hasBiometric
             ? 'Lo normal es que entre con su rostro o su huella. Di por qué hoy entra por el mostrador: queda en la bitácora con tu nombre.'
-            : <>Aún no tiene su rostro o huella: dáselos de alta en su ficha (<Link href={`/socios/${memberId}?tab=biometria&registrar=rostro`} className="row-link">registrar su rostro</Link>). Mientras, di por qué entra por el mostrador: queda en la bitácora con tu nombre.</>}
+            : <>Aún no tiene su rostro o huella: dáselos de alta en su ficha (<Link href={`/socios/${memberId}?tab=biometria&registrar=rostro`} className="enlace-en-linea">registrar su rostro</Link>). Mientras, di por qué entra por el mostrador: queda en la bitácora con tu nombre.</>}
           {previa.wouldConsumeVisit && <span className="block mt-6">Al registrarla se descuenta una visita de su paquete.</span>}
           {previa.reentry && <span className="block mt-6" data-testid="entrada-sera-reentrada">Ya entró hoy en esta sucursal: es una reentrada y no cuenta otra visita.</span>}
         </Callout>

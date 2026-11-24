@@ -70,6 +70,7 @@ export function MandarAviso({ aviso, duenos, onHecho }: { aviso: Aviso; duenos: 
         <Button size="sm" variant="secondary" icon={<MessageCircle />} loading={enviando} title={`${conCelular.fullName} · ${telefono(conCelular.phoneE164)}`}
           onClick={() => { window.open(enlaceWhatsapp(conCelular.phoneE164, `${aviso.title}. ${aviso.body}`)!, '_blank', 'noopener'); void anotar(); }}>Mandar por WhatsApp</Button>
       )}
+      {!conCelular && <span className="tiny muted">Su dueño no tiene celular registrado: avísale por otro medio.</span>}
       <Button size="sm" variant="ghost" icon={<Check />} loading={enviando} onClick={() => void anotar()}>{conCelular ? 'Ya se lo avisé de otra forma' : 'Ya se lo avisé'}</Button>
     </span>
   );
@@ -86,7 +87,7 @@ export function AvisosDeMarca({ avisos, duenos, onCambio }: { avisos: Aviso[]; d
           {avisos.map((a) => (
             <tr key={a.id} data-aviso={a.kind}>
               <td data-label="Aviso"><span className="strong small">{claseDeAviso(a)}</span><div className="tiny muted">{a.body}</div></td>
-              <td data-label="Del" className="small">{fecha(a.noticeOn)}</td>
+              <td data-label="Del" className="small sin-corte">{fecha(a.noticeOn)}</td>
               <td data-label="Constancia"><EntregaDeAviso aviso={a} /></td>
               <td className="right"><MandarAviso aviso={a} duenos={duenos} onHecho={onCambio} /></td>
             </tr>

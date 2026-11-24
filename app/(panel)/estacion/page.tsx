@@ -109,7 +109,7 @@ export default function EstacionPage() {
           {resultado && <Resultado r={resultado} onOtraVez={() => setResultado(null)} />}
         </div>
       )}
-      <p className="small muted">Cada paso queda en el historial de accesos del socio. ¿Alguien sin su rostro registrado, o a quien ya no reconoce? Regístralo o actualízalo desde su ficha, en Biometría, o registra su entrada desde <Link href="/socios" className="row-link">Socios</Link>: con rostro entra por excepción con motivo; sin rostro, según la regla del gimnasio, puede necesitar la autorización de la gerencia.</p>
+      <p className="small muted">Cada paso queda en el historial de accesos del socio. ¿Alguien sin su rostro registrado, o a quien ya no reconoce? Regístralo o actualízalo desde su ficha, en Biometría, o registra su entrada desde <Link href="/socios" className="enlace-en-linea">Socios</Link>: con rostro entra por excepción con motivo; sin rostro, según la regla del gimnasio, puede necesitar la autorización de la gerencia.</p>
     </div>
   );
 }

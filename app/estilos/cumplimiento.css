@@ -50,3 +50,15 @@
 .conservacion-plazo { align-items: flex-end; }
 .conservacion-plazo > .field { flex: 0 1 240px; }
 
+
+/* ── Fase 3 · bloque 3.14 · Visual ───────────────────────────────────────── */
+/* El botón del plazo se alinea con el campo, no con su ayuda de abajo. */
+.conservacion-plazo { align-items: flex-start; }
+.conservacion-plazo > .btn { margin-top: 26px; }
+@media (max-width: 720px) { .conservacion-plazo > .field { flex: 1 1 100%; } .conservacion-plazo > .btn { margin-top: 0; } }
+/* Los seis textos: en teléfono el nombre del texto conserva su ancho y los botones bajan (antes quedaba una palabra por renglón). */
+.fila-texto-que { flex: 1 1 240px; min-width: 0; }
+/* La lista de exsocios en Autorizaciones: aire entre la cabecera de la tarjeta y su aviso. */
+.lista-por-firmar-cuerpo { padding-top: 16px; }
+/* «Firmar la lista de ‹mes› de ‹año›» es largo: en 360 px se parte en dos renglones en vez de salirse de la tarjeta. */
+.btn[data-testid="conservacion-firmar"] { max-width: 100%; height: auto; min-height: var(--h-md); padding-block: 8px; white-space: normal; text-align: left; }

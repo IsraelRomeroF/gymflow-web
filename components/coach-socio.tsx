@@ -37,7 +37,7 @@ export function CoachDelSocio({ memberId, coachUserId, homeBranchId, onCambio }:
       </span>
     );
   }
-  if (carga.error) return <span className="small muted">No se pudo cargar la lista de coaches. <button type="button" className="row-link" onClick={() => void carga.recargar()}>Reintentar</button></span>;
+  if (carga.error) return <span className="small muted">No se pudo cargar la lista de coaches. <button type="button" className="enlace-en-linea" onClick={() => void carga.recargar()}>Reintentar</button></span>;
   if (coaches === null) return <span className="small muted">…</span>;
   if (coaches.length === 0) return <span className="small muted">El gimnasio aún no tiene coaches</span>;
   // Primero los de su sucursal de casa.

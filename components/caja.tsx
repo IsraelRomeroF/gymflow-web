@@ -109,7 +109,7 @@ export function TopesDelCajon() {
       <Callout tone="info" title="Topes del cajón">
         Fondo y gastos: hasta {pesos(topes.pettyLimitCents)} por turno con motivo y sin autorización. Retiros y depósitos: siempre con autorización;
         recepción, hasta {pesos(topes.withdrawalShiftLimitCents)} por turno.{topes.isDefault ? ' Son los de fábrica.' : ''}
-        {' '}<Button size="sm" variant="ghost" onClick={abrir}>Cambiar…</Button>
+        {' '}<button type="button" className="enlace-en-linea strong" onClick={abrir}>Cambiar…</button>
       </Callout>
       {editando && !autorizando && (
         <Dialog open onClose={() => setEditando(false)} title="Topes del cajón" error={fallo}

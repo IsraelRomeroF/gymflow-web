@@ -135,7 +135,7 @@ export default function ConsentimientosPage() {
               const sinUso = !!modulo && !activo(modulo);
               return (
                 <li key={t} className="fila-texto" data-tipo={t}>
-                  <div className="flex-1 min-w-0">
+                  <div className="fila-texto-que">
                     <p className="strong">{CONSENT_TYPE[t]}</p>
                     <p className="tiny muted">{PARA_QUE[t]}{vigente ? <> · versión <code>{vigente.version}</code> desde el {fecha(vigente.publishedAt)}</> : ''}</p>
                   </div>

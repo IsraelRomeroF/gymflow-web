@@ -113,7 +113,7 @@ export function RegistrarRostroDialog({
           <p className="empty-title">{memberName} ya entra con su rostro en {branchName(branchId)}</p>
           <p className="empty-text">
             {actualiza ? 'El rostro anterior se borró en el acto.' : `Firmó la versión ${hecho.consentVersion ?? revision?.doc?.version ?? ''} del consentimiento biométrico.`}{' '}
-            {can('access:monitor') ? <>Puede probarlo ahora en la <Link href="/estacion" className="row-link">Estación de acceso</Link>.</> : 'Puede probarlo ahora en la Estación de acceso.'}
+            {can('access:monitor') ? <>Puede probarlo ahora en la <Link href="/estacion" className="enlace-en-linea">Estación de acceso</Link>.</> : 'Puede probarlo ahora en la Estación de acceso.'}
           </p>
         </div>
         <Button block className="mt-10" onClick={() => void onDone()}>Listo</Button>

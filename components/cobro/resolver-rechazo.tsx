@@ -287,7 +287,7 @@ export function useResolverRechazo(rechazo: Rechazo | null, opciones: {
         {parcialPosible && (
           <p className="small muted">
             {credito === 0n && <>Debe {pesos(bruto)}{r.periodsOwed && r.periodsOwed > 1 ? ` (${r.periodsOwed} periodos)` : ''}. </>}
-            Para abrir hoy basta con {pesos(minimo)}, la cuota más antigua; lo demás se <Link href={`/socios/${r.memberId}?tab=cuenta`} className="row-link">decide en su ficha</Link>.
+            Para abrir hoy basta con {pesos(minimo)}, la cuota más antigua; lo demás se <Link href={`/socios/${r.memberId}?tab=cuenta`} className="enlace-en-linea">decide en su ficha</Link>.
             {!montoValido && <span className="danger"> El importe va de {pesos(minimo)} a {pesos(debe)}.</span>}
           </p>
         )}

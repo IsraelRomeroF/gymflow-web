@@ -133,7 +133,7 @@ function Campos({ d, set, errores = {}, limpiar, contactoOculto = false, minimo 
         {verMas && <Field error={err('birthDate')} label="Nacimiento" htmlFor="sf-bd"><CampoFecha id="sf-bd" value={d.birthDate} onChange={(v) => { set({ ...d, birthDate: v }); limpiar?.('birthDate'); }} aria-invalid={!!err('birthDate')} /></Field>}
       </div>
       {!verMas && (
-        <div>
+        <div className="mas-datos-fila">
           <button type="button" className="btn btn-ghost btn-sm" data-testid="mas-datos" onClick={() => setMas(true)}><Plus />Agregar más datos</button>
           <span className="hint"> Nacimiento y contacto de emergencia se pueden completar después, desde su ficha.</span>
         </div>

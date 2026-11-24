@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, type ReactNode } from 'react';
-import { ArrowRight, CalendarX, CircleCheck, DoorOpen, FileSignature, HeartHandshake, Inbox, ScanFace, Sparkles, Stamp, UserX, Wallet } from 'lucide-react';
+import { ArrowRight, CalendarX, CircleCheck, DoorOpen, FileSignature, HeartHandshake, Inbox, ScanFace, Sparkles, Stamp, UserRoundPlus, UserX, Wallet } from 'lucide-react';
 import type { AsuntoDelInicio, MeHome, RenglonDelInicio } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
 import { hora } from '@/lib/format';
@@ -63,6 +63,11 @@ function textoDe(r: RenglonDelInicio): Texto {
     case 'intakes': return {
       icono: <Inbox />, href: '/altas', titulo: `${n(r.count, 'alta digital', 'altas digitales')} por revisar`,
       texto: 'Los socios ya capturaron sus datos; solo falta confirmar.',
+    };
+    case 'coachless': return {
+      // D-29 (3.16): recepción lo elige al alta; lo que quedó sin coach lo pone la gerencia desde la ficha.
+      icono: <UserRoundPlus />, href: '/socios', titulo: r.count === 1 ? 'Un socio nuevo sigue sin coach' : `${r.count.toLocaleString('es-MX')} socios nuevos siguen sin coach`,
+      texto: `Se ${r.count === 1 ? 'dio' : 'dieron'} de alta esta semana: ${r.detail.join(', ')}${r.count > r.detail.length ? ' y más' : ''}. Ponle su coach desde su ficha.`,
     };
     case 'prospects': return {
       icono: <Sparkles />, href: '/prospectos', titulo: `${n(r.count, 'interesado', 'interesados')} por atender`,

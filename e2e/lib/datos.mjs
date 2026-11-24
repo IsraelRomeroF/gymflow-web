@@ -61,8 +61,9 @@ export const planDe = async (api, code) => (await catalogo(api)).plan(code);
 /**
  * Un socio nuevo, con aviso de privacidad y reglamento firmados, de la sede
  * `sede` (código o id). Lo da de alta quien sea `api` (la gerencia, casi siempre).
+ * `responsable` ({ kind: 'MEMBER', memberId } | { kind: 'SELF' } | { kind: 'ADULT', name }) cuando comparte celular.
  */
-export async function crearSocio(api, { sede = 'CEN', nombre, apellidos, telefono = celular() } = {}) {
+export async function crearSocio(api, { sede = 'CEN', nombre, apellidos, telefono = celular(), responsable } = {}) {
   const c = await catalogo(api);
   return api.post('/members', {
     firstName: nombre ?? NOMBRES[Math.floor(Math.random() * NOMBRES.length)],
@@ -70,6 +71,8 @@ export async function crearSocio(api, { sede = 'CEN', nombre, apellidos, telefon
     phoneE164: `+52${telefono}`,
     homeBranchId: c.sede(sede).id,
     force: true,
+    // Fase 3 (D-09): si el celular ya es de otro socio, hay que decir quién responde por el número.
+    ...(responsable ? { responsible: responsable } : {}),
     consents: [
       { consentType: 'PRIVACY_NOTICE', documentVersion: c.version('PRIVACY_NOTICE'), granted: true },
       { consentType: 'HOUSE_RULES', documentVersion: c.version('HOUSE_RULES'), granted: true },

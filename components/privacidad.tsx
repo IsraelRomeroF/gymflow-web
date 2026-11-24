@@ -191,7 +191,8 @@ export function ListaPorFirmar() {
     <div className="mb-20">
       <Card pad={false} title="Lista de exsocios por anonimizar" data-testid="lista-por-firmar"
         sub={`Se arma una vez al mes con quien lleva ${c.batch.monthsAfterArchive} meses de baja. Nada se borra sin tu firma.`}>
-        <ListaDelMes c={c} onCambio={() => { void carga.recargar(); }} />
+        {/* 3.14: aquí la lista es lo primero de la tarjeta; su aviso no va pegado a la cabecera. */}
+        <div className="lista-por-firmar-cuerpo"><ListaDelMes c={c} onCambio={() => { void carga.recargar(); }} /></div>
       </Card>
     </div>
   );

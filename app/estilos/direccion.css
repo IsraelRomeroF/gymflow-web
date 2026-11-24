@@ -100,3 +100,9 @@
 /* El aviso de privacidad que la dueña lee antes de firmar. */
 .aviso-por-firmar { max-height: 46vh; overflow-y: auto; }
 
+
+/* ── Fase 3 · bloque 3.14 · Visual: punto de venta ───────────────────────── */
+/* «$12.00 c/u · precio de socio» no se parte en cinco renglones: si no cabe junto a los controles, ellos bajan. */
+.pos-linea-ctrl { flex-wrap: wrap; row-gap: 2px; }
+.pos-linea-nota { flex: 1 1 auto; white-space: nowrap; }
+.pos-linea-fin { display: flex; align-items: center; gap: 8px; margin-left: auto; }

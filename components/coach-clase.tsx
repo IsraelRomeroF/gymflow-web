@@ -32,7 +32,7 @@ export function ElegirCoach({ url, valor, branchId, onCambio, id, etiqueta = 'Qu
   const toast = useToast();
   const { coaches, error, recargar } = useCoachesDeClases(branchId);
   const [guardando, setGuardando] = useState(false);
-  if (error) return <span className="small muted">No se pudo cargar la lista de coaches. <button type="button" className="row-link" onClick={() => void recargar()}>Reintentar</button></span>;
+  if (error) return <span className="small muted">No se pudo cargar la lista de coaches. <button type="button" className="enlace-en-linea" onClick={() => void recargar()}>Reintentar</button></span>;
   if (coaches === null) return <span className="small muted">…</span>;
   async function cambiar(nuevo: string) {
     setGuardando(true);

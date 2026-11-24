@@ -89,7 +89,7 @@ export default function CobranzaPage() {
                       {esc.atRisk.map((x) => (
                         <tr key={x.organizationId} data-marca={x.tradeName} data-cobranza={x.state}>
                           <td data-label="Marca"><Link className="row-link strong" href={`/plataforma/${x.organizationId}`}>{x.tradeName}</Link></td>
-                          <td data-label="Factura">{x.invoiceId ? <Link className="row-link mono" href={`/plataforma/factura/${x.invoiceId}`}>{x.folio}</Link> : '—'}<div className="tiny muted">{dias(x.overdueDays)} vencida</div></td>
+                          <td data-label="Factura">{x.invoiceId ? <Link className="row-link mono sin-corte" href={`/plataforma/factura/${x.invoiceId}`}>{x.folio}</Link> : '—'}<div className="tiny muted">{dias(x.overdueDays)} vencida</div></td>
                           <td data-label="Debe" className="right num">{x.balanceCents ? pesos(x.balanceCents) : '—'}</td>
                           <td data-label="Qué va a pasar" className="small">{fraseDeCobranza(x)?.texto}</td>
                         </tr>
@@ -111,7 +111,7 @@ export default function CobranzaPage() {
                         <tr key={a.id} data-aviso={a.kind}>
                           <td data-label="Marca"><Link className="row-link strong" href={`/plataforma/${a.organizationId}`}>{a.tradeName}</Link><div className="tiny muted">{a.owners.map((o) => o.fullName).join(', ') || 'Sin dueño activo'}</div></td>
                           <td data-label="Aviso"><span className="small strong">{claseDeAviso(a)}</span><div className="tiny muted">{a.body}</div></td>
-                          <td data-label="Del" className="small">{fecha(a.noticeOn)}</td>
+                          <td data-label="Del" className="small sin-corte">{fecha(a.noticeOn)}</td>
                           <td className="right"><MandarAviso aviso={a} duenos={a.owners} onHecho={cargar} /></td>
                         </tr>
                       ))}

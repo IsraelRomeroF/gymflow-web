@@ -18,6 +18,8 @@ export function NuevaCuenta({ marca, onClose, onCreada }: { marca: Detalle; onCl
   // El alcance lo manda el puesto: la dueña y la gerencia general abarcan todo; caja y recepción, sus sedes.
   const alcanceTodo = puesto?.scope === 'org' || (puesto?.scope === 'any' && f.todo);
   const hayGerenteActivo = marca.users.some((u) => u.isActive && u.roleKeys.includes('MANAGER'));
+  // Un solo dueño por gimnasio (D-02): la API responde 409; aquí se dice antes de llenar el formulario.
+  const duenoActivo = marca.users.find((u) => u.isActive && u.roleKeys.includes('OWNER'));
   const errores: Record<string, string> = {
     ...(f.fullName.trim().length < 3 ? { fullName: 'Escribe su nombre completo.' } : {}),
     ...(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.trim()) ? { email: 'Escribe un correo válido.' } : {}),
@@ -41,7 +43,7 @@ export function NuevaCuenta({ marca, onClose, onCreada }: { marca: Detalle; onCl
   }
   return (
     <Dialog open onClose={onClose} title={`Nueva cuenta en ${marca.tradeName}`} sub="Nace con contraseña temporal; la persona elige la suya al entrar. Cada puesto ve y hace lo que su trabajo exige y nada más."
-      footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button loading={enviando} onClick={() => void crear()}>Crear cuenta</Button></>}>
+      footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button loading={enviando} disabled={f.roleKey === 'OWNER' && !!duenoActivo} onClick={() => void crear()}>Crear cuenta</Button></>}>
       <div className="stack">
         <Field label="Puesto" htmlFor="nc-rol" hint={puesto ? `${puesto.description} Ve: ${puesto.sees}` : undefined}>
           <select id="nc-rol" className="select" value={f.roleKey} onChange={(e) => setF({ ...f, roleKey: e.target.value, todo: false })}>
@@ -68,6 +70,11 @@ export function NuevaCuenta({ marca, onClose, onCreada }: { marca: Detalle; onCl
           </div>
         )}
         <Field label="Motivo" htmlFor="nc-m" required error={e('reason')} hint="Queda en la bitácora de la marca."><input id="nc-m" className="input" value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })} placeholder="El dueño pidió otra recepcionista" /></Field>
+        {f.roleKey === 'OWNER' && duenoActivo && (
+          <div data-testid="regla-dueno">
+            <Callout tone="warn">{marca.tradeName} ya tiene dueño ({duenoActivo.fullName}) y solo puede haber uno. Si cambió de dueño, suspende primero esa cuenta. Si alguien más va a firmar por un tiempo, el dueño lo nombra apoderado desde su panel.</Callout>
+          </div>
+        )}
         {/* La regla del gerente (22-09), dicha ANTES de crear la cuenta: con la llave solo si la marca no tiene otro gerente activo. */}
         {f.roleKey === 'MANAGER' && (
           <div data-testid="regla-gerente">

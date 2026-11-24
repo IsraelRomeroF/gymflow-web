@@ -56,7 +56,7 @@ export function ReglaDelRostro() {
                         <dt>{b.name}: sin rostro</dt>
                         <dd>
                           {b.withoutFace} de {b.canEnter}
-                          {b.withoutFace > 0 && can('members:read') && <> · <button type="button" className="row-link" onClick={() => setViendo({ branchId: b.branchId, name: b.name })}>ver quiénes</button></>}
+                          {b.withoutFace > 0 && can('members:read') && <> · <button type="button" className="enlace-en-linea" onClick={() => setViendo({ branchId: b.branchId, name: b.name })}>ver quiénes</button></>}
                         </dd>
                       </div>
                     ))}
@@ -132,11 +132,11 @@ function QuienesFaltan({ sede, onClose }: { sede: { branchId: string; name: stri
           : d.members.length === 0 ? <p className="small muted">Nadie: todos los que hoy entran aquí ya tienen su rostro.</p>
             : (
               <>
-                <ul className="list" data-testid="bio-regla-faltan">
+                <ul className="list bio-faltan" data-testid="bio-regla-faltan">
                   {d.members.map((m) => (
                     <li key={m.memberId} className="list-item">
                       <span className="flex-1 min-w-0">
-                        <span className="strong ellipsis block">{m.fullName}</span>
+                        <span className="strong block">{m.fullName}</span>
                         <span className="tiny muted block">{m.memberCode} · {m.lastVisitOn ? `última visita el ${fecha(m.lastVisitOn)}` : 'sin visitas registradas'}</span>
                       </span>
                       <Link href={`/socios/${m.memberId}?tab=biometria&registrar=rostro`} className="btn btn-secondary btn-sm"><ScanFace />Registrar</Link>

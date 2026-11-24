@@ -53,12 +53,14 @@ export function AvisoDeApoderado({ estado }: { estado: ApprovalProxyState | null
   if (!n) return null;
   const quien = n.grantedByName ?? 'quien te nombró';
   return (
-    <Callout tone="info" title={`Autorizas como apoderado de ${quien} hasta el ${ultimoDia(n)}`}>
-      <p className="small" data-testid="apoderado-aviso">
-        Lo que pide el personal lo puedes autorizar tú, con tu contraseña. Lo que pidas tú, y lo que {quien} ya haya rechazado, solo lo autoriza {quien}.
-        Cada firma queda en la bitácora como «firmó como apoderado».
-      </p>
-    </Callout>
+    <div className="mb-16">
+      <Callout tone="info" title={`Autorizas como apoderado de ${quien} hasta el ${ultimoDia(n)}`}>
+        <p className="small" data-testid="apoderado-aviso">
+          Lo que pide el personal lo puedes autorizar tú, con tu contraseña. Lo que pidas tú, y lo que {quien} ya haya rechazado, solo lo autoriza {quien}.
+          Cada firma queda en la bitácora como «firmó como apoderado».
+        </p>
+      </Callout>
+    </div>
   );
 }
 
@@ -71,7 +73,7 @@ export function TarjetaDeApoderado({ estado, onCambio }: { estado: ApprovalProxy
   const n = estado.current;
   return (
     <>
-      <Card data-testid="apoderado" title="Apoderado temporal"
+      <Card data-testid="apoderado" className="mt-16" title="Apoderado temporal"
         sub={n ? undefined : 'Para cuando no puedas firmar: un viaje, un día sin señal.'}
         actions={n ? <Badge tone="ok" dot>Vigente</Badge> : undefined}>
         {n ? (

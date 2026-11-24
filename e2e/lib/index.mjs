@@ -5,6 +5,7 @@
 //   acceso    entrar(p, 'recepcion'), elegirContrasena, motivoDeExcepcion
 //   menu      abrirMenu, irPorMenu
 //   cobro     elegirCaja (cuando el cobro pide elegir el turno)
+//   firma     firmar(p, titulo): la segunda firma tecleada en el mostrador
 //   esperas   respuesta, accion, respuestas, asentado, cuadros, hasta, aparece
 //   red       qué petición sigue sin respuesta (lento vs colgado)
 //   informe   ok / FALLÓ / nota, captura
@@ -17,6 +18,7 @@ export * from './navegador.mjs';
 export * from './acceso.mjs';
 export * from './menu.mjs';
 export * from './cobro.mjs';
+export * from './firma.mjs';
 export * from './esperas.mjs';
 export * from './red.mjs';
 export * from './informe.mjs';

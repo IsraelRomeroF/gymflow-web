@@ -112,7 +112,7 @@ function PuntoDeVenta() {
 
   return (
     <div className="stack gap-20">
-      <PageHeader title="Punto de venta" sub={socio ? <>Venta para <Link href={`/socios/${socio}`} className="row-link strong">{socioNombre ?? 'el socio'}</Link>{precioDeSocio ? ', a precio de socio' : ''}. Se cobra con la caja abierta y entra al mismo corte que las membresías.</> : 'Se cobra con la caja abierta y entra al mismo corte que las membresías.'}
+      <PageHeader title="Punto de venta" sub={socio ? <>Venta para <Link href={`/socios/${socio}`} className="enlace-en-linea strong">{socioNombre ?? 'el socio'}</Link>{precioDeSocio ? ', a precio de socio' : ''}. Se cobra con la caja abierta y entra al mismo corte que las membresías.</> : 'Se cobra con la caja abierta y entra al mismo corte que las membresías.'}
         actions={sedes.length > 1 ? (
           <select className="select w-auto" aria-label="Sucursal" value={sede} onChange={(e) => { setSede(e.target.value); setCarrito(new Map()); }}>
             {sedes.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -178,14 +178,16 @@ function PuntoDeVenta() {
                   <li key={p.id} className="pos-linea">
                     <div className="small strong pos-linea-nombre">{p.name}</div>
                     <div className="pos-linea-ctrl">
-                      <span className="tiny muted">{pesos(precioDe(p))} c/u{precioDe(p) !== p.priceCents ? ' · precio de socio' : ''}</span>
-                      <div className="row" style={{ gap: 4, marginLeft: 'auto' }}>
-                        <IconButton label="Uno menos" onClick={() => poner(p.id, -1)}><Minus /></IconButton>
-                        <span className="num strong" style={{ width: 22, textAlign: 'center' }}>{n}</span>
-                        <IconButton label="Uno más" onClick={() => poner(p.id, 1)}><Plus /></IconButton>
+                      <span className="tiny muted pos-linea-nota">{pesos(precioDe(p))} c/u{precioDe(p) !== p.priceCents ? ' · precio de socio' : ''}</span>
+                      <div className="pos-linea-fin">
+                        <div className="row" style={{ gap: 4, marginLeft: 'auto' }}>
+                          <IconButton label="Uno menos" onClick={() => poner(p.id, -1)}><Minus /></IconButton>
+                          <span className="num strong" style={{ width: 22, textAlign: 'center' }}>{n}</span>
+                          <IconButton label="Uno más" onClick={() => poner(p.id, 1)}><Plus /></IconButton>
+                        </div>
+                        <span className="num strong" style={{ minWidth: 72, textAlign: 'right' }}>{pesos(BigInt(precioDe(p)) * BigInt(n))}</span>
+                        <IconButton label="Quitar" onClick={() => poner(p.id, -n)}><X /></IconButton>
                       </div>
-                      <span className="num strong" style={{ minWidth: 72, textAlign: 'right' }}>{pesos(BigInt(precioDe(p)) * BigInt(n))}</span>
-                      <IconButton label="Quitar" onClick={() => poner(p.id, -n)}><X /></IconButton>
                     </div>
                   </li>
                 ))}

@@ -21,6 +21,14 @@
 # final de la lista (fase2/2.14-recorridos.md). `mensajes` es el último a
 # propósito: corre el job `outbound.generate`, que arma mensajes para todo el
 # gimnasio de pruebas y deja la campana del panel con cuenta.
+#
+# Fase 3 (bloque 3.13): los recorridos de lo que construyó la fase 3 van
+# antes de `mensajes` (fase3/3.13-recorridos.md): dinero-socio, cajon,
+# entrada-reglas, precios, direccion-cierre, altas-familia, coach-codigo,
+# apoderado y cuenta-gymflow. `cajon` y
+# `direccion-cierre` abren su propio turno en «Caja 2 Centro» y lo cortan;
+# `entrada-reglas` enciende la regla del rostro y la apaga; `direccion-cierre`
+# cierra el mes pasado y lo vuelve a abrir.
 set -u
 S=$(cd "$(dirname "$0")" && pwd)
 mkdir -p "$S/shots" "$S/archivos"
@@ -56,7 +64,7 @@ es_pruebas || { echo "La API de $GYMFLOW_E2E_API no es la de pruebas; no se corr
 # Calentar: Next en desarrollo compila cada ruta la primera vez que se pide,
 # y mientras compila detiene también el proxy hacia la API. Sin esto, el
 # primer flujo que toca una pantalla nueva falla por tiempo, no por un error.
-for r in /login /panel /caja /punto-de-venta /socios /socios/00000000-0000-7000-8000-000000000000 /altas /prospectos /clases /rutinas /tablero /retencion /planes /productos /personal /sucursales /modulos /seguridad /plataforma /plataforma/precios /plataforma/planes /plataforma/seguridad /plataforma/00000000-0000-7000-8000-000000000000 /plataforma/factura/00000000-0000-7000-8000-000000000000 /arranque /autorizaciones /bitacora /movimientos /personal/roles /biometria /acceso /consentimientos /importar /recibo/00000000-0000-7000-8000-000000000000 /precios /gimnasio /mensajes /recibo/estado/00000000-0000-7000-8000-000000000000; do
+for r in /login /panel /caja /punto-de-venta /socios /socios/00000000-0000-7000-8000-000000000000 /altas /prospectos /clases /rutinas /tablero /retencion /planes /productos /personal /sucursales /modulos /seguridad /plataforma /plataforma/precios /plataforma/planes /plataforma/seguridad /plataforma/00000000-0000-7000-8000-000000000000 /plataforma/factura/00000000-0000-7000-8000-000000000000 /arranque /autorizaciones /bitacora /movimientos /personal/roles /biometria /acceso /consentimientos /importar /recibo/00000000-0000-7000-8000-000000000000 /precios /gimnasio /mensajes /recibo/estado/00000000-0000-7000-8000-000000000000 /recibo/venta/00000000-0000-7000-8000-000000000000 /cuenta-gymflow; do
   curl -s -o /dev/null --max-time 120 "$GYMFLOW_E2E_PANEL$r"
 done
 for r in / /activar /pagos /clases /asistencia /rutina /alta/00000000-0000-7000-8000-000000000000; do
@@ -71,7 +79,7 @@ cd $S
 LIBS=${GYMFLOW_E2E_LIBS:-$HOME/.cache/gymflow-e2e/libs/usr/lib/x86_64-linux-gnu}
 [ -d "$LIBS" ] && export LD_LIBRARY_PATH=$LIBS${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
 fallos=0
-for f in ${FLOWS:-padron mostrador mostrador-espera movil desborde menu modulos personal sucursales plataforma plataforma-ux cobranza dinero adeudo privacidad movimientos carga roles llave bloque3 bloque4 control permisos remota duena direccion contrasenas sesion antiguedad ventas membresia portal portal-ux avisos diseno importar importar-seguro caja altas flow clases crecimiento prospectos rutinas firmas escalera cumplimiento primer-uso mostrador-tarjeta ficha captacion clases-ciclo coach-dia direccion-precios plataforma-ficha firma-franja mensajes}; do
+for f in ${FLOWS:-padron mostrador mostrador-espera movil desborde menu modulos personal sucursales plataforma plataforma-ux cobranza dinero adeudo privacidad movimientos carga roles llave bloque3 bloque4 control permisos remota duena direccion contrasenas sesion antiguedad ventas membresia portal portal-ux avisos diseno importar importar-seguro caja altas flow clases crecimiento prospectos rutinas firmas escalera cumplimiento primer-uso mostrador-tarjeta ficha captacion clases-ciclo coach-dia direccion-precios plataforma-ficha firma-franja dinero-socio cajon entrada-reglas precios direccion-cierre altas-familia coach-codigo apoderado cuenta-gymflow mensajes}; do
   timeout 400 node $f.mjs > out-$f.log 2>&1; rc=$?
   oks=$(grep -c "^ok" out-$f.log); malos=$(grep -c "FALLÓ\|DESBORDA" out-$f.log)
   [ $rc -ne 0 ] && fallos=$((fallos+1))

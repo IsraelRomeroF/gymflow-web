@@ -27,3 +27,11 @@
 .bio-hallado { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; width: 100%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); text-align: left; cursor: pointer; color: var(--fg); }
 .bio-hallado:hover, .bio-hallado:focus-visible { border-color: var(--line-strong); background: var(--surface-2); }
 
+
+/* ── Fase 3 · bloque 3.14 · Visual: «Entrar solo con rostro» ─────────────── */
+/* La cifra y «ver quiénes» en un renglón; el nombre de la sucursal cede el ancho. */
+.bio-cifras dd { white-space: nowrap; flex-shrink: 0; }
+.bio-cifras dt { min-width: 0; }
+/* La lista «Sin rostro · ‹sucursal›» va dentro del diálogo: sin el margen de las listas de tarjeta, y el nombre completo. */
+.bio-faltan .list-item { padding-left: 0; padding-right: 0; align-items: flex-start; }
+.bio-faltan .list-item .btn { flex-shrink: 0; }

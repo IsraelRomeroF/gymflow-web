@@ -240,7 +240,7 @@ export function HorarioDialog({ tipos, sede, inicial, onClose, onDone, onQuitar 
         </div>
         <div className="grid grid-2 gap-12">
           <Field label="Quién la imparte" htmlFor="hco"
-            hint={falloCoaches ? <>No se pudo cargar la lista de coaches. <button type="button" className="row-link" onClick={() => void recargarCoaches()}>Reintentar</button></> : 'El socio lo ve en su portal.'}>
+            hint={falloCoaches ? <>No se pudo cargar la lista de coaches. <button type="button" className="enlace-en-linea" onClick={() => void recargarCoaches()}>Reintentar</button></> : 'El socio lo ve en su portal.'}>
             <select id="hco" className="select" value={coachId} onChange={(e) => setCoachId(e.target.value)}>
               <option value="">{falloCoaches ? 'Sin coach asignado (no se pudo cargar la lista)' : coaches?.length === 0 ? 'No hay coaches dados de alta' : 'Sin coach asignado'}</option>
               {(coaches ?? []).map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}

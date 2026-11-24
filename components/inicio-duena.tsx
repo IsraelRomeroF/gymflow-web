@@ -316,7 +316,7 @@ export function InicioDuena() {
             {/* Sin renta ni nómina registradas, la "ganancia" es solo lo que entró (UX5-D-05). */}
             {/* El día y el mes del gimnasio, no los de la computadora (26-06). */}
             {mes.fixedExpensesCents === '0' && Number(hoyEn(org.timezone).slice(8, 10)) > 3 && (
-              <p className="tiny text-warn mt-6">Todavía no hay renta ni nómina de {MESES[Number(hoyEn(org.timezone).slice(5, 7)) - 1]} registradas: tu ganancia real será menor. {can('expenses:manage') ? <Link href="/movimientos" className="row-link">Regístralas en Movimientos</Link> : 'Las registran la dueña y la gerencia en Movimientos.'}</p>
+              <p className="tiny text-warn mt-6">Todavía no hay renta ni nómina de {MESES[Number(hoyEn(org.timezone).slice(5, 7)) - 1]} registradas: tu ganancia real será menor. {can('expenses:manage') ? <Link href="/movimientos" className="enlace-en-linea">Regístralas en Movimientos</Link> : 'Las registran la dueña y la gerencia en Movimientos.'}</p>
             )}
             {avance !== null && (
               <div>
@@ -366,7 +366,7 @@ export function InicioDuena() {
             {a.refundsToday.count > 0 && (
               <li className="duena-alerta small"><ShieldAlert size={15} style={{ color: 'var(--warn)' }} aria-hidden /><span>
                 {a.refundsToday.count} {a.refundsToday.count === 1 ? 'devolución' : 'devoluciones'} hoy · {pesos(-BigInt(a.refundsToday.cents))}
-                {' '}<Link className="row-link" href="/bitacora">Ver quién</Link>
+                {' '}<Link className="enlace-en-linea" href="/bitacora">Ver quién</Link>
               </span></li>
             )}
             {a.cashOpenSinceYesterday.map((c) => (
