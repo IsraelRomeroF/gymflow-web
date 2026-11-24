@@ -8,9 +8,15 @@ import { Badge, Button, ButtonLink, CampoMotivo, Card, Dialog, Empty, ErrorCarga
 import { EstadoCarga, useCarga } from '@/lib/carga';
 import { usePortalUrl } from '@/lib/portal';
 import { ZONAS } from '@/lib/zonas';
-import { PestanasGimnasio } from '../gimnasio/pestanas';
+import Link from 'next/link';
+import { telefono } from '@/lib/format';
+import { PestanasGimnasio, useEntraA } from '../gimnasio/pestanas';
 
-type Sede = { id: string; code: string; name: string; addressLine: string | null; publicSlug?: string | null; timezone: string | null; isActive: boolean };
+type Sede = {
+  id: string; code: string; name: string; addressLine: string | null; publicSlug?: string | null; timezone: string | null; isActive: boolean;
+  /** Teléfono y horario: los administra GymFlow (D-27, bloque 4.6); aquí solo se ven. */
+  phone?: string | null; openingHours?: string | null;
+};
 type Caja = { id: string; branchId: string; code: string; name: string; isActive: boolean };
 type Cierre = {
   homeMembers: number; liveMemberships: number; openCashSessions: number; classTemplates: number;
@@ -36,6 +42,8 @@ export default function SucursalesPage() {
   const [reabrir, setReabrir] = useState<Sede | null>(null);
   const [caja, setCaja] = useState<{ sede: Sede; caja: Caja | null } | null>(null);
   const opera = can('settings:branch');
+  // «Datos» va con la misma llave que esta pantalla: quien está aquí casi siempre la ve.
+  const verDatos = useEntraA('/sucursales');
   // Las cajas las ve quien ve cortes (la gerencia y la dueña); sin ese permiso no se piden.
   const veCajas = can('cash:session:read');
 
@@ -96,6 +104,10 @@ export default function SucursalesPage() {
                   {activo('intake') && <><dt>Enlace del alta</dt><dd>{s.publicSlug ? <code>{`${portal.replace(/^https?:\/\//, '')}/alta/${s.publicSlug}`}</code> : <span className="muted">Enlace corto: aún no se crea</span>}</dd></>}
                   {/* Sin zona propia sigue la del gimnasio (19-10). */}
                   <dt>Zona</dt><dd>{nombreZona(s.timezone ?? org.timezone)}{s.timezone ? '' : <span className="muted"> · la del gimnasio</span>}</dd>
+                  {/* Teléfono y horario no se editan aquí (D-27): los lleva GymFlow y se piden en Datos. */}
+                  <dt>Teléfono</dt><dd data-testid="sede-telefono">{s.phone ? telefono(s.phone) : <span className="muted">Sin registrar</span>}</dd>
+                  <dt>Horario</dt><dd data-testid="sede-horario">{s.openingHours ?? <span className="muted">Sin registrar</span>}
+                    <div className="tiny muted">El teléfono y el horario los lleva GymFlow{verDatos ? <>: <Link href="/gimnasio">pide el cambio en Datos</Link></> : ''}.</div></dd>
                   {inScope(s.id) && veCajas && <><dt>Cajas</dt><dd>{!activoEn('cash', s.id) ? <span className="muted">No lleva Caja: cobra sin corte</span> : cajas === null ? <span className="muted">No se pudieron consultar</span> : suyas.length === 0 ? <span className="danger">Sin caja: no se puede cobrar</span> : (
                     <span className="row gap-6 flex-wrap">
                       {suyas.map((c) => cambia && s.isActive

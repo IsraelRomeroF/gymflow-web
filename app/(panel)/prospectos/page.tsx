@@ -5,15 +5,16 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Sparkles, Plus, ListChecks } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useSession, useToast, errorText } from '@/components/session';
-import { Badge, Button, Card, Empty, MenuMas, PageHeader, Segmented, EsqueletoLista, ErrorCarga } from '@/components/ui';
+import { Badge, Button, Callout, Card, Empty, MenuMas, PageHeader, Segmented, EsqueletoLista, ErrorCarga } from '@/components/ui';
 import { NuevoSocioDialog } from '@/components/socio-form';
 import { ContactoDialog } from '@/components/seguimiento';
 import { CerrarDialog, FuentesDialog, HistorialDialog, MandarAltaDialog, ProspectoDialog } from '@/components/prospectos/dialogos';
 import { FilasDeInteresados, type AccionesDeFila } from '@/components/prospectos/grupo';
-import type { Prospect, ProspectCounts, ProspectList, ProspectSources } from '@gymflow/core/contracts';
+import type { Prospect, ProspectAutoClose, ProspectCounts, ProspectList, ProspectSources } from '@gymflow/core/contracts';
 import { DEFAULT_PROSPECT_SOURCES, PROSPECT_QUEUES, type ProspectQueue } from '@gymflow/core/captacion';
 import { GRUPO_DE_INTERESADOS } from '@gymflow/core/vocabulario';
 import { hoyEn } from '@/lib/zonas';
+import { fecha } from '@/lib/format';
 
 /** Un interesado con su último contacto y su grupo: contrato del núcleo (`GET /prospects`), por páginas (10-01). */
 type Prospecto = Prospect;
@@ -66,6 +67,35 @@ export default function ProspectosPage() {
   return <Suspense fallback={<EsqueletoLista filas={5} />}><Prospectos /></Suspense>;
 }
 
+/**
+ * «N se van a cerrar solos» (D-31, bloque 4.7). Los interesados con 60 días
+ * sin contacto ni fecha pendiente salen de la lista sin que nadie los cierre;
+ * aquí se dice cuántos y cuándo, para que nadie amanezca con la bandeja
+ * cambiada. La primera vez en un gimnasio hay una semana de aviso.
+ */
+function AvisoDeCierreSolo({ c }: { c: ProspectAutoClose }) {
+  const n = (k: number) => `${k} ${k === 1 ? 'interesado' : 'interesados'}`;
+  const comoSeQuedan = 'Si alguno sigue interesado, contáctalo o ponle fecha: con eso se queda. Los que se cierren pasan a Cerrados y se pueden reabrir.';
+  const pronto = c.soon > 0 ? ` Otros ${c.soon} cumplen el plazo en los próximos ${c.noticeDays} días.` : '';
+  if (c.due > 0) {
+    const cuando = c.active ? 'esta noche' : c.startsOn ? `el ${fecha(c.startsOn)}` : 'pronto';
+    return (
+      <div data-testid="aviso-cierre-solo">
+        <Callout tone="warn" title={`${n(c.due)} ${c.due === 1 ? 'se va a cerrar solo' : 'se van a cerrar solos'} ${cuando}`}>
+          {c.due === 1 ? 'Lleva' : 'Llevan'} {c.days} días o más sin contacto ni fecha pendiente; en su fila dice «Se cierra solo».{pronto} {comoSeQuedan}
+        </Callout>
+      </div>
+    );
+  }
+  return (
+    <div data-testid="aviso-cierre-solo">
+      <Callout tone="info" title={`${n(c.soon)} ${c.soon === 1 ? 'se cierra solo' : 'se cierran solos'} en los próximos ${c.noticeDays} días`}>
+        {c.soon === 1 ? 'Va a cumplir' : 'Van a cumplir'} {c.days} días sin contacto ni fecha pendiente; en su fila dice qué día. {comoSeQuedan}
+      </Callout>
+    </div>
+  );
+}
+
 function Prospectos() {
   const router = useRouter();
   const search = useSearchParams();
@@ -106,6 +136,9 @@ function Prospectos() {
   const cerrados = useGrupo(abiertos ? null : 'closed', filtros, version, alLlegar);
 
   useEffect(() => { void api<ProspectSources>('/prospects/sources').then(setFuentes).catch(() => undefined); }, []);
+  // El cierre solo (D-31), dicho ANTES de que pase: cuántos se van a cerrar y cuándo. Se vuelve a pedir cuando algo se mueve.
+  const [cierreSolo, setCierreSolo] = useState<ProspectAutoClose | null>(null);
+  useEffect(() => { void api<ProspectAutoClose>('/prospects/auto-close').then(setCierreSolo).catch(() => undefined); }, [version]);
 
   async function reabrir(p: Prospecto) {
     try {
@@ -153,6 +186,8 @@ function Prospectos() {
           <input className="input w-auto" type="search" aria-label="Buscar prospecto" placeholder="Buscar por nombre, teléfono o correo" value={buscar} onChange={(e) => setBuscar(e.target.value)} />
         </div>
       </div>
+
+      {abiertos && cierreSolo && cierreSolo.due + cierreSolo.soon > 0 && <AvisoDeCierreSolo c={cierreSolo} />}
 
       {abiertos ? (
         fallo ? <Card><ErrorCarga mensaje={fallo} onReintentar={recargar} /></Card>
@@ -204,7 +239,8 @@ function Prospectos() {
         // El alta y la conversión son UNA operación en el servidor (10-07), y el socio nace en la sede del interesado (10-06).
         <NuevoSocioDialog prospecto={inscribir}
           onClose={() => setInscribir(null)}
-          onCreado={(memberId) => router.push(`/socios/${memberId}?vender=1`)} />
+          // La venta abre con el plan que preguntó (D-31).
+          onCreado={(memberId) => router.push(`/socios/${memberId}?vender=1${inscribir.interestPlanId ? `&plan=${inscribir.interestPlanId}` : ''}`)} />
       )}
     </div>
   );

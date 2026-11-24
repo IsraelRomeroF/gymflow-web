@@ -106,3 +106,21 @@
 .pos-linea-ctrl { flex-wrap: wrap; row-gap: 2px; }
 .pos-linea-nota { flex: 1 1 auto; white-space: nowrap; }
 .pos-linea-fin { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+/* ── Fase 4 · bloque 4.6 · Datos y marca del gimnasio (D-27) ─────────────── */
+/* El logo del gimnasio: en «Mi gimnasio», en la consola y en el diálogo de la solicitud. Sobre blanco: así sale en el recibo. */
+.logo-marca { display: block; max-width: 160px; max-height: 64px; object-fit: contain; background: #fff; border: 1px solid var(--line); border-radius: var(--r-sm, 6px); padding: 4px; }
+/* En el recibo va centrado, sin marco, arriba del nombre. */
+.recibo-logo { display: block; max-width: 140px; max-height: 56px; object-fit: contain; margin: 0 auto 6px; }
+.recibo-pie { text-align: center; margin-top: 12px !important; white-space: pre-line; }
+
+/* ── Fase 4 · bloque 4.5 · Nómina por pago y gastos que se repiten (D-26) ── */
+/* Lo propuesto y sin confirmar va arriba de los gastos, aparte: todavía no es un gasto. */
+.gastos-por-confirmar { padding: var(--s-3) var(--s-4); background: var(--surface-2); border-bottom: 1px solid var(--line); }
+.gastos-por-confirmar > .list { margin-top: var(--s-2); }
+/* «Lo que se repite»: plegado al pie de la tarjeta. */
+.gastos-se-repiten { padding: var(--s-3) var(--s-4); border-top: 1px solid var(--line); }
+.gastos-se-repiten > summary { cursor: pointer; display: flex; align-items: center; gap: var(--s-2); }
+.gastos-se-repiten > .list { margin: var(--s-2) 0; }
+/* El aviso de lo que una sección deja ver, junto a su interruptor en «Qué ve» (Personal). */
+.llave-aviso { color: var(--warn); font-weight: 500; }

@@ -9,6 +9,7 @@ import { fecha, hace, pesos } from '@/lib/format';
 import { Badge, Button, Card, ErrorCarga, PageHeader, Stat, EsqueletoTabla, Segmented } from '@/components/ui';
 import { ESTADO_COBRO, dias } from './cobro';
 import { Bandeja, PrimerosPasos, requiereAtencion } from './_componentes/bandeja';
+import { SolicitudesPendientes } from './_componentes/ficha-de-marca';
 import { Credenciales } from './_componentes/credenciales';
 import { NuevaMarca, type AltaHecha } from './_componentes/nueva-marca';
 import { SERVICIO, type ListaDeMarcas, type Marca } from './_componentes/tipos';
@@ -51,6 +52,8 @@ export default function MarcasPage() {
         </div>
       )}
       {lista && marcas && marcas.length > 0 && <Bandeja marcas={marcas} sinPrecio={lista.pricesMissing} />}
+      {/* Lo que los gimnasios pidieron cambiar de sus datos o su marca (D-27, bloque 4.6). */}
+      {lista && marcas && marcas.length > 0 && <SolicitudesPendientes />}
       {fallo && <ErrorCarga mensaje="No se pudieron cargar las marcas." onReintentar={cargar} />}
       {!marcas && !fallo && <div className="card"><EsqueletoTabla columnas={6} /></div>}
       {lista && marcas && marcas.length === 0 && <PrimerosPasos sinPrecio={lista.pricesMissing} onNueva={() => setNueva(true)} />}

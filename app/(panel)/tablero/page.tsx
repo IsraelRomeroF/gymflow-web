@@ -244,6 +244,10 @@ export default function TableroPage() {
               <div className="stack-sm">
                 <div className="row-between"><span className="muted">{GLOSARIO.porCobrar.nombre}</span><span className="num strong">{pesos(data.portfolio.outstandingCents, { decimals: false })}</span></div>
                 {data.portfolio.overdueCents !== data.portfolio.outstandingCents && <div className="row-between"><span className="muted">Ya vencido</span><span className="num strong">{pesos(data.portfolio.overdueCents, { decimals: false })}</span></div>}
+                {/* D-18 (bloque 4.4, edición puntual): fuera de «Por cobrar», pero a la vista: no se borró ni se perdonó. */}
+                {BigInt(data.portfolio.lostCents) > 0n && <div className="row-between" data-testid="deuda-perdida" title="Deuda de membresías que llevaron suspendidas el plazo del gimnasio. No está en «Por cobrar»; sigue en el estado de cuenta de cada socio y se puede cobrar.">
+                  <span className="muted">Dada por perdida ({data.portfolio.lostMembers} {data.portfolio.lostMembers === 1 ? 'socio' : 'socios'})</span><span className="num">{pesos(data.portfolio.lostCents, { decimals: false })}</span>
+                </div>}
                 {/* Sin enlaces a pantallas que no son de su puesto (UX5-D-06). */}
                 {can('members:read')
                   ? <Link className="small strong row gap-4" href="/socios?adeudo=1">Ver quién debe <ArrowRight size={14} /></Link>

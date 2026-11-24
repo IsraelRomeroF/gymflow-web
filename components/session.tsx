@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { CircleCheck, CircleAlert } from 'lucide-react';
 import { CAMPO } from '@gymflow/core/vocabulario';
 import { api, ApiError, finDeSesion } from '@/lib/api';
-import { irAEntrar, salirDeEsteEquipo } from '@/lib/sesion';
+import { irAEntrar, recordarLugar, salirDeEsteEquipo } from '@/lib/sesion';
 import { errorALaVista, errorEnElDialogoAbierto } from './dialogo';
+import { Callout } from './compartido';
 
 export type Me = {
   userId: string;
@@ -26,9 +27,21 @@ export type Me = {
   /** Secciones de Dirección y Cumplimiento que el dueño le liberó; null = es el dueño. */
   unlockedSections?: string[] | null;
   /** Esta sesión: desde cuándo, a qué hora se cierra aunque se use y cuánto le queda según el servidor (24-04). */
-  session?: { startedAt: string; endsAt: string; secondsLeft: number } | null;
+  session?: {
+    startedAt: string; endsAt: string; secondsLeft: number;
+    /**
+     * De qué lugar es (D-04, bloque 4.1): `COUNTER`, el mostrador y cualquier otro equipo (tiempo fijo desde que se
+     * entra); `OWNER_PHONE`, el teléfono de la dueña, que se renueva con el uso (`renews`): entonces `endsAt` es cuándo
+     * se cerraría sin más uso, `idleDays` los días que aguanta sin él y `maxEndsAt` el día en que se cierra aunque se use.
+     */
+    kind?: 'COUNTER' | 'OWNER_PHONE'; renews?: boolean; idleDays?: number | null; maxEndsAt?: string;
+  } | null;
 };
-export type Organization = { id: string; legalName: string; tradeName: string; timezone: string };
+export type Organization = {
+  id: string; legalName: string; tradeName: string; timezone: string;
+  /** Lo que el recibo imprime del gimnasio (D-27, bloque 4.6): lo administra GymFlow. */
+  rfc?: string | null; phone?: string | null; whatsapp?: string | null; receiptLegend?: string | null; hasLogo?: boolean;
+};
 export type Branch = { id: string; code: string; name: string; timezone: string | null; isActive: boolean; publicSlug?: string | null };
 
 type Session = {
@@ -79,6 +92,8 @@ export function SessionProvider({ children, fallback }: { children: ReactNode; f
         api<Organization>('/organization'),
         api<Branch[]>('/branches'),
       ]);
+      // D-04: si es la sesión del teléfono de la dueña, el navegador recuerda que se renueva con el uso.
+      recordarLugar(me.session);
       setData({ me, org, branches });
     } catch (e) {
       // Sin sesión: al login con el motivo y la pantalla a la que volver (24-06,
@@ -140,6 +155,35 @@ export function useSession(): Session {
   const s = useContext(Ctx);
   if (!s) throw new Error('useSession fuera de SessionProvider');
   return s;
+}
+
+/**
+ * «¿CERRAR SESIÓN?» AL CORTAR LA CAJA (D-04, opción a; fase 4, bloque 4.1).
+ *
+ * La sesión del mostrador dura 12 horas desde que se entra: sin esta
+ * pregunta, quien llega al relevo cobra con el nombre de quien entró en la
+ * mañana. El corte es el momento en que el turno termina, así que ahí se
+ * pregunta. No cierra nada por su cuenta: quien sigue trabajando toca «Listo»
+ * en el diálogo del corte y sigue.
+ *
+ * En el teléfono de la dueña (la sesión que se renueva con el uso) no sale:
+ * ese equipo es de una sola persona.
+ */
+export function PreguntaCerrarSesion() {
+  const { me, logout } = useSession();
+  const [saliendo, setSaliendo] = useState(false);
+  if (me.session?.renews) return null;
+  return (
+    <div data-testid="pregunta-cerrar-sesion">
+      <Callout tone="info" title="¿Cerrar sesión?">
+        <p>Si aquí termina tu turno, cierra tu sesión{me.fullName ? ` (${me.fullName})` : ''}: quien sigue entra con su nombre y lo que cobre no queda a tu cuenta. Si vas a seguir, toca «Listo».</p>
+        <button type="button" className="btn btn-secondary btn-sm callout-accion" disabled={saliendo} data-testid="cerrar-sesion-tras-corte"
+          onClick={() => { setSaliendo(true); void logout().catch(() => setSaliendo(false)); }}>
+          Cerrar sesión
+        </button>
+      </Callout>
+    </div>
+  );
 }
 
 // ── Avisos flotantes ────────────────────────────────────────────────────────

@@ -4,7 +4,8 @@
 //  2. Otro de $450 en el mismo turno pasa del tope de $500 por turno: pide la
 //     firma de la dueña, y con ella se registra.
 //  3. Un retiro a caja fuerte siempre pide firma ($300).
-//  4. Recepción no pasa de $5,000 de retiros por turno ni con firma.
+//  4. Recepción no pasa de $5,000 de retiros por turno ni con firma, y el diálogo
+//     lo dice ANTES de pedir la firma (fase 4, bloque 4.3).
 //  5. La gerencia cambia los topes del cajón con la firma de la dueña; recepción
 //     no ve «Cambiar…».
 //
@@ -98,18 +99,22 @@ await recorrido('cajon', async (r) => {
   r.ok(movs.length === 3 && movs.filter((m) => m.approvedByUserId).length === 2, `el turno tiene los tres movimientos; dos con quién autorizó (${movs.length}, ${movs.filter((m) => m.approvedByUserId).length})`);
 
   // ── 4. Recepción no pasa de $5,000 por turno ni con firma ─────────────────
+  // Fase 4, bloque 4.3 (defecto D1 de 3.13): la pantalla lo dice ANTES de pedir la firma. La API le
+  // dice al diálogo cuánto le queda al puesto en el turno (`GET /cash-sessions/:id/allowance`).
   r.paso('tope de retiros de recepción');
+  const queda = await rcp.get(`/cash-sessions/${turno.id}/allowance`);
+  r.ok(queda.withdrawal.role === 'CON_TOPE' && queda.withdrawal.remainingCents === '470000', `la API dice que a recepción le quedan $4,700.00 de retiros en el turno (${queda.withdrawal.remainingCents})`);
   d = await movimiento('Retiro a caja fuerte', '4800', `Retiro grande ${L}`);
+  r.ok(await aparece(d.getByText(/Te quedan \$4,700\.00 en este turno\./), T.ui), 'el diálogo dice «Te quedan $4,700.00 en este turno.»');
   await d.getByRole('button', { name: 'Pedir autorización' }).click();
-  const f3 = await firmar(rec, 'Autorizar retiro a caja fuerte');
-  const negado = await accion(rec, () => f3.autorizar(), (url) => /\/api\/(approvals|cash-sessions\/[^/]+\/movements)$/.test(new URL(url).pathname), { metodo: 'POST', que: 'el retiro que pasa del tope del puesto' });
-  // La firma se pide primero (POST /approvals) y el retiro después: se espera a que la operación responda.
-  const final = /\/movements$/.test(new URL(negado.url()).pathname) ? negado
-    : await rec.waitForResponse((x) => x.request().method() === 'POST' && /\/api\/cash-sessions\/[^/]+\/movements$/.test(new URL(x.url()).pathname), { timeout: T.respuesta }).catch(() => negado);
-  r.ok(final.status() === 403, `$300.00 + $4,800.00 pasa de $5,000.00: no pasa ni con firma (${final.status()} en ${new URL(final.url()).pathname.replace(/[0-9a-f-]{36}/, '…')})`);
-  const porque = rec.getByText(/Pasa de lo que tu puesto puede retirar/).first();
-  r.ok(await aparece(porque, T.respuesta), `y la pantalla dice por qué: «${(await porque.innerText().catch(() => '')).trim().slice(0, 200)}»`);
+  const porque = d.getByText(/Pasa de lo que tu puesto puede retirar o depositar en este turno \(te quedan \$4,700\.00\)/).first();
+  r.ok(await aparece(porque, T.ui), `$300.00 + $4,800.00 pasa de $5,000.00 y el diálogo lo dice sin pedir la firma: «${(await porque.innerText().catch(() => '')).trim().slice(0, 200)}»`);
+  r.ok(await rec.getByRole('dialog', { name: 'Autorizar retiro a caja fuerte' }).count() === 0, 'no se abre «Autorizar retiro a caja fuerte»: nadie teclea su contraseña para algo que no va a pasar');
+  // La regla sigue en la API: pedirlo directo, aun con el importe permitido por la firma, responde 403.
+  const directo = await rcp.crudo('POST', `/cash-sessions/${turno.id}/movements`, { movementType: 'WITHDRAWAL', amountCents: '480000', reason: `Retiro grande ${L}` });
+  r.ok(directo.status === 403, `y la API tampoco lo deja pasar por fuera de la pantalla (${directo.status})`);
   await r.captura(rec, 'cajon-3-tope-del-puesto');
+  await d.getByRole('button', { name: 'Cancelar' }).click();
   r.ok((await movimientos()).length === 3, 'el turno sigue con tres movimientos: no salió nada');
 
   // ── 5. La gerencia cambia los topes con la firma de la dueña ──────────────

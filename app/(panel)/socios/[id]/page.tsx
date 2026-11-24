@@ -30,7 +30,9 @@ import { PrivacidadCard } from '@/components/privacidad';
 import { SolicitudesArco, RetirarConsentimientoDialog, LeerFirmaDialog } from '@/components/arco';
 import { REVOCABLES_EN_RECEPCION } from '@gymflow/core/privacidad';
 import { ReactivarDialog } from '@/components/portal-socio';
+import { BajaDelSocio } from '@/components/ficha/baja';
 import { PortalDelSocioDialog } from '@/components/ficha/portal';
+import { ContactoCambiado } from '@/components/ficha/contacto-cambiado';
 import { HistoriaSocio } from '@/components/ficha/historia';
 import { ComprasSocio } from '@/components/ficha/compras';
 import { ContactoDialog } from '@/components/seguimiento';
@@ -113,6 +115,8 @@ export default function SocioPage() {
   // venderle su plan. Se consume una sola vez y se quita de la dirección:
   // antes, recargar la ficha después de vender volvía a abrir el asistente.
   const [pideVenta, setPideVenta] = useState(search.get('vender') === '1');
+  // `&plan=` llega de «Inscribir» a un interesado (D-31, bloque 4.7): la venta abre con el plan que preguntó.
+  const [planDeInteres, setPlanDeInteres] = useState(search.get('plan'));
   const [vender, setVender] = useState(false);
   // Cuántas ventas se cerraron aquí: un pase del día no mueve membresías ni saldo, pero sí si puede entrar.
   const [ventas, setVentas] = useState(0);
@@ -282,6 +286,8 @@ export default function SocioPage() {
               <span><code>{m.memberCode}</code></span>
               <span><Building2 />{branchName(m.homeBranchId)}</span>
               <span><CalendarDays />Socio desde hace {antiguedad(m.joinedAt)}</span>
+              {/* D-18 (bloque 4.4, edición puntual): «de baja desde», calculado con el plazo del gimnasio. */}
+              <BajaDelSocio memberId={m.id} version={cambios} />
               {m.phoneE164 && <span><Phone />{telefono(m.phoneE164)}</span>}
             </div>
           </div>
@@ -410,6 +416,8 @@ export default function SocioPage() {
             {/* Bloque 3.4 (D-09, D-11): «Comparte celular con…», quién responde por el número y «Completar datos» (solo lo vacío). */}
             {veContacto && !m.anonymizedAt && m.status !== 'ARCHIVED' && <CelularCompartido memberId={m.id} nombre={m.firstName} puedeEditar={can('members:update')} puedeCompletar={can('members:create')} onCambio={() => void recargarSocio()}
               vacios={{ phoneE164: !m.phoneE164, email: !m.email, birthDate: !m.birthDate, emergencyContactName: !m.emergencyContactName, emergencyContactPhone: !m.emergencyContactPhone }} />}
+            {/* Bloque 4.8 (D-36): el socio cambió su celular o su correo desde el portal; el mostrador lo confirma con él. Sin nada por confirmar no pinta nada. */}
+            {puedePortal && !m.anonymizedAt && m.status !== 'ARCHIVED' && <ContactoCambiado memberId={m.id} nombre={m.firstName} onCambio={() => void recargarSocio()} />}
             <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--line)' }} className="stack-sm">
               <p className="label row gap-6"><LifeBuoy size={14} />En caso de emergencia</p>
               <p className="small">{m.emergencyContactName
@@ -568,9 +576,9 @@ export default function SocioPage() {
           onGuardado={() => { setEditar(false); void recargarCuenta(); }} />
       )}
       {vender && (
-        <VenderDialog memberId={m.id} memberName={m.firstName} homeBranchId={m.homeBranchId}
-          onClose={() => setVender(false)}
-          onDone={() => { setVender(false); setVentas((n) => n + 1); void recargarCuenta(); void pasesCarga.recargar(); }} />
+        <VenderDialog memberId={m.id} memberName={m.firstName} homeBranchId={m.homeBranchId} planInicial={planDeInteres}
+          onClose={() => { setVender(false); setPlanDeInteres(null); }}
+          onDone={() => { setVender(false); setPlanDeInteres(null); setVentas((n) => n + 1); void recargarCuenta(); void pasesCarga.recargar(); }} />
       )}
       {cobrar && st && (
         <CobrarDialog memberId={m.id} memberName={m.firstName} branchIds={sedesDeCobro(st, m.homeBranchId)} saldoCents={neto.toString()}

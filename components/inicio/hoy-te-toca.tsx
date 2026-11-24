@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import { useCallback, type ReactNode } from 'react';
-import { ArrowRight, CalendarX, CircleCheck, DoorOpen, FileSignature, HeartHandshake, Inbox, ScanFace, Sparkles, Stamp, UserRoundPlus, UserX, Wallet } from 'lucide-react';
+import { ArrowRight, CalendarX, CircleCheck, DoorOpen, FileSignature, HeartHandshake, Inbox, ScanFace, Smartphone, Sparkles, Stamp, UserRoundPlus, UserX, Wallet } from 'lucide-react';
 import type { AsuntoDelInicio, MeHome, RenglonDelInicio } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { hora } from '@/lib/format';
+import { hora, pesos } from '@/lib/format';
 import { CONSENT_TYPE } from '@/lib/labels';
 import { useCarga } from '@/lib/carga';
 import { menuPara } from '@/modules/registro';
@@ -32,6 +32,11 @@ function textoDe(r: RenglonDelInicio): Texto {
     case 'registers': return {
       icono: <Wallet />, href: '/caja', titulo: r.count === 1 ? 'Una caja sigue abierta desde un día anterior' : `${r.count} cajas siguen abiertas desde un día anterior`,
       texto: `Falta el corte: ${r.detail.join(', ')}${r.count > r.detail.length ? ' y más' : ''}.`,
+    };
+    // D-17 (bloque 4.3): cortes con más de $20 de diferencia que la gerencia no ha revisado.
+    case 'variances': return {
+      icono: <Wallet />, href: '/caja', titulo: r.count === 1 ? 'Un corte con diferencia por revisar' : `${r.count} cortes con diferencia por revisar`,
+      texto: `${r.amountCents && BigInt(r.amountCents) > 0n ? `Faltan ${pesos(r.amountCents)}. ` : ''}Cada uno es de quien abrió el turno: revísalo en Caja y ciérralo con tu nota.`,
     };
     case 'biometrics': return {
       icono: <ScanFace />, href: '/biometria', titulo: n(r.count, 'plantilla biométrica vencida', 'plantillas biométricas vencidas'),
@@ -68,6 +73,12 @@ function textoDe(r: RenglonDelInicio): Texto {
       // D-29 (3.16): recepción lo elige al alta; lo que quedó sin coach lo pone la gerencia desde la ficha.
       icono: <UserRoundPlus />, href: '/socios', titulo: r.count === 1 ? 'Un socio nuevo sigue sin coach' : `${r.count.toLocaleString('es-MX')} socios nuevos siguen sin coach`,
       texto: `Se ${r.count === 1 ? 'dio' : 'dieron'} de alta esta semana: ${r.detail.join(', ')}${r.count > r.detail.length ? ' y más' : ''}. Ponle su coach desde su ficha.`,
+    };
+    // D-36 (4.8): el socio cambió su celular o su correo desde el portal; ya está hecho, el mostrador lo confirma con él en su ficha.
+    case 'contactChanges': return {
+      icono: <Smartphone />, href: '/socios',
+      titulo: r.count === 1 ? 'Un socio cambió su celular o su correo desde su teléfono' : `${r.count.toLocaleString('es-MX')} socios cambiaron su celular o su correo desde su teléfono`,
+      texto: `${r.detail.join(', ')}${r.count > r.detail.length ? ' y más' : ''}. El cambio ya quedó en su ficha: cuando ${r.count === 1 ? 'venga, confirma con él o ella que fue suyo' : 'vengan, confirma con cada quien que fue suyo'}.`,
     };
     case 'prospects': return {
       icono: <Sparkles />, href: '/prospectos', titulo: `${n(r.count, 'interesado', 'interesados')} por atender`,

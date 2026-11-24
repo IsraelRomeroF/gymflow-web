@@ -17,6 +17,7 @@ import { Puerta } from './puerta';
 import { FranjaDeFirmas } from './firma/franja';
 import { Campana } from './campana';
 import { AvisoDeGymflow } from './cuenta-gymflow';
+import { AvisoDeSolicitudes } from './solicitudes-gymflow';
 import { Marca } from '@/components/compartido';
 
 /**
@@ -46,7 +47,8 @@ export function Shell({ children }: { children: ReactNode }) {
   // La sesión que muere a media jornada lleva al login con su motivo y a la
   // pantalla donde estaba (24-06, 24-08): un solo lugar para todo el panel.
   useEffect(() => alPerderSesion((motivo) => irAEntrar(motivo)), []);
-  const cierre = useFinDeSesion(me.session?.secondsLeft);
+  // D-04 (bloque 4.1): la sesión del teléfono de la dueña se renueva con el uso; no tiene hora de cierre que avisar.
+  const cierre = useFinDeSesion(me.session?.renews ? undefined : me.session?.secondsLeft);
   const [navOpen, setNavOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
   const [altas, setAltas] = useState(0);
@@ -264,6 +266,8 @@ export function Shell({ children }: { children: ReactNode }) {
           {cierre.porCerrar && cierre.fin !== null && <AvisoDeCierre fin={cierre.fin} />}
           {/* Lo que GymFlow le avisa al dueño: factura, vencimiento y suspensión (D-37, bloque 3.11). Solo él lo ve. */}
           <AvisoDeGymflow />
+          {/* GymFlow contestó una solicitud de cambio de datos o de marca (D-27, bloque 4.6). Solo lo ve quien la pidió. */}
+          <AvisoDeSolicitudes />
           <Puerta>{children}</Puerta>
         </main>
       </div>

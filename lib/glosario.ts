@@ -14,11 +14,15 @@ export const GLOSARIO = {
   descuadre: { nombre: 'Descuadre', explica: 'De cada corte cuenta su faltante, que resta como un gasto. Un sobrante no suma a la ganancia: se informa «por aclarar» hasta saber de dónde salió, y no tapa el faltante de otra caja.' },
   ganado: { nombre: 'Ganado', explica: 'La parte del servicio que ya diste en el periodo: de una anualidad, un mes.' },
   porPrestar: { nombre: 'Por prestar', explica: 'Lo que ya cobraste y todavía debes en servicio: paquetes y periodos pagados por adelantado.' },
-  porCobrar: { nombre: 'Por cobrar', explica: 'Lo que tus socios deben hoy, vencido o no.' },
+  // D-18 (bloque 4.4): lo cobrable. La deuda dada por perdida se informa aparte en el Tablero.
+  porCobrar: { nombre: 'Por cobrar', explica: 'Lo que tus socios deben hoy, vencido o no. No incluye la deuda que ya se dio por perdida (la de membresías que llevaron suspendidas el plazo del gimnasio): esa sigue en el estado de cuenta de cada socio y se puede cobrar.' },
   // Fase 3 · bloque 3.7 (D-21, D-22, D-23).
   costoVendido: { nombre: 'Costo de lo vendido', explica: 'Lo que le costó al gimnasio lo que vendió en la tienda, con el costo que cada producto tenía el día de la venta. La utilidad contable ya lo resta.' },
   retiroDueno: { nombre: 'Retiro del dueño', explica: 'Lo que el dueño se lleva del negocio. Se anota y se ve, pero no es un gasto: no resta de la ganancia ni de la utilidad.' },
   ajuste: { nombre: 'Ajuste de un mes cerrado', explica: 'Un mes cerrado ya no cambia. Lo que llega tarde —un gasto que faltó o uno que sobraba— se anota en el mes en curso como «ajuste de ‹mes›», a la vista.' },
+  // Fase 4 · bloque 4.5 (D-26).
+  pagoNomina: { nombre: 'Pago de nómina', explica: 'La nómina se anota pago por pago: la fecha, a quién y cuánto. Cada pago cuenta como gasto fijo en el mes de su fecha, repartido por día.' },
+  porConfirmar: { nombre: 'Por confirmar', explica: 'Lo que se repite (la renta, la luz, la nómina fija) se propone cada vez que toca. No se anota solo: alguien lo confirma, corrige el importe o lo descarta, y mientras tanto no cuenta en ninguna cifra.' },
 } as const;
 
 export type TerminoDelGlosario = keyof typeof GLOSARIO;

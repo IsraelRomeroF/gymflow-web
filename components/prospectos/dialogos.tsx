@@ -7,7 +7,8 @@ import type { Prospect, ProspectSources } from '@gymflow/core/contracts';
 import { REFERRAL_SOURCE } from '@gymflow/core/captacion';
 import { TIPO_DE_PERSONA } from '@gymflow/core/vocabulario';
 import { api, ApiError } from '@/lib/api';
-import { fecha, fechaHora, telefono } from '@/lib/format';
+import { fecha, fechaHora, pesos, telefono } from '@/lib/format';
+import { porPeriodo, type Plan } from '@/lib/plans';
 import { hoyEn, masDias } from '@/lib/zonas';
 import { enlaceAlta, usePortalUrl } from '@/lib/portal';
 import { useCarga, EstadoCarga } from '@/lib/carga';
@@ -42,10 +43,12 @@ export function ProspectoDialog({ editar, fuentes, onClose, onListo }: {
   onClose: () => void; onListo: () => void;
 }) {
   const toast = useToast();
-  const { branches, inScope, org } = useSession();
+  const { branches, inScope, org, can } = useSession();
   const sedes = branches.filter((b) => b.isActive && inScope(b.id));
   const hoy = hoyEn(org.timezone);
   const [tel, setTel] = useState(sinLada(editar?.phoneE164));
+  // El plan que preguntó (D-31): la venta abre con él. '' = todavía no sabe.
+  const [planDeInteres, setPlanDeInteres] = useState(editar?.interestPlanId ?? '');
   const [nombre, setNombre] = useState(editar?.firstName ?? '');
   const [apellido, setApellido] = useState(editar?.lastName ?? '');
   const [email, setEmail] = useState(editar?.email ?? '');
@@ -60,6 +63,16 @@ export function ProspectoDialog({ editar, fuentes, onClose, onListo }: {
   const { people } = useIdentidad({ firstName: nombre, lastName: apellido, phone: tel, email }, { apagado: !!editar });
   // La fuente que ya tenía se conserva aunque la gerencia la haya quitado de la lista.
   const opciones = fuente && !fuentes.includes(fuente) ? [...fuentes, fuente] : fuentes;
+  // Los planes que vende SU sucursal, con el precio de lista de ahí: lo mismo que ve quien escanea el cartel.
+  const verPlanes = can('catalog:read');
+  const cargarPlanes = useCallback(() => api<Plan[]>(`/plans?branchId=${sede}`).then((ps) => ps.filter((p) => p.effectivePriceCents !== null)), [sede]);
+  const planes = useCarga(verPlanes && sede ? cargarPlanes : null).datos ?? null;
+  // Al cambiar de sucursal, un plan que la nueva no vende deja de estar elegido.
+  useEffect(() => {
+    if (planes && planDeInteres && planDeInteres !== editar?.interestPlanId && !planes.some((p) => p.id === planDeInteres)) setPlanDeInteres('');
+  }, [planes, planDeInteres, editar?.interestPlanId]);
+  // El que ya tenía anotado se conserva en la lista aunque ya no se venda.
+  const anotadoFuera = editar?.interestPlanId && planes && !planes.some((p) => p.id === editar.interestPlanId) ? editar : null;
 
   // El botón queda encendido: lo que falta se dice en su campo y el foco va ahí (26-02).
   const f = useFormulario({
@@ -82,6 +95,8 @@ export function ProspectoDialog({ editar, fuentes, onClose, onListo }: {
           body: JSON.stringify({
             ...comun, phoneE164: tel.trim() || null, email: email.trim() || null, source: fuente,
             referredByName: fuente === REFERRAL_SOURCE ? recomendo.trim() || null : null, notes: nota.trim() || null,
+            // Solo si lo cambió: un plan anotado que ya no se vende se queda como está.
+            ...(planDeInteres !== (editar.interestPlanId ?? '') ? { interestPlanId: planDeInteres || null } : {}),
           }),
         });
         toast('ok', 'Datos corregidos.');
@@ -93,6 +108,7 @@ export function ProspectoDialog({ editar, fuentes, onClose, onListo }: {
             ...(tel.trim() ? { phoneE164: tel.trim() } : {}), ...(email.trim() ? { email: email.trim() } : {}),
             ...(fuente === REFERRAL_SOURCE && recomendo.trim() ? { referredByName: recomendo.trim() } : {}),
             ...(proximo ? { nextStepOn: proximo } : {}), ...(nota.trim() ? { notes: nota.trim() } : {}),
+            ...(planDeInteres ? { interestPlanId: planDeInteres } : {}),
             ...(force ? { force: true } : {}),
           }),
         });
@@ -162,6 +178,15 @@ export function ProspectoDialog({ editar, fuentes, onClose, onListo }: {
         {!editar && sedes.length > 1 && (
           <Field label="Sucursal" htmlFor="pp-s"><select id="pp-s" className="select" value={sede} onChange={(e) => setSede(e.target.value)}>{sedes.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></Field>
         )}
+        {verPlanes && (planes?.length || anotadoFuera) ? (
+          <Field label="¿Qué plan le interesa?" htmlFor="pp-plan" hint="Con su precio de lista en esta sucursal. Al inscribirlo, la venta abre con este plan.">
+            <select id="pp-plan" className="select" value={planDeInteres} onChange={(e) => setPlanDeInteres(e.target.value)}>
+              <option value="">Todavía no sabe</option>
+              {(planes ?? []).map((p) => <option key={p.id} value={p.id}>{p.name} · {pesos(p.effectivePriceCents ?? p.priceCents, { decimals: false })} {porPeriodo(p)}</option>)}
+              {anotadoFuera && <option value={anotadoFuera.interestPlanId!}>{anotadoFuera.interestPlanName ?? 'Un plan'} (ya no se vende aquí)</option>}
+            </select>
+          </Field>
+        ) : null}
         <Field label="Nota" htmlFor="pp-no"><input id="pp-no" className="input" value={nota} maxLength={500} onChange={(e) => setNota(e.target.value)} placeholder="Busca horario nocturno; le interesa spinning" /></Field>
         {f.error('sede') && <Callout tone="danger">{f.error('sede')}</Callout>}
       </div>

@@ -14,6 +14,8 @@ import { RETENTION_THRESHOLDS, contactStatus } from '@gymflow/core/retention';
 import { ESTADO_DE_HABITO } from '@gymflow/core/vocabulario';
 import type { FollowUpLatest, OutboundMessage, OutboundMessages, RetentionAlert as Alerta, RetentionAlerts as Reporte } from '@gymflow/core/contracts';
 import { enlaceWhatsapp } from '@/lib/entrega-temporal';
+import { PlazosDelGimnasio } from './plazos';
+import { Recuperar } from './recuperar';
 
 /** Cuántas personas se traen para llamar; si hay más, la tarjeta dice cuántas faltan. */
 const TOPE = 60;
@@ -50,6 +52,8 @@ export default function RetencionPage() {
   // baja a "Ya contactados" hasta que le toque el próximo paso. Si no responde,
   // nadie pasa por «no contactado»: se dice que no se sabe (26-01).
   const [llamando, setLlamando] = useState<Alerta | null>(null);
+  // Al cambiar un plazo, «Recuperar» se vuelve a pedir.
+  const [version, setVersion] = useState(0);
   const ids = r?.outreach.map((a) => a.memberId).join(',') ?? '';
   const seguimiento = useCarga(useCallback(() => (ids
     ? api<FollowUpLatest>(`/members/follow-ups/latest?ids=${ids}`)
@@ -97,7 +101,7 @@ export default function RetencionPage() {
           <Stat label="En riesgo" value={r.total} note="Para llamar" danger={r.total > 0} />
           <Stat label="No arrancaron" value={r.counts.ONBOARDING_AT_RISK} note="Primer mes" />
           <Stat label="Aflojando" value={r.counts.SLIPPING} note="Vienen menos" />
-          <Stat label="Dejaron de venir" value={r.counts.DORMANT} note={`${T.dormantMinDays} días o más`} />
+          <Stat label="Dejaron de venir" value={r.counts.DORMANT} note={`${r.terms.dormantDays} días o más`} />
         </div>
       )}
       {r && !sinSocios && (
@@ -105,12 +109,14 @@ export default function RetencionPage() {
           <summary className="tiny strong">¿Cómo se decide quién está en riesgo?</summary>
           <p className="tiny muted mt-6">
             Cada socio se compara con su propia costumbre. <strong>Aflojando</strong>: ya faltó a dos de sus visitas y lleva al menos {T.slippingMinDays} días sin venir (un puente no cuenta).
-            {' '}<strong>Dejó de venir</strong>: {T.dormantMinDays} días o más sin venir, venga como viniera. <strong>No arrancó</strong>: menos de {T.onboardingMinVisits} visitas en sus primeros {T.onboardingWindowDays} días.
-            {' '}A los {T.lostDays} días se da por perdido y sale de la lista. Quien tiene la membresía congelada no aparece mientras dura la pausa; vuelve {T.unfrozenGraceDays} días después de descongelar si no ha venido. Las altas sin activar tampoco: eso es cobro.
+            {' '}<strong>Dejó de venir</strong>: {r.terms.dormantDays} días o más sin venir, venga como viniera. <strong>No arrancó</strong>: menos de {T.onboardingMinVisits} visitas en sus primeros {T.onboardingWindowDays} días.
+            {' '}A los {r.terms.lostDays} días sin venir se da por perdido: sale de esta lista y pasa a «Recuperar». Quien tiene la membresía congelada no aparece mientras dura la pausa; vuelve {T.unfrozenGraceDays} días después de descongelar si no ha venido. Las altas sin activar tampoco: eso es cobro.
             {' '}Hoy: {r.counts.REGULAR} constantes, {r.counts.NEW} nuevos y {r.counts.LOST} perdidos.
           </p>
         </details>
       )}
+      {/* D-18 (bloque 4.4): los plazos son del gimnasio; aquí se ven y, quien puede, los cambia. */}
+      {r && <PlazosDelGimnasio onCambio={() => { void reporte.recargar(); setVersion((v) => v + 1); }} />}
       {/* Si falló, solo se dice que falló: una tarjeta vacía se leería como «nadie en riesgo» (26-01). */}
       {!(error && r === null) && (
       // Si la lista se recorta, dice cuántos hay en total.
@@ -138,6 +144,9 @@ export default function RetencionPage() {
         )}
       </Card>
       )}
+      {/* «Recuperar» (D-18, 15-10): los perdidos y las bajas a quienes todavía se les busca. */}
+      {/* También sin socios vivos: un gimnasio al que se le fueron todos es justo el que la necesita. */}
+      {r && <Recuperar key={version} sede={sede} sedes={sedes.length} />}
       {llamando && (
         <ContactoDialog para="socio" nombre={llamando.fullName.split(' ')[0]!} url={`/members/${llamando.memberId}/follow-ups`}
           onClose={() => setLlamando(null)} onListo={() => { setLlamando(null); cargarContactos(); }} />

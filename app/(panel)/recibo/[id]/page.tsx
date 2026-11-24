@@ -8,6 +8,7 @@ import { METODO_DE_PAGO, etiqueta } from '@gymflow/core/vocabulario';
 import type { PaymentReceipt } from '@gymflow/core/contracts';
 import { useSession, errorText } from '@/components/session';
 import { Button, Callout, Skeleton } from '@/components/ui';
+import { LogoDeRecibo, PieDeRecibo } from '@/components/recibo-gimnasio';
 
 /** Lo que se imprime: contrato del núcleo (`GET /payments/:id/receipt`), ya no un tipo a mano. */
 type Recibo = PaymentReceipt;
@@ -37,6 +38,8 @@ export default function ReciboPage({ params }: { params: Promise<{ id: string }>
       <div className="no-print"><Button icon={<Printer />} onClick={() => window.print()}>Imprimir</Button></div>
       <article className="recibo">
         <header>
+          {/* Logo, teléfonos y leyenda del gimnasio: los administra GymFlow (D-27, bloque 4.6). */}
+          <LogoDeRecibo />
           <p className="recibo-org">{org.tradeName}</p>
           <p>{branchName(p.branchId)}</p>
           <p>{fechaHora(p.receivedAt)}</p>
@@ -63,6 +66,7 @@ export default function ReciboPage({ params }: { params: Promise<{ id: string }>
               : <>{r.priceNotice.planName ?? 'Tu plan'} cambió de precio: de {pesos(r.priceNotice.fromPriceCents)} a <strong>{pesos(r.priceNotice.toPriceCents)}</strong> desde este pago.</>}
           </p>
         )}
+        <PieDeRecibo />
         <footer>
           Comprobante de pago. No es un comprobante fiscal (CFDI); si necesitas factura, pídela en recepción.
         </footer>

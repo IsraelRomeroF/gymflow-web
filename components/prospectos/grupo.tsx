@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarClock, History, MessageCircle, Pencil, Phone, PhoneCall, RotateCcw, Send, UserPlus, UserX } from 'lucide-react';
+import { CalendarClock, History, Hourglass, MessageCircle, Pencil, Phone, PhoneCall, RotateCcw, Send, UserPlus, UserX } from 'lucide-react';
 import type { Prospect } from '@gymflow/core/contracts';
 import { UNCONTACTED_ALERT_DAYS } from '@gymflow/core/captacion';
 import { ESTADO_DE_INTERESADO } from '@gymflow/core/vocabulario';
@@ -73,6 +73,8 @@ export function FilasDeInteresados({ items, hoy, variasSedes, sedeDe, a }: {
                     {p.phoneE164 && <a href={`https://wa.me/${p.phoneE164.replace('+', '')}`} target="_blank" rel="noreferrer" className="row gap-3 enlace-contacto"><MessageCircle size={11} />WhatsApp</a>}
                     {p.email && <span>{p.email}</span>}
                   </div>
+                  {/* El plan que preguntó (D-31): al inscribirlo, la venta abre con él. */}
+                  {p.interestPlanName && <div className="tiny muted" data-testid="plan-de-interes">Le interesa: {p.interestPlanName}</div>}
                   {p.notes && <div className="tiny muted">{p.notes}</div>}
                   {p.status !== 'CONVERTED' && <UltimoContacto c={p.lastFollowUp} total={p.followUps} sinProximo />}
                 </td>
@@ -84,9 +86,16 @@ export function FilasDeInteresados({ items, hoy, variasSedes, sedeDe, a }: {
                 <td className="small" data-label={cerrado ? 'Cómo quedó' : 'Cuándo toca'}>
                   {cerrado
                     ? (p.status === 'LOST'
-                      ? <span className="muted">{p.lostReason ?? 'Sin motivo anotado'}{p.closedAt ? <span className="tiny"> · {hace(p.closedAt)}</span> : null}</span>
+                      // El que nadie cerró (D-31): se dice que fue solo, para no buscar quién lo marcó.
+                      ? <span className="muted">{p.autoClosed ? `Se cerró solo: ${p.lostReason ?? 'sin contacto'}` : p.lostReason ?? 'Sin motivo anotado'}{p.closedAt ? <span className="tiny"> · {hace(p.closedAt)}</span> : null}</span>
                       : <span className="muted">{p.closedAt ? `Se inscribió ${hace(p.closedAt)}` : 'Se inscribió'}</span>)
-                    : <Toca p={p} hoy={hoy} />}
+                    : <div className="row wrap gap-6">
+                        <Toca p={p} hoy={hoy} />
+                        {/* A una semana de cerrarse solo (D-31): contactarlo o ponerle fecha lo deja en la lista. */}
+                        {p.autoCloseSoon && p.autoCloseOn && (
+                          <span data-testid="se-cierra-solo"><Badge tone="danger"><Hourglass size={12} />{p.autoCloseOn <= hoy ? 'Se cierra solo por falta de contacto' : `Se cierra solo el ${fecha(p.autoCloseOn)}`}</Badge></span>
+                        )}
+                      </div>}
                 </td>
                 {/* En el teléfono las acciones van en su propio renglón DENTRO de la tarjeta (10-02). */}
                 <td className="right text-right acciones-fila">

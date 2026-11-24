@@ -15,6 +15,7 @@ import { AsignarPlan } from '../_componentes/asignar-plan';
 import { ConMotivo } from '../_componentes/con-motivo';
 import { Credenciales } from '../_componentes/credenciales';
 import { EditarMarca } from '../_componentes/editar-marca';
+import { FichaDeMarca } from '../_componentes/ficha-de-marca';
 import { NuevaCuenta } from '../_componentes/nueva-cuenta';
 import { PersonalMarca } from '../_componentes/personal-marca';
 import { Soporte } from '../_componentes/soporte';
@@ -104,6 +105,9 @@ export default function MarcaPage() {
             : <p className="small muted"><span className="strong">A la medida.</span> La marca contrata módulo por módulo y se le cobra lo básico más cada módulo a su precio.</p>}
         </Card>
         </div>
+
+        {/* Datos y marca que el gimnasio no cambia desde su panel, y lo que pidió cambiar (D-27, bloque 4.6). */}
+        <FichaDeMarca organizationId={d.id} version={`${d.tradeName}|${d.legalName}`} onCambio={cargar} />
 
         <PersonalMarca marca={d} onAgregar={() => setNuevaCuenta(true)} onNuevaContrasena={setReset} onQueVe={setQueVe} onActivar={setActivar} />
 

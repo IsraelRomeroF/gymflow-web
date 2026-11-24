@@ -301,6 +301,8 @@ export const MENU_PLANO: Readonly<Record<string, readonly string[]>> = {
 const ETIQUETA_POR_PUESTO: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   // El coach solo ve a sus socios asignados (2026-10-09): la pantalla ya se titula así.
   COACH: { '/socios': 'Mis socios' },
+  // La dueña solo consulta: en Caja ve los cortes, no la operación (7-13; D-17, bloque 4.3).
+  OWNER: { '/caja': 'Cortes de caja' },
 };
 
 /** El puesto que manda en el menú: quien es gerente lo ve por tarea aunque tenga otro puesto además. */

@@ -148,8 +148,10 @@ function RenglonCargo({ c, onCambio }: { c: StatementCharge; onCambio: () => voi
     <li className="list-item items-start mov" data-testid="mov-cargo" data-estado={c.status}>
       <IconTile size="sm" tone={c.status === 'OVERDUE' ? 'danger' : abierto ? 'warn' : 'neutral'}><FileText /></IconTile>
       <div className="flex-1 min-w-0">
-        <div className="small strong mov-titulo">{concepto(c.concept)} <Badge tone={e.tone}>{e.label}</Badge></div>
+        <div className="small strong mov-titulo">{concepto(c.concept)} <Badge tone={e.tone}>{e.label}</Badge>{c.lostOn && abierto ? <> <Badge>Dada por perdida</Badge></> : null}</div>
         <div className="tiny muted">Cargo · vence {fecha(c.dueDate)}</div>
+        {/* D-18 (bloque 4.4, edición puntual): no está perdonada; solo ya no cuenta en «Por cobrar». */}
+        {c.lostOn && abierto && <div className="tiny muted" data-testid="cargo-perdido">Se dio por perdida el {fecha(c.lostOn)}: ya no cuenta en «Por cobrar», pero se sigue debiendo y se puede cobrar.</div>}
         {c.adjustments.length > 0 && (
           <details className="explica tiny" data-testid="cargo-ajustes">
             <summary>{c.adjustments.length === 1 ? 'Ver el ajuste' : `Ver los ${c.adjustments.length} ajustes`}</summary>

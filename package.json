@@ -16,7 +16,7 @@
     "test:textos": "node scripts/textos-puestos.mjs",
     "test:tokens": "node scripts/tokens-iguales.mjs",
     "test:estilos": "node scripts/estilos-en-linea.mjs",
-    "test": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test modules/registro.test.ts modules/tabla-puestos.test.ts lib/format.test.ts"
+    "test": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test modules/registro.test.ts modules/tabla-puestos.test.ts modules/coach-sin-whatsapp.test.ts lib/format.test.ts"
   },
   "dependencies": {
     "@gymflow/core": "link:../gymflow-core",

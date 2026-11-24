@@ -15,7 +15,8 @@ import { atenderEspera, esperaParaRetomar, ponerEspera, quitarEspera, soltarEspe
 
 /** De qué registro se trata lo que se firma (29-01). Mismos valores que `APPROVAL_RESOURCE_TYPES` del núcleo. */
 // 'PosSale' y 'CashLimits': bloque 3.5 (D-13 y D-15), edición puntual.
-export type TipoDeRegistro = 'CashSession' | 'Payment' | 'Charge' | 'Membership' | 'Member' | 'VisitPack' | 'MonthlyClose' | 'PosSale' | 'CashLimits';
+// 'MemberTerms': bloque 4.4 (D-18, los plazos de la deuda), edición puntual.
+export type TipoDeRegistro = 'CashSession' | 'Payment' | 'Charge' | 'Membership' | 'Member' | 'VisitPack' | 'MonthlyClose' | 'PosSale' | 'CashLimits' | 'MemberTerms';
 
 /**
  * Lo que se autoriza: la firma solo vale para esto y hasta este importe.
@@ -31,7 +32,7 @@ const TIPO_POR_PERMISO: Record<string, TipoDeRegistro> = {
   'cash:withdraw': 'CashSession', 'payments:reverse': 'Payment', 'payments:refund': 'Payment',
   'billing:charge:void': 'Charge', 'billing:discount:apply': 'Charge', 'members:anonymize': 'Member',
   'members:balance:adjust': 'Member', 'memberships:visitpack:adjust': 'VisitPack', 'reports:month:close': 'MonthlyClose',
-  'pos:sale:return': 'PosSale', 'cash:limits:set': 'CashLimits',
+  'pos:sale:return': 'PosSale', 'cash:limits:set': 'CashLimits', 'billing:debt-terms:set': 'MemberTerms',
 };
 
 /**

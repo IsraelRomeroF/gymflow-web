@@ -4,10 +4,10 @@ import { use, useEffect, useState } from 'react';
 import { Printer } from 'lucide-react';
 import { api } from '@/lib/api';
 import { fecha, fechaHora, pesos } from '@/lib/format';
-import { METODO, MOVIMIENTO, ORIGEN, TURNO, type Corte } from '@/lib/caja';
+import { METODO, MOVIMIENTO, ORIGEN, TURNO, type Corte, type Turno } from '@/lib/caja';
 import { useSession, errorText } from '@/components/session';
 import { Breadcrumb, Button, Callout, Card, PageHeader, NoExiste, esNoExiste, EsqueletoPagina } from '@/components/ui';
-import { Diferencia } from '@/components/caja';
+import { Diferencia, RevisarDialog, TOLERANCIA } from '@/components/caja';
 
 /**
  * El CORTE de un turno, listo para imprimir y firmar.
@@ -18,7 +18,9 @@ import { Diferencia } from '@/components/caja';
  */
 export default function CortePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { branches, org } = useSession();
+  const { branches, org, can } = useSession();
+  // D-17 (bloque 4.3): la gerencia revisa desde la hoja el corte que quedó por revisar.
+  const [revisando, setRevisando] = useState(false);
   const [corte, setCorte] = useState<Corte | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,6 +65,8 @@ export default function CortePage({ params }: { params: Promise<{ id: string }> 
         <table className="corte-tabla"><tbody>
           <tr><td>Abrió</td><td>{s.openedByName ?? '—'} · {fechaHora(s.openedAt)}</td></tr>
           <tr><td>Cerró</td><td>{s.closedByName ?? '—'} · {s.closedAt ? fechaHora(s.closedAt) : '—'}</td></tr>
+          {/* D-17: el cajón estuvo a nombre de quien abrió; la diferencia es suya aunque corte otra persona. */}
+          <tr><td>Responsable del cajón</td><td>{s.responsibleName ?? '—'}{s.closedByUserId && s.closedByUserId !== s.openedByUserId ? ' · abrió el turno; lo cortó otra persona' : ''}</td></tr>
         </tbody></table>
 
         <h2>Cobros del turno</h2>
@@ -82,7 +86,7 @@ export default function CortePage({ params }: { params: Promise<{ id: string }> 
           <tr><td>Fondo inicial</td><td>{pesos(fondo)}</td></tr>
           <tr><td>Cobros en efectivo</td><td>{pesos(efectivo)}</td></tr>
           {corte.movements.map((m) => (
-            <tr key={m.id}><td>{MOVIMIENTO[m.movementType] ?? m.movementType} <span className="muted small">· {m.reason}</span></td><td>{pesos(m.amountCents)}</td></tr>
+            <tr key={m.id}><td>{m.ownerDraw ? 'Retiro del dueño' : MOVIMIENTO[m.movementType] ?? m.movementType} <span className="muted small">· {m.reason}</span></td><td>{pesos(m.amountCents)}</td></tr>
           ))}
           <tr className="total"><td>Debía haber</td><td>{pesos(fondo + efectivo + movs)}</td></tr>
           {s.firstCountedCashCents && s.firstCountedCashCents !== s.countedCashCents && (
@@ -91,8 +95,20 @@ export default function CortePage({ params }: { params: Promise<{ id: string }> 
           )}
           <tr><td>{s.firstCountedCashCents && s.firstCountedCashCents !== s.countedCashCents ? 'Conteo final' : 'Se contó'}</td><td>{s.countedCashCents ? pesos(s.countedCashCents) : '—'}</td></tr>
           <tr><td>Diferencia</td><td><Diferencia cents={s.varianceCents} /></td></tr>
+          {s.varianceStatus === 'REVIEWED' && (
+            <tr><td>Revisó</td><td>{s.varianceReviewedByName ?? '—'}{s.varianceReviewedAt ? ` · ${fechaHora(s.varianceReviewedAt)}` : ''}</td></tr>
+          )}
         </tbody></table>
         {s.varianceReason && <p className="small mt-10"><span className="muted">Motivo de la diferencia:</span> {s.varianceReason}</p>}
+        {s.varianceStatus === 'REVIEWED' && <p className="small mt-10"><span className="muted">Qué se resolvió:</span> {s.varianceReviewNote}</p>}
+        {s.varianceStatus === 'PENDING' && (
+          <div className="mt-10" data-testid="corte-por-revisar">
+            <Callout tone="warn" title="Diferencia por revisar">
+              Pasa de {TOLERANCIA}: queda a nombre de {s.responsibleName ?? 'quien abrió el turno'} hasta que la gerencia la revise y la cierre con su nota.
+              {can('cash:variance:approve') && <>{' '}<button type="button" className="enlace-en-linea strong no-print" onClick={() => setRevisando(true)}>Revisar…</button></>}
+            </Callout>
+          </div>
+        )}
         <p className="tiny muted mt-10">Los cobros con tarjeta y transferencia no pasan por el cajón: se concilian contra el banco.</p>
 
         <div className="corte-firmas">
@@ -100,6 +116,8 @@ export default function CortePage({ params }: { params: Promise<{ id: string }> 
           <div>Recibe</div>
         </div>
       </Card>
+      {revisando && <RevisarDialog turno={s} caja={corte.register.name} onClose={() => setRevisando(false)}
+        onListo={(revisado: Turno) => { setRevisando(false); setCorte({ ...corte, session: revisado }); }} />}
     </div>
   );
 }

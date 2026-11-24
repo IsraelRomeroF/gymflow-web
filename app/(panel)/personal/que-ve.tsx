@@ -102,6 +102,8 @@ export function QueVe({ puesto, liberadas, onChange, editable, otras, onCopiar, 
                 <div key={x.key}>
                   <Switch checked={tiene(x, liberadas)} onChange={(v) => onChange(conSeccion(x, liberadas, v))}>{x.name}</Switch>
                   <p className="hint mt-2">{explicacion(x)}{apagada(x.key) ? ' Hoy está apagado en el gimnasio.' : ''}</p>
+                  {/* Bloque 4.5 (D-26), edición puntual: lo que la sección deja ver se dice antes de liberarla, esté o no encendida. */}
+                  {x.aviso && <p className="hint llave-aviso" data-testid={`aviso-llave-${x.key}`}>{x.aviso}</p>}
                 </div>
               ))}
             </div>

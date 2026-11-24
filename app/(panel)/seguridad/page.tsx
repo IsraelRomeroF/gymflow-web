@@ -45,7 +45,11 @@ function DireccionDesdeFuera() {
 }
 
 /** Una sesión viva de la cuenta, como la manda `GET /auth/sessions`. */
-type Sesion = { id: string; current: boolean; device: string | null; ip: string | null; createdAt: string; lastSeenAt: string; endsAt: string };
+type Sesion = {
+  id: string; current: boolean; device: string | null; ip: string | null; createdAt: string; lastSeenAt: string; endsAt: string;
+  /** D-04 (bloque 4.1): `OWNER_PHONE` es el teléfono de la dueña, que se renueva con el uso (`renews`); lo demás es mostrador. */
+  kind?: 'COUNTER' | 'OWNER_PHONE'; renews?: boolean;
+};
 
 /** «a las 19:05» si es hoy; «el 20 nov a las 07:05» si no. */
 function cuando(iso: string): string {
@@ -60,7 +64,12 @@ function IconoDeEquipo({ equipo }: { equipo: string | null }) {
 }
 
 /**
- * MIS SESIONES (bloque 1.12 · 24-04, 24-05, 24-14, 24-15).
+ * MIS SESIONES (bloque 1.12 · 24-04, 24-05, 24-14, 24-15; D-04, bloque 4.1).
+ *
+ * Por lugar (D-04): en el mostrador, y en cualquier equipo que no sea el
+ * teléfono de la dueña, la sesión se cierra a las 12 horas de haber entrado;
+ * en el teléfono de la dueña queda abierta mientras la use (30 días sin uso
+ * la cierran, y tiene un tope desde que entró).
  *
  * Dónde está abierta la cuenta, con qué equipo y a qué hora se cierra cada
  * sesión aunque se siga usando. Si a la dueña le roban el teléfono, aquí lo
@@ -70,7 +79,7 @@ function IconoDeEquipo({ equipo }: { equipo: string | null }) {
  */
 export default function MisSesionesPage() {
   const toast = useToast();
-  const { can, logout } = useSession();
+  const { can, logout, me } = useSession();
   const carga = useCarga(useCallback(() => api<Sesion[]>('/auth/sessions'), []));
   const [confirmar, setConfirmar] = useState(false);
   const [cerrando, setCerrando] = useState(false);
@@ -103,7 +112,7 @@ export default function MisSesionesPage() {
           const actual = sesiones.find((s) => s.current) ?? null;
           const otras = sesiones.filter((s) => !s.current);
           const visibles = todas ? otras : otras.slice(0, A_LA_VISTA);
-          const horas = actual ? Math.round((new Date(actual.endsAt).getTime() - new Date(actual.createdAt).getTime()) / 3_600_000) : null;
+          const horas = actual && !actual.renews ? Math.round((new Date(actual.endsAt).getTime() - new Date(actual.createdAt).getTime()) / 3_600_000) : null;
           return (
             <>
               <div className="stack mb-24">
@@ -117,9 +126,18 @@ export default function MisSesionesPage() {
                       </div>
                       <Badge tone="ok" dot>Actual</Badge>
                     </div>
-                    {actual && (
+                    {actual && !actual.renews && (
                       <Callout tone="info" title={`Se cierra ${cuando(actual.endsAt)}`}>
-                        <p>{horas ? `Cada sesión dura ${horas} horas desde que entras` : 'Cada sesión dura un tiempo fijo desde que entras'}, aunque la sigas usando. Después vuelves a entrar con tu contraseña.</p>
+                        <p>{horas ? `Cada sesión dura ${horas} horas desde que entras` : 'Cada sesión dura un tiempo fijo desde que entras'}, aunque la sigas usando. Después vuelves a entrar con tu contraseña. Al cortar la caja, GymFlow te pregunta si también quieres cerrar tu sesión.</p>
+                      </Callout>
+                    )}
+                    {actual && actual.renews && (
+                      <Callout tone="info" title="Queda abierta mientras la uses">
+                        <p data-testid="sesion-de-telefono">
+                          Este es tu teléfono: la sesión se renueva cada vez que entras. Si pasan {me.session?.idleDays ?? 30} días sin usarla, se cierra (hoy, eso sería el {fechaCorta(actual.endsAt)})
+                          {me.session?.maxEndsAt ? `; y el ${fechaCorta(me.session.maxEndsAt)} se cierra aunque la uses, para que vuelvas a escribir tu contraseña` : ''}.
+                          Si pierdes el teléfono, entra desde otro equipo y toca «Cerrar las demás», o cambia tu contraseña.
+                        </p>
                       </Callout>
                     )}
                     <DireccionDesdeFuera />
@@ -143,7 +161,7 @@ export default function MisSesionesPage() {
                           <IconTile><IconoDeEquipo equipo={s.device} /></IconTile>
                           <div className="flex-1 min-w-0">
                             <p className="small strong">{s.device ?? 'Equipo sin identificar'}{ipVisible(s.ip) ? <span className="muted"> · {s.ip}</span> : null}</p>
-                            <p className="tiny muted">Entró {cuando(s.createdAt)} · último uso {hace(s.lastSeenAt)} · se cierra {cuando(s.endsAt)}</p>
+                            <p className="tiny muted">Entró {cuando(s.createdAt)} · último uso {hace(s.lastSeenAt)} · {s.renews ? `tu teléfono: queda abierta mientras la uses (sin uso, se cierra ${cuando(s.endsAt)})` : `se cierra ${cuando(s.endsAt)}`}</p>
                           </div>
                         </li>
                       ))}

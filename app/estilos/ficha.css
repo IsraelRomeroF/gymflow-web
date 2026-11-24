@@ -50,3 +50,7 @@
   .estado-doc tr { break-inside: avoid; }
 }
 
+/* ── Contacto cambiado desde el portal (4.8 · D-36): el aviso de la ficha ── */
+.contacto-cambiado-lista { margin: 0 0 6px; padding-left: 18px; }
+.contacto-cambiado-lista li + li { margin-top: 2px; }
+

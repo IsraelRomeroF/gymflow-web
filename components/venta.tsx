@@ -31,9 +31,11 @@ type Resultado = {
  * impuesto o precio por sucursal, lo cobrado y lo mostrado no podrían diferir.
  */
 export function VenderDialog({
-  memberId, memberName, homeBranchId, sedeFija, onClose, onDone,
+  memberId, memberName, homeBranchId, sedeFija, planInicial, onClose, onDone,
 }: {
   memberId: string; memberName: string; homeBranchId: string | null;
+  /** El plan que preguntó cuando era interesado (D-31, bloque 4.7): la venta abre con él ya elegido, si esta sucursal lo vende. */
+  planInicial?: string | null;
   /** «Renovar y abrir» (5-25): la venta es en la sucursal por donde está entrando; no se elige otra. */
   sedeFija?: string;
   onClose: () => void; onDone: () => void;
@@ -72,6 +74,14 @@ export function VenderDialog({
   const cargarPlanes = useCallback(() => api<Plan[]>(`/plans?branchId=${branchId}`).then((ps) => ps.filter((p) => p.effectivePriceCents !== null)), [branchId]);
   const planesCarga = useCarga(branchId ? cargarPlanes : null);
   const planes = planesCarga.datos ?? null;
+  // Se propone una sola vez: si después eligen otro plan o cambian de sucursal, manda lo que elijan.
+  const [propuesto, setPropuesto] = useState(false);
+  useEffect(() => {
+    if (propuesto || !planInicial || !planes) return;
+    setPropuesto(true);
+    const suyo = planes.find((p) => p.id === planInicial);
+    if (suyo) setPlan((actual) => actual ?? suyo);
+  }, [propuesto, planInicial, planes]);
 
   const cargarCotizacion = useCallback(() => api<Quote>(`/plans/${plan?.id}/quote?branchId=${branchId}`), [plan, branchId]);
   const cotizacion = useCarga(plan ? cargarCotizacion : null);

@@ -9,6 +9,7 @@ import { useSession, errorText } from '@/components/session';
 import { Button, Callout, Skeleton } from '@/components/ui';
 import type { PosSale, Product } from '@gymflow/core/contracts';
 import { CorregirVenta } from '@/components/cobro/corregir-venta';
+import { LogoDeRecibo, PieDeRecibo } from '@/components/recibo-gimnasio';
 
 /** Contratos del núcleo (8-19). */
 type Venta = PosSale;
@@ -43,6 +44,8 @@ export default function ReciboVentaPage({ params }: { params: Promise<{ id: stri
       <CorregirVenta venta={v} onCambio={setV} />
       <article className="recibo">
         <header>
+          {/* Logo, teléfonos y leyenda del gimnasio: los administra GymFlow (D-27, bloque 4.6). */}
+          <LogoDeRecibo />
           <p className="recibo-org">{org.tradeName}</p>
           <p>{branchName(v.branchId)}</p>
           <p>{fechaHora(v.soldAt)}</p>
@@ -62,6 +65,7 @@ export default function ReciboVentaPage({ params }: { params: Promise<{ id: stri
           </tbody>
         </table>
         <p>{v.method ? METODO[v.method] ?? v.method : 'Sin cobro'}</p>
+        <PieDeRecibo />
         <footer>
           Ticket de venta. No es un comprobante fiscal (CFDI); si necesitas factura, pídela en recepción.
         </footer>

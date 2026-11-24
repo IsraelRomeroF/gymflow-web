@@ -159,7 +159,7 @@ await recorrido('sesion', async (r) => {
   await tel.waitForURL(`${PORTAL}/`, { timeout: T.respuesta });
   // Desde la fase 2 (bloque 2.8) Cuenta es una pestaña, y la fecha tope la dice la API (`/portal/sessions`).
   await tel.getByRole('navigation', { name: 'Secciones' }).getByRole('link', { name: 'Cuenta' }).click();
-  r.ok(await aparece(tel.getByTestId('abierto-hasta'), T.respuesta) && /queda abierto hasta el/.test(await tel.getByTestId('abierto-hasta').innerText()), '«Tu cuenta» dice hasta cuándo queda abierto en este teléfono');
+  r.ok(await aparece(tel.getByTestId('abierto-hasta'), T.respuesta) && /queda abierto mientras uses el portal/.test(await tel.getByTestId('abierto-hasta').innerText()), '«Tu cuenta» dice que este teléfono queda abierto mientras se use (D-04)');
   await tel.keyboard.press('Escape');
   await tel.goto(`${PORTAL}/pagos`, { waitUntil: 'networkidle' });
   await tel.evaluate(() => localStorage.setItem('gf-rutina-dia', '2'));

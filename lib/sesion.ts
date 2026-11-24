@@ -71,6 +71,26 @@ export function recordarFin(segundos: number): number {
   return fin;
 }
 
+/** Esta sesión se renueva con el uso (el teléfono de la dueña, D-04): si se acaba, fue por dejar de usarla. */
+const CLAVE_RENUEVA = 'gf-sesion-renueva';
+
+/**
+ * Lo que el panel sabe de su sesión al cargar (`/auth/me`): si es la del
+ * teléfono de la dueña, que se renueva con el uso, se recuerda hasta cuándo
+ * vale HOY y que su final no es una hora fija (D-04, bloque 4.1).
+ */
+export function recordarLugar(sesion: { secondsLeft: number; renews?: boolean } | null | undefined): void {
+  if (!sesion) return;
+  try {
+    if (sesion.renews) { localStorage.setItem(CLAVE_RENUEVA, '1'); recordarFin(sesion.secondsLeft); }
+    else localStorage.removeItem(CLAVE_RENUEVA);
+  } catch { /* sin almacenamiento: el login dirá «terminó» */ }
+}
+
+function seRenueva(): boolean {
+  try { return localStorage.getItem(CLAVE_RENUEVA) === '1'; } catch { return false; }
+}
+
 function finRecordado(): number | null {
   try { const n = Number(localStorage.getItem(CLAVE_FIN)); return Number.isFinite(n) && n > 0 ? n : null; } catch { return null; }
 }
@@ -84,7 +104,8 @@ export function motivoDeSalida(reason: string | null | undefined): MotivoDeSalid
   if (reason && reason in DE_LA_API) return DE_LA_API[reason as keyof typeof DE_LA_API];
   const fin = finRecordado();
   if (fin === null) return null;
-  return Date.now() >= fin - 60_000 ? 'vencida' : 'cerrada';
+  // La que se renueva con el uso no «llega a su hora»: si ya pasó su fecha, fue por no usarla.
+  return Date.now() >= fin - 60_000 ? (seRenueva() ? 'inactividad' : 'vencida') : 'cerrada';
 }
 
 // ── A dónde volver ─────────────────────────────────────────────────────────────

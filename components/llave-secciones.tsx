@@ -15,7 +15,11 @@ import { LOCKABLE_SECTIONS, SECTION_GROUP_NAMES, isSectionOpen, setSectionOpen }
  * del núcleo no aparecía aquí (17-14, 27-02).
  */
 export type GrupoDeLlave = 'Operación' | 'Dirección' | 'Cumplimiento';
-export type SeccionDeLlave = { key: string; name: string; group: GrupoDeLlave; text: string; abierta?: boolean };
+export type SeccionDeLlave = {
+  key: string; name: string; group: GrupoDeLlave; text: string; abierta?: boolean;
+  /** Lo que hay que saber ANTES de liberarla (bloque 4.5, D-26: con Movimientos se ve cuánto gana cada persona). */
+  aviso?: string;
+};
 
 export const SECCIONES_LLAVE: SeccionDeLlave[] = LOCKABLE_SECTIONS.map((s) => ({
   key: s.key,
@@ -23,6 +27,7 @@ export const SECCIONES_LLAVE: SeccionDeLlave[] = LOCKABLE_SECTIONS.map((s) => ({
   group: SECTION_GROUP_NAMES[s.group] as GrupoDeLlave,
   text: s.text,
   ...(s.defaultOpen ? { abierta: true } : {}),
+  ...(s.warning ? { aviso: s.warning } : {}),
 }));
 
 /** ¿Tiene la sección? Las de Operación sí salvo "-clave"; las demás no salvo "clave". */
