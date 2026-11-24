@@ -163,8 +163,9 @@ export const SECCIONES: readonly Seccion[] = [
     atajo: { titulo: 'Biometría', texto: 'Enrolamientos y borrados' },
   },
   {
-    modulo: 'core', href: '/consentimientos', llave: 'consentimientos', puestos: ['MANAGER', 'RECEPTION'], etiqueta: 'Textos de consentimiento', icono: FileSignature, grupo: 'cumplimiento', permisos: ['members:consent:read'],
-    paraQuien: 'Gerencia', palabras: ['aviso de privacidad', 'reglamento', 'documentos', 'legal'],
+    // La dueña lee los textos legales completos y firma el aviso de privacidad (3.7, D-25): entra con `settings:consent:read`.
+    modulo: 'core', href: '/consentimientos', llave: 'consentimientos', puestos: ['OWNER', 'MANAGER', 'RECEPTION'], etiqueta: 'Textos de consentimiento', icono: FileSignature, grupo: 'cumplimiento', permisos: ['members:consent:read', 'settings:consent:read'],
+    paraQuien: 'la Dueña y Gerencia', palabras: ['aviso de privacidad', 'reglamento', 'documentos', 'legal'],
   },
 ];
 
@@ -279,7 +280,7 @@ export const MENU_PLANO: Readonly<Record<string, readonly string[]>> = {
   RECEPTION: ['/panel', '/socios', '/caja', '/punto-de-venta', '/clases', '/altas', '/prospectos', '/mensajes', '/precios', '/estacion', '/acceso'],
   COACH: ['/panel', '/socios', '/clases', '/rutinas', '/precios'],
   // Lo que la dueña abre a diario, primero: sus firmas y su dinero (UX5-D-09).
-  OWNER: ['/panel', '/autorizaciones', '/movimientos', '/tablero', '/caja', '/personal', '/bitacora', '/planes', '/precios', '/sucursales', '/modulos', '/biometria'],
+  OWNER: ['/panel', '/autorizaciones', '/movimientos', '/tablero', '/caja', '/personal', '/bitacora', '/planes', '/precios', '/sucursales', '/modulos', '/biometria', '/consentimientos'],
 };
 
 /** Cómo se llama una sección en el menú de un puesto, cuando no es su nombre de siempre. */

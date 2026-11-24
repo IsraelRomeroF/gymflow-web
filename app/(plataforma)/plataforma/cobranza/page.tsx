@@ -8,7 +8,8 @@ import { useCarga } from '@/lib/carga';
 import { fecha, pesos } from '@/lib/format';
 import { Badge, Breadcrumb, Button, Callout, Card, Empty, ErrorCarga, PageHeader, Segmented, Stat, EsqueletoTabla } from '@/components/ui';
 import { Exportar } from '@/components/exportar';
-import { ESTADO_FACTURA, FORMA_DE_PAGO, Emitir, Pagar, dias, periodo, type Factura } from '../cobro';
+import type { PlatformCollectionsBoard } from '@gymflow/core/contracts';
+import { ESTADO_FACTURA, FORMA_DE_PAGO, Emitir, MandarAviso, Pagar, claseDeAviso, dias, fraseDeCobranza, periodo, type Factura } from '../cobro';
 
 type FacturaMarca = Factura & { tradeName: string };
 type Resumen = {
@@ -34,7 +35,11 @@ export default function CobranzaPage() {
   const pedir = useCallback(() => api<Resumen>('/platform/billing'), []);
   const carga = useCarga(pedir, { conservar: true });
   const r = carga.datos;
-  const cargar = () => void carga.recargar();
+  // La escalera de cobranza (D-37, bloque 3.11): quién se suspende y cuándo, y los avisos que no le han llegado a su dueño.
+  const pedirEscalera = useCallback(() => api<PlatformCollectionsBoard>('/platform/collections'), []);
+  const escalera = useCarga(pedirEscalera, { conservar: true });
+  const cargar = () => { void carga.recargar(); void escalera.recargar(); };
+  const esc = escalera.datos;
 
   const todas = r?.invoices ?? [];
   const pendientes = todas.filter((f) => f.status === 'PENDING');
@@ -46,7 +51,7 @@ export default function CobranzaPage() {
   return (
     <>
       <Breadcrumb items={[{ href: '/plataforma', label: 'Marcas' }, { label: 'Cobranza' }]} />
-      <PageHeader title="Cobranza" sub="Lo que GymFlow cobra a las marcas. Una factura por marca y mes; el día 1 se emiten solas y aquí se registra cuándo llegó el dinero."
+      <PageHeader title="Cobranza" sub="Lo que GymFlow cobra a las marcas. Una factura por marca y mes; el día 1 se emiten solas y aquí se registra cuándo llegó el dinero. Al dueño se le avisa al emitir y al vencer; a los 15 días de atraso avisado, el servicio se suspende solo."
         actions={<>
           <Exportar nombre={`cobranza-${vista}-${mes}`} disabled={filas.length === 0}
             filas={() => [['Folio', 'Marca', 'Periodo', 'Importe', 'Pagado', 'Resta', 'Estado', 'Emitida', 'Vence', 'Último pago', 'Forma de pago', 'Referencia'],
@@ -73,6 +78,48 @@ export default function CobranzaPage() {
             <Callout tone="warn" title="Hay marcas que no se pueden facturar">
               {r.monthlyIncome.missingPrices.map((m) => <div key={m.organizationId}><Link href={`/plataforma/${m.organizationId}`} className="strong">{m.tradeName}</Link>: falta el precio de {m.modules.join(', ')}. Fíjalo en <Link href="/plataforma/precios">Precios</Link>.</div>)}
             </Callout>
+          )}
+          {esc && esc.atRisk.length > 0 && (
+            <div className="mb-20">
+              <Card title="Se suspenden solas si no pagan" sub={`A los ${esc.suspendsAfterDays} días de atraso desde que al dueño le llegó el aviso. Suspender no borra nada: al registrar el pago se reanuda en el mismo paso.`} pad={false} data-testid="por-suspender">
+                <div className="table-wrap">
+                  <table className="table table-stack">
+                    <thead><tr><th>Marca</th><th>Factura</th><th className="right">Debe</th><th>Qué va a pasar</th></tr></thead>
+                    <tbody>
+                      {esc.atRisk.map((x) => (
+                        <tr key={x.organizationId} data-marca={x.tradeName} data-cobranza={x.state}>
+                          <td data-label="Marca"><Link className="row-link strong" href={`/plataforma/${x.organizationId}`}>{x.tradeName}</Link></td>
+                          <td data-label="Factura">{x.invoiceId ? <Link className="row-link mono" href={`/plataforma/factura/${x.invoiceId}`}>{x.folio}</Link> : '—'}<div className="tiny muted">{dias(x.overdueDays)} vencida</div></td>
+                          <td data-label="Debe" className="right num">{x.balanceCents ? pesos(x.balanceCents) : '—'}</td>
+                          <td data-label="Qué va a pasar" className="small">{fraseDeCobranza(x)?.texto}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </div>
+          )}
+          {esc && esc.toSend.length > 0 && (
+            <div className="mb-20">
+              <Card title={`Avisos por mandar (${esc.toSend.length})`} sub="Avisos al dueño sin constancia de entrega: no tiene notificaciones en su teléfono y no los ha visto en su panel. Mándaselos: sin constancia de que el de «factura vencida» le llegó, el sistema no suspende." pad={false} data-testid="avisos-por-mandar">
+                <div className="table-wrap">
+                  <table className="table table-stack">
+                    <thead><tr><th>Marca</th><th>Aviso</th><th>Del</th><th /></tr></thead>
+                    <tbody>
+                      {esc.toSend.map((a) => (
+                        <tr key={a.id} data-aviso={a.kind}>
+                          <td data-label="Marca"><Link className="row-link strong" href={`/plataforma/${a.organizationId}`}>{a.tradeName}</Link><div className="tiny muted">{a.owners.map((o) => o.fullName).join(', ') || 'Sin dueño activo'}</div></td>
+                          <td data-label="Aviso"><span className="small strong">{claseDeAviso(a)}</span><div className="tiny muted">{a.body}</div></td>
+                          <td data-label="Del" className="small">{fecha(a.noticeOn)}</td>
+                          <td className="right"><MandarAviso aviso={a} duenos={a.owners} onHecho={cargar} /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </div>
           )}
           <Segmented value={vista} onChange={setVista} options={[
             { value: 'pendientes', label: `Pendientes (${pendientes.length})` }, { value: 'vencidas', label: `Vencidas (${vencidas.length})` },

@@ -77,6 +77,31 @@ export function AvisoSolicitudesArco() {
   );
 }
 
+/**
+ * LAS SOLICITUDES DE PRIVACIDAD, EN CIFRAS (3.7 · D-25): lo que ve la dueña en
+ * Textos de consentimiento, donde la gerencia ve la bandeja con nombres.
+ * Siempre a la vista, también en cero: «ninguna abierta» es un dato.
+ */
+export function SolicitudesEnCifras() {
+  const carga = useCarga(useCallback(() => api<PrivacyRequestsSummary>('/privacy/requests/summary'), []));
+  const c = carga.datos;
+  return (
+    <Card title="Solicitudes de privacidad" sub="Lo que tus socios pidieron sobre sus datos (acceso, corrección, cancelación u oposición), en cifras y sin nombres." data-testid="arco-en-cifras">
+      {carga.error ? <ErrorCarga titulo="No se pudieron cargar las solicitudes" mensaje={carga.error} onReintentar={() => void carga.recargar()} />
+        : !c ? <Skeleton h={72} /> : c.open === 0 ? <p className="small muted">Ninguna solicitud abierta.</p> : (
+          <div className="stack-sm">
+            <div className="row-between"><span className="muted">Abiertas</span><span className="num strong">{c.open}</span></div>
+            <div className="row-between"><span className="muted">Por acreditar identidad</span><span className="num strong">{c.identityPending}</span></div>
+            <div className="row-between"><span className="muted">Por responder</span><span className="num strong">{c.toAnswer}</span></div>
+            <div className="row-between"><span className="muted">Por hacer efectivas</span><span className="num strong">{c.toEffect}</span></div>
+            <div className="row-between"><span className="muted">Con el plazo vencido</span><span className={`num strong${c.overdue > 0 ? ' text-danger' : ''}`}>{c.overdue}</span></div>
+            {c.nextDeadlineAt && <p className="tiny muted">El plazo más próximo vence el {fecha(c.nextDeadlineAt)}. Las atiende la gerencia.</p>}
+          </div>
+        )}
+    </Card>
+  );
+}
+
 type Candidatos = { monthsAfterArchive: number | null; members: Array<{ id: string; firstName: string; lastName: string; memberCode: string; archivedAt: string }> };
 
 /**

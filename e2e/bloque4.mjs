@@ -58,7 +58,7 @@ await recorrido('bloque4', async (r) => {
   let d = own.getByRole('dialog');
   await d.getByLabel('SKU').fill(`PRB-${sufijo}`);
   await d.getByLabel('Nombre').fill(`Barra de proteína ${sufijo}`);
-  await d.getByLabel('Precio').fill('45');
+  await d.getByLabel('Precio de público').fill('45');
   await d.getByRole('button', { name: 'Guardar' }).click();
   await own.getByText(`Barra de proteína ${sufijo}`).waitFor({ timeout: T.respuesta });
   await own.getByRole('row', { name: new RegExp(`Barra de proteína ${sufijo}`) }).getByRole('button', { name: 'Existencias' }).click();

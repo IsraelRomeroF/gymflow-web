@@ -55,6 +55,14 @@ export default function ReciboPage({ params }: { params: Promise<{ id: string }>
         {/* Quién cobró (3-05; bloque 2.2): el socio lo lee en su comprobante, no solo el personal en el estado de cuenta. */}
         {r.collectedByName && <p>Le atendió {r.collectedByName}</p>}
         {r.coverage?.paidThrough && <p>{r.coverage.planName ?? 'Membresía'} pagada hasta el <strong>{fecha(r.coverage.paidThrough)}</strong></p>}
+        {/* El aviso del cambio de precio de su plan (D-19, bloque 3.6): antes de su siguiente pago y en el primero al precio nuevo. */}
+        {r.priceNotice && (
+          <p className="recibo-aviso" data-testid="recibo-aviso-precio">
+            {r.priceNotice.kind === 'UPCOMING'
+              ? <>A partir de tu siguiente pago, {r.priceNotice.planName ?? 'tu plan'} cuesta <strong>{pesos(r.priceNotice.toPriceCents)}</strong> (antes {pesos(r.priceNotice.fromPriceCents)}).</>
+              : <>{r.priceNotice.planName ?? 'Tu plan'} cambió de precio: de {pesos(r.priceNotice.fromPriceCents)} a <strong>{pesos(r.priceNotice.toPriceCents)}</strong> desde este pago.</>}
+          </p>
+        )}
         <footer>
           Comprobante de pago. No es un comprobante fiscal (CFDI); si necesitas factura, pídela en recepción.
         </footer>

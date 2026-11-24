@@ -7,10 +7,12 @@ import { api } from '@/lib/api';
 import { METODO } from '@/lib/caja';
 import { capital, dia, fecha, hora, pesos } from '@/lib/format';
 import { useSession, errorText, useToast } from '@/components/session';
-import { Badge, Button, ButtonLink, CampoFecha, CampoMotivo, Card, Dialog, Empty, ERROR_MOTIVO, ErrorCarga, faltaMotivo, Field, PageHeader, Segmented, Skeleton, Stat, EsqueletoTabla } from '@/components/ui';
+import { Badge, Button, ButtonLink, Callout, CampoFecha, CampoMotivo, Card, Dialog, Empty, ERROR_MOTIVO, ErrorCarga, faltaMotivo, Field, PageHeader, Segmented, Skeleton, Stat, EsqueletoTabla } from '@/components/ui';
 import { useFormulario } from '@/lib/formulario';
 import { EstadoCarga, useCarga } from '@/lib/carga';
+import type { Expense, ExpenseList } from '@gymflow/core/contracts';
 import { GLOSARIO } from '@/lib/glosario';
+import { GlosarioDinero } from '@/components/glosario-dinero';
 import { hoyEn, masDias } from '@/lib/zonas';
 
 type Totales = {
@@ -24,7 +26,16 @@ type Totales = {
   fixedExpensesCents: string; profitCents: string;
 };
 type Dia = Totales & { date: string };
-type Resumen = { from: string; to: string; totals: Totales; days: Dia[] };
+type Resumen = {
+  from: string; to: string; totals: Totales; days: Dia[];
+  /** Retiros del dueño de los meses del periodo: se informan, no restan (D-23). */
+  ownerDrawsCents?: string;
+  /** «Ajustes de ‹mes›» anotados en los meses del periodo: ya van dentro de los gastos fijos (D-22). */
+  adjustments?: Array<{ month: string; cents: string; count: number }>;
+  /** Meses del periodo ya cerrados: sus cifras no cambian. */
+  closedMonths?: string[];
+  totalsFromSnapshot?: boolean;
+};
 type Movimiento = {
   id: string; at: string; branchId: string | null; kind: string; method: string | null; amountCents: string;
   concept: string | null; folio: string | null; memberId: string | null; memberName: string | null;
@@ -174,14 +185,30 @@ export default function MovimientosPage() {
 
       {resumen.error && <div className="mb-12"><ErrorCarga titulo="No se pudo cargar el resumen del periodo" mensaje={resumen.error} onReintentar={() => void resumen.recargar()} /></div>}
 
+      {/* D-22: lo cerrado no cambia, y lo que llegó tarde se ve etiquetado. */}
+      {r && (r.closedMonths?.length ?? 0) > 0 && (
+        <div className="mb-12" data-testid="meses-cerrados">
+          <Callout tone="ok" title={`${capital(r.closedMonths!.map(nombreMes).join(', '))}: mes cerrado`}>
+            {r.totalsFromSnapshot ? 'Los totales son los de la foto del cierre y ya no cambian.' : 'Sus cifras quedaron fijas al cerrarlo.'} Lo que llegue tarde se anota en el mes en curso como ajuste.
+          </Callout>
+        </div>
+      )}
+      {r && (r.adjustments?.length ?? 0) > 0 && (
+        <div className="mb-12" data-testid="ajustes-de-meses-cerrados">
+          <Callout tone="info" title="Incluye ajustes de meses cerrados">
+            {r.adjustments!.map((a) => `ajuste de ${nombreMes(a.month)}: ${BigInt(a.cents) < 0n ? `${pesos(-BigInt(a.cents))} a favor` : pesos(a.cents)}`).join(' · ')}. Van dentro de los gastos fijos del periodo.
+          </Callout>
+        </div>
+      )}
+
       {!resumen.error && <div className="grid grid-4 mb-12">
         {t ? (
           <>
-            <Stat icon={<ArrowDownLeft />} label="Entró" value={pesos(t.incomeCents, { decimals: false })} note="Cobros a socios y ventas de mostrador" />
+            <Stat icon={<ArrowDownLeft />} label={GLOSARIO.entro.nombre} value={pesos(t.incomeCents, { decimals: false })} note="Cobros a socios y ventas de mostrador" />
             <Stat icon={<ArrowUpRight />} label="Devoluciones" value={pesos(t.refundsCents, { decimals: false })} note="Reversas y reembolsos" danger={BigInt(t.refundsCents) < 0n} />
             {/* Gastos = gastos + FALTANTES + fijos: Entró − Devoluciones − Gastos da la Ganancia.
                 Un sobrante no paga un faltante: se dice aparte, «por aclarar» (14-09). */}
-            <Stat icon={<Receipt />} label="Gastos" value={pesos(BigInt(t.expensesCents) + faltanteDe(t) + BigInt(t.fixedExpensesCents), { decimals: false })}
+            <Stat icon={<Receipt />} label={GLOSARIO.gastos.nombre} value={pesos(BigInt(t.expensesCents) + faltanteDe(t) + BigInt(t.fixedExpensesCents), { decimals: false })}
               note={[
                 `De la caja ${pesos(BigInt(t.expensesCents) + faltanteDe(t), { decimals: false })}`,
                 `fijos ${pesos(t.fixedExpensesCents, { decimals: false })}`,
@@ -192,18 +219,18 @@ export default function MovimientosPage() {
                 `En caja quedó ${pesos(t.netCents, { decimals: false })}`,
                 BigInt(t.toBankCents) !== 0n ? `al banco ${pesos(-BigInt(t.toBankCents), { decimals: false })}` : null,
                 BigInt(t.creditNotesCents) !== 0n ? `con saldo a favor ${pesos(t.creditNotesCents, { decimals: false })} (no suma)` : null,
+                // El retiro del dueño se anota y se ve, pero no resta (D-23).
+                r?.ownerDrawsCents && BigInt(r.ownerDrawsCents) > 0n ? `retiros del dueño ${pesos(r.ownerDrawsCents, { decimals: false })} (no restan)` : null,
               ].filter(Boolean).join(' · ')} />
           </>
         ) : [0, 1, 2, 3].map((i) => <Skeleton key={i} h={112} r={16} />)}
       </div>}
-      <details className="explica mb-20">
-        <summary className="small strong">¿Qué cuenta aquí?</summary>
-        <p className="tiny muted mt-8">
-        Es dinero que entró y salió, menos los gastos fijos (renta, nómina) registrados abajo, repartidos entre los días de su mes.
-        No incluye el costo de los productos vendidos. Lo que se cobra por adelantado (una anualidad) cuenta el día que entró; para
-        repartirlo por meses usa el <Link href="/tablero">Tablero</Link>.
-        </p>
-      </details>
+      <div className="mb-20">
+        {/* El mismo glosario que el Tablero y el Inicio (D-24). */}
+        <GlosarioDinero titulo="¿Qué cuenta aquí?" terminos={['entro', 'gastos', 'gananciaCaja', 'descuadre', 'retiroDueno', 'ajuste']}>
+          Lo que se cobra por adelantado (una anualidad) cuenta el día que entró; para repartirlo por meses usa el <Link href="/tablero">Tablero</Link>.
+        </GlosarioDinero>
+      </div>
 
       {t && Object.keys(t.byMethod).length > 0 && (
         <Card title="Cómo entró el dinero" className="mov-metodos">
@@ -248,7 +275,7 @@ export default function MovimientosPage() {
           <div className="table-wrap">
             {/* En el teléfono, un renglón táctil por día: día, lo que entró y la ganancia (UX7 Dirección 7). */}
             <table className="table table-stack table-dias">
-              <thead><tr><th>Día</th><th className="right">Entró</th><th className="right">Devoluciones</th><th className="right">Gastos</th><th className="right">Descuadre</th><th className="right">Fijos</th><th className="right">Ganancia en caja</th></tr></thead>
+              <thead><tr><th>Día</th><th className="right">{GLOSARIO.entro.nombre}</th><th className="right">Devoluciones</th><th className="right">Gastos de caja</th><th className="right">{GLOSARIO.descuadre.nombre}</th><th className="right">Fijos</th><th className="right">{GLOSARIO.gananciaCaja.nombre}</th></tr></thead>
               <tbody>
                 {[...r.days].reverse().map((d) => (
                   <tr key={d.date} className="is-link" aria-selected={d.date === dia} onClick={() => setDia(d.date)}
@@ -256,7 +283,7 @@ export default function MovimientosPage() {
                     <td><button type="button" className="row-link strong" onClick={(e) => { e.stopPropagation(); setDia(d.date); }}>
                       {diaCorto(d.date, { weekday: 'short', day: 'numeric', month: 'short' })}
                     </button></td>
-                    <td className="right num" data-label="Entró">{pesos(d.incomeCents, { decimals: false })}</td>
+                    <td className="right num" data-label={GLOSARIO.entro.nombre}>{pesos(d.incomeCents, { decimals: false })}</td>
                     <td className="right num stack-hide">{BigInt(d.refundsCents) ? pesos(d.refundsCents, { decimals: false }) : '—'}</td>
                     <td className="right num stack-hide">{BigInt(d.expensesCents) ? pesos(d.expensesCents, { decimals: false }) : '—'}</td>
                     {/* El faltante resta (rojo); el sobrante se informa y no suma. */}
@@ -267,7 +294,7 @@ export default function MovimientosPage() {
                       </>}
                     </td>
                     <td className="right num stack-hide">{BigInt(d.fixedExpensesCents) ? pesos(d.fixedExpensesCents, { decimals: false }) : '—'}</td>
-                    <td className="right num strong" data-label="Ganancia" style={BigInt(d.profitCents) < 0n ? { color: 'var(--danger)' } : undefined}>{pesos(d.profitCents, { decimals: false })}</td>
+                    <td className="right num strong" data-label={GLOSARIO.gananciaCaja.nombre} style={BigInt(d.profitCents) < 0n ? { color: 'var(--danger)' } : undefined}>{pesos(d.profitCents, { decimals: false })}</td>
                   </tr>
                 ))}
               </tbody>
@@ -335,10 +362,13 @@ export default function MovimientosPage() {
   );
 }
 
-type Gasto = { id: string; branchId: string | null; category: string; description: string; amountCents: string; month: string; voidedAt: string | null; voidReason: string | null };
+type Gasto = Expense;
+const RETIRO = 'OWNER_DRAW';
 const CATEGORIA: Record<string, string> = {
   RENT: 'Renta', PAYROLL: 'Nómina', UTILITIES: 'Luz, agua y gas', SERVICES: 'Servicios (internet, software, limpieza)',
   MAINTENANCE: 'Mantenimiento', MARKETING: 'Publicidad', TAXES: 'Impuestos', OTHER: 'Otro',
+  // Se anota junto a los gastos, pero no resta de la ganancia (D-23).
+  [RETIRO]: GLOSARIO.retiroDueno.nombre,
 };
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const nombreMes = (m: string) => `${MESES[Number(m.slice(5, 7)) - 1]} ${m.slice(0, 4)}`;
@@ -347,6 +377,13 @@ const otroMes = (m: string, n: number) => { const d = new Date(`${m}-01T12:00:00
 /**
  * GASTOS FIJOS (UXB-02): renta, nómina, luz. Sin ellos la "ganancia" solo
  * era caja. Se registran por mes; la ganancia de cada día lleva su parte.
+ *
+ * Fase 3, bloque 3.7:
+ *  - D-23 · Los anota la dueña, haya o no gerente, y la gerencia con
+ *    Movimientos liberado. Aquí va también el «Retiro del dueño», que se ve
+ *    pero no resta.
+ *  - D-22 · En un mes cerrado nada se registra ni se anula: se anota en el mes
+ *    en curso como «ajuste de ‹mes›». La pantalla lo dice antes de enviar.
  */
 function GastosFijos({ sede, hoy, compacto, onCambio }: { sede: string; hoy: string; compacto?: boolean; onCambio: () => void }) {
   const { can, canOrg, branchName, branches, inScope } = useSession();
@@ -354,70 +391,90 @@ function GastosFijos({ sede, hoy, compacto, onCambio }: { sede: string; hoy: str
   const [mes, setMes] = useState(hoy.slice(0, 7));
   const [nuevo, setNuevo] = useState(false);
   const [anular, setAnular] = useState<Gasto | null>(null);
-  const cargar = useCallback(() => api<{ expenses: Gasto[] }>(`/expenses?month=${mes}`).then((r) => r.expenses), [mes]);
+  const cargar = useCallback(() => api<ExpenseList>(`/expenses?month=${mes}`), [mes]);
   const carga = useCarga(cargar);
   // Al cambiar de mes no se ven los gastos del anterior (useCarga los suelta).
-  const gastos = carga.datos ?? null;
+  const gastos = carga.datos?.expenses ?? null;
+  const cerrado = carga.datos?.closed ?? false;
+  const enCurso = carga.datos?.currentMonth ?? hoy.slice(0, 7);
   const listo = () => { void carga.recargar(); onCambio(); };
   const visibles = (gastos ?? []).filter((g) => !sede || g.branchId === sede || g.branchId === null);
-  const total = visibles.filter((g) => !g.voidedAt).reduce((a, g) => a + BigInt(g.amountCents), 0n);
+  const vivos = visibles.filter((g) => !g.voidedAt);
+  const total = vivos.filter((g) => g.category !== RETIRO).reduce((a, g) => a + BigInt(g.amountCents), 0n);
+  const retiros = vivos.filter((g) => g.category === RETIRO).reduce((a, g) => a + BigInt(g.amountCents), 0n);
   const gestiona = can('expenses:manage');
+  const quien = 'Los anotan la dueña y la gerencia.';
 
   return (
-    <Card title="Gastos fijos" sub={gastos ? `${nombreMes(mes)} · ${pesos(total, { decimals: false })} en total` : nombreMes(mes)} pad={false}
+    <Card title={cerrado ? <>Gastos fijos <Badge tone="ok">Mes cerrado</Badge></> : 'Gastos fijos'} pad={false}
+      sub={gastos ? `${nombreMes(mes)} · ${pesos(total, { decimals: false })} en gastos${retiros > 0n ? ` · ${pesos(retiros, { decimals: false })} en retiros del dueño (no restan)` : ''}` : nombreMes(mes)}
       actions={<div className="row gap-6">
         <Button size="sm" variant="ghost" aria-label="Mes anterior" onClick={() => setMes(otroMes(mes, -1))}>‹</Button>
         <Button size="sm" variant="ghost" aria-label="Mes siguiente" disabled={mes >= hoy.slice(0, 7)} onClick={() => setMes(otroMes(mes, 1))}>›</Button>
-        {gestiona && <Button size="sm" icon={<Plus />} onClick={() => setNuevo(true)}>Registrar</Button>}
+        {gestiona && <Button size="sm" icon={<Plus />} onClick={() => setNuevo(true)}>{cerrado ? 'Anotar ajuste' : 'Registrar'}</Button>}
       </div>}>
+      {cerrado && <p className="card-body small muted" data-testid="gastos-mes-cerrado">{capital(nombreMes(mes))} está cerrado y sus cifras no cambian. Lo que falte o sobre se anota en {nombreMes(enCurso)} como «ajuste de {nombreMes(mes)}».</p>}
       {carga.error ? <div className="card-body"><ErrorCarga titulo="No se pudieron cargar los gastos fijos" mensaje={carga.error} onReintentar={() => void carga.recargar()} /></div>
         : gastos === null ? <div className="card-body"><Skeleton h={80} /></div> : visibles.length === 0 ? compacto ? (
         // Sin movimientos ya hay un aviso arriba: aquí basta una línea.
-        <p className="card-body small muted">{gestiona ? 'Aún no registras renta, nómina ni servicios.' : 'Los registra la gerencia.'}</p>
+        <p className="card-body small muted">{gestiona ? 'Aún no registras renta, nómina ni servicios.' : quien}</p>
       ) : (
-        <Empty icon={<Landmark />} title="Sin gastos fijos este mes" text={gestiona ? 'Registra la renta, la nómina y los servicios para que la ganancia sea ganancia.' : 'Los registra la gerencia.'} />
+        <Empty icon={<Landmark />} title="Sin gastos fijos este mes" text={gestiona ? 'Registra la renta, la nómina y los servicios para que la ganancia sea ganancia.' : quien} />
       ) : (
         <ul className="list">
-          {visibles.map((g) => (
-            <li key={g.id} className="list-item" style={g.voidedAt ? { opacity: 0.55 } : undefined}>
-              <div className="flex-1 min-w-0">
-                <div className="strong small">{g.description}</div>
-                <div className="tiny muted">{CATEGORIA[g.category] ?? g.category} · {g.branchId ? branchName(g.branchId) : 'Todo el gimnasio'}{g.voidedAt ? ` · Anulado: ${g.voidReason}` : ''}</div>
-              </div>
-              <span className="num strong" style={g.voidedAt ? { textDecoration: 'line-through' } : undefined}>{pesos(g.amountCents, { decimals: false })}</span>
-              {gestiona && !g.voidedAt && <Button size="sm" variant="ghost" icon={<X />} aria-label={`Anular ${g.description}`} onClick={() => setAnular(g)} />}
-            </li>
-          ))}
+          {visibles.map((g) => {
+            const apagado = !!g.voidedAt || !!g.correctedInMonth;
+            return (
+              <li key={g.id} className={`list-item${apagado ? ' gasto-apagado' : ''}`}>
+                <div className="flex-1 min-w-0">
+                  <div className="strong small">{g.description}</div>
+                  <div className="tiny muted">
+                    {CATEGORIA[g.category] ?? g.category} · {g.branchId ? branchName(g.branchId) : 'Todo el gimnasio'}
+                    {g.voidedAt ? ` · Anulado: ${g.voidReason}` : ''}
+                    {g.correctedInMonth ? ` · Corregido con un ajuste en ${nombreMes(g.correctedInMonth)}` : ''}
+                  </div>
+                </div>
+                {g.adjustsMonth && <Badge tone="info">Ajuste de {nombreMes(g.adjustsMonth)}</Badge>}
+                {g.category === RETIRO && <Badge>No resta</Badge>}
+                <span className={`num strong${g.voidedAt ? ' gasto-tachado' : ''}`}>{pesos(g.amountCents, { decimals: false })}</span>
+                {gestiona && !apagado && <Button size="sm" variant="ghost" icon={<X />} aria-label={`${cerrado ? 'Corregir' : 'Anular'} ${g.description}`} onClick={() => setAnular(g)} />}
+              </li>
+            );
+          })}
         </ul>
       )}
-      {nuevo && <NuevoGasto mes={mes} sedes={branches.filter((b) => b.isActive && inScope(b.id))} todoElGimnasio={canOrg('expenses:manage')} sedeInicial={sede}
-        onClose={() => setNuevo(false)} onListo={() => { setNuevo(false); toast('ok', 'Gasto registrado'); listo(); }} />}
-      {anular && <AnularGasto gasto={anular} onClose={() => setAnular(null)} onListo={() => { setAnular(null); toast('ok', 'Gasto anulado'); listo(); }} />}
+      {nuevo && <NuevoGasto mes={mes} ajusteEn={cerrado ? enCurso : null} sedes={branches.filter((b) => b.isActive && inScope(b.id))} todoElGimnasio={canOrg('expenses:manage')} sedeInicial={sede}
+        onClose={() => setNuevo(false)} onListo={() => { setNuevo(false); toast('ok', cerrado ? `Ajuste de ${nombreMes(mes)} anotado en ${nombreMes(enCurso)}` : 'Gasto registrado'); listo(); }} />}
+      {anular && <AnularGasto gasto={anular} ajusteEn={cerrado ? enCurso : null} onClose={() => setAnular(null)}
+        onListo={() => { setAnular(null); toast('ok', cerrado ? `Corregido con un ajuste en ${nombreMes(enCurso)}` : 'Gasto anulado'); listo(); }} />}
     </Card>
   );
 }
 
-function NuevoGasto({ mes, sedes, todoElGimnasio, sedeInicial, onClose, onListo }: {
-  mes: string; sedes: Array<{ id: string; name: string }>; todoElGimnasio: boolean; sedeInicial: string; onClose: () => void; onListo: () => void;
+/** `ajusteEn`: el mes está cerrado y esto se anota en ese otro mes (el mes en curso) como «ajuste de ‹mes›» (D-22). */
+function NuevoGasto({ mes, ajusteEn, sedes, todoElGimnasio, sedeInicial, onClose, onListo }: {
+  mes: string; ajusteEn: string | null; sedes: Array<{ id: string; name: string }>; todoElGimnasio: boolean; sedeInicial: string; onClose: () => void; onListo: () => void;
 }) {
-  const toast = useToast();
   const [categoria, setCategoria] = useState('RENT');
   const [descripcion, setDescripcion] = useState('');
   const [monto, setMonto] = useState('');
   const [sede, setSede] = useState(sedeInicial || (todoElGimnasio ? '' : sedes[0]?.id ?? ''));
   const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const cents = /^\d+(\.\d{1,2})?$/.test(monto.trim()) ? BigInt(Math.round(Number(monto) * 100)) : null;
   const valido = descripcion.trim().length >= 3 && cents !== null && cents > 0n && (sede !== '' || todoElGimnasio);
+  const esRetiro = categoria === RETIRO;
   async function guardar() {
-    setEnviando(true);
+    setEnviando(true); setError(null);
     try {
-      await api('/expenses', { method: 'POST', body: JSON.stringify({ category: categoria, description: descripcion.trim(), amountCents: cents!.toString(), month: mes, branchId: sede || null }) });
+      await api('/expenses', { method: 'POST', body: JSON.stringify({ category: categoria, description: descripcion.trim(), amountCents: cents!.toString(), month: mes, branchId: sede || null, ...(ajusteEn ? { asAdjustment: true } : {}) }) });
       onListo();
-    } catch (e) { toast('error', errorText(e, 'No se pudo registrar')); } finally { setEnviando(false); }
+    } catch (e) { setError(errorText(e, 'No se pudo registrar')); } finally { setEnviando(false); }
   }
   return (
-    <Dialog open onClose={onClose} title={`Gasto fijo de ${nombreMes(mes)}`} sub="Se reparte entre los días del mes al calcular la ganancia."
-      footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button loading={enviando} disabled={!valido} onClick={() => void guardar()}>Registrar</Button></>}>
+    <Dialog open onClose={onClose} error={error} title={ajusteEn ? `Ajuste de ${nombreMes(mes)}` : esRetiro ? `Retiro del dueño de ${nombreMes(mes)}` : `Gasto fijo de ${nombreMes(mes)}`}
+      sub={ajusteEn ? `${capital(nombreMes(mes))} está cerrado: se anota en ${nombreMes(ajusteEn)}, etiquetado como ajuste.` : esRetiro ? GLOSARIO.retiroDueno.explica : 'Se reparte entre los días del mes al calcular la ganancia.'}
+      footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button loading={enviando} disabled={!valido} onClick={() => void guardar()}>{ajusteEn ? 'Anotar ajuste' : 'Registrar'}</Button></>}>
       <div className="stack">
         <Field label="Tipo" htmlFor="gf-c">
           <select id="gf-c" className="select" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
@@ -425,10 +482,10 @@ function NuevoGasto({ mes, sedes, todoElGimnasio, sedeInicial, onClose, onListo 
           </select>
         </Field>
         <Field label="Descripción" htmlFor="gf-d" hint="Queda en la bitácora con tu nombre.">
-          <input id="gf-d" className="input" autoFocus value={descripcion} placeholder="Renta del local de Centro" onChange={(e) => setDescripcion(e.target.value)} />
+          <input id="gf-d" className="input" autoFocus value={descripcion} placeholder={esRetiro ? 'Retiro de la quincena' : 'Renta del local de Centro'} onChange={(e) => setDescripcion(e.target.value)} />
         </Field>
         <div className="grid grid-2 gap-12">
-          <Field label="Importe del mes" htmlFor="gf-m"><input id="gf-m" className="input num" inputMode="decimal" value={monto} placeholder="25000" onChange={(e) => setMonto(e.target.value)} /></Field>
+          <Field label={esRetiro ? 'Importe' : 'Importe del mes'} htmlFor="gf-m"><input id="gf-m" className="input num" inputMode="decimal" value={monto} placeholder="25000" onChange={(e) => setMonto(e.target.value)} /></Field>
           <Field label="Sucursal" htmlFor="gf-s">
             <select id="gf-s" className="select" value={sede} onChange={(e) => setSede(e.target.value)}>
               {todoElGimnasio && <option value="">Todo el gimnasio</option>}
@@ -441,20 +498,25 @@ function NuevoGasto({ mes, sedes, todoElGimnasio, sedeInicial, onClose, onListo 
   );
 }
 
-function AnularGasto({ gasto, onClose, onListo }: { gasto: Gasto; onClose: () => void; onListo: () => void }) {
-  const toast = useToast();
+/** `ajusteEn`: el gasto es de un mes cerrado; no se anula, se corrige con un ajuste en negativo en ese otro mes (D-22). */
+function AnularGasto({ gasto, ajusteEn, onClose, onListo }: { gasto: Gasto; ajusteEn: string | null; onClose: () => void; onListo: () => void }) {
   const [motivo, setMotivo] = useState('');
+  const [error, setError] = useState<string | null>(null);
   // El principal queda encendido: si falta el motivo, el campo lo dice (26-02, 26-09; adopción 2.12).
   const f = useFormulario({ motivo: faltaMotivo(motivo) && ERROR_MOTIVO });
   async function enviar() {
+    setError(null);
     try {
-      await api(`/expenses/${gasto.id}/void`, { method: 'POST', body: JSON.stringify({ reason: motivo.trim() }) });
+      await api(`/expenses/${gasto.id}/void`, { method: 'POST', body: JSON.stringify({ reason: motivo.trim(), ...(ajusteEn ? { asAdjustment: true } : {}) }) });
       onListo();
-    } catch (e) { toast('error', errorText(e, 'No se pudo anular')); }
+    } catch (e) { setError(errorText(e, ajusteEn ? 'No se pudo anotar el ajuste' : 'No se pudo anular')); }
   }
   return (
-    <Dialog open size="sm" onClose={onClose} title={`Anular ${gasto.description}`} sub={`${pesos(gasto.amountCents)} · no se borra: queda tachado y en la bitácora.`}
-      footer={<><Button variant="secondary" onClick={onClose} disabled={f.enviando}>Cancelar</Button><Button variant="danger" loading={f.enviando} onClick={() => void f.enviar(enviar)}>Anular</Button></>}>
+    <Dialog open size="sm" onClose={onClose} error={error} title={`${ajusteEn ? 'Corregir' : 'Anular'} ${gasto.description}`}
+      sub={ajusteEn
+        ? `${pesos(gasto.amountCents)} · su mes está cerrado y no cambia: se anota en ${nombreMes(ajusteEn)} un ajuste por el mismo importe a favor.`
+        : `${pesos(gasto.amountCents)} · no se borra: queda tachado y en la bitácora.`}
+      footer={<><Button variant="secondary" onClick={onClose} disabled={f.enviando}>Cancelar</Button><Button variant="danger" loading={f.enviando} onClick={() => void f.enviar(enviar)}>{ajusteEn ? 'Anotar ajuste' : 'Anular'}</Button></>}>
       <CampoMotivo id="ag-m" autoFocus value={motivo} onChange={setMotivo} error={f.error('motivo')} placeholder="Capturado dos veces" />
     </Dialog>
   );

@@ -15,6 +15,9 @@ import { Button, Callout, CampoMotivo, faltaMotivo } from '../ui';
 import { VenderDialog } from '../venta';
 import { CobroFields, cobroListo, cuerpoDelCobro, COBRO_INICIAL, type Cobro } from './campos';
 import { CambioEfectivo } from './cambio';
+// Fase 3 · bloque 3.3: el rechazo por falta de rostro (D-06) y el pase de prueba (D-08) son piezas del bloque de la entrada.
+import { useAutorizarSinRostro } from '../entrada-sin-rostro';
+import { usePaseDePrueba } from '../pase-de-prueba';
 
 /*
  * RESOLVER UN RECHAZO DE LA PUERTA (fase 1.4; 5-05, 5-11, 5-25, 4-09, 4-18).
@@ -98,8 +101,13 @@ export function useResolverRechazo(rechazo: Rechazo | null, opciones: {
   const [saldoAplicado, setSaldoAplicado] = useState(false);
   // Una clave por entrada tras la venta: reintentar devuelve la misma decisión.
   const claveEntrada = useRef(crypto.randomUUID());
+  // Bloque 3.3 · D-06: sin rostro no hay «dejar pasar»; la pieza de la autorización se encarga de todo el rechazo.
+  const sinRostro = useAutorizarSinRostro(rechazo, opciones);
+  // Bloque 3.3 · D-08: a quien viene sin membresía se le puede dar su pase de prueba (gratis, una vez).
+  const prueba = usePaseDePrueba(rechazo, { onResuelto: setResuelto });
 
   if (!rechazo) return { cuerpo: null, pie: null, resuelto: null, yaResuelto: null };
+  if (sinRostro.activo) return { cuerpo: sinRostro.cuerpo, pie: sinRostro.pie, resuelto: sinRostro.resuelto, yaResuelto: sinRostro.yaResuelto };
 
   // ── Las cifras: el neto es lo que de verdad se cobra (4-18) ────────────────
   const credito = BigInt(rechazo.creditCents);
@@ -316,6 +324,7 @@ export function useResolverRechazo(rechazo: Rechazo | null, opciones: {
           </Callout>
         )}
         {ventaSinEntrada && <Callout tone="warn">{ventaSinEntrada}</Callout>}
+        {prueba.aviso}
         {!r.overridable && !puedeVender && <p className="small muted">Este motivo no se puede levantar desde recepción.</p>}
         {sinMembresia && !can('memberships:create') && <p className="small muted">Para que entre hay que venderle una membresía: lo hace quien vende en esta sucursal.</p>}
       </div>
@@ -336,6 +345,7 @@ export function useResolverRechazo(rechazo: Rechazo | null, opciones: {
       pie = <>
         <Button variant="ghost" onClick={opciones.onNoPasa} disabled={enCurso}>No pasa</Button>
         {puedeDejarPasar && <Button variant={principal === 'motivo' ? 'primary' : 'secondary'} icon={<DoorOpen />} disabled={enCurso} onClick={() => setModo('motivo')}>Dejar pasar con motivo</Button>}
+        {prueba.boton}
         {puedeVender && <Button variant={principal === 'venta' ? 'primary' : 'secondary'} icon={<ShoppingBag />} loading={enCurso} onClick={() => { setVentaSinEntrada(null); setModo('venta'); }}>{r.reason === 'NO_MEMBERSHIP' ? 'Vender y abrir' : 'Renovar y abrir'}</Button>}
         {puedeAplicarSaldo && <Button icon={<Wallet />} loading={enCurso} data-testid="aplicar-saldo-y-abrir" onClick={() => { setVentaSinEntrada(null); void aplicarSaldoYAbrir(); }}>Aplicar su saldo a favor y abrir</Button>}
         {puedeCobrar && <Button icon={<Banknote />} disabled={enCurso} onClick={() => setModo('cobro')}>Cobrar {pesos(debe)} y abrir</Button>}

@@ -8,10 +8,11 @@ import { api, motivoDe } from '@/lib/api';
 import { fecha, fechaHora, hace, telefono } from '@/lib/format';
 import { CONSENT_TYPE, MEMBER_STATUS } from '@/lib/labels';
 import { useToast, errorText } from '@/components/session';
-import { Avatar, Badge, Button, Callout, CampoFecha, CampoMotivo, Card, Dialog, Empty, Field, PageHeader, Segmented, Skeleton, ErrorCarga, EsqueletoTabla } from '@/components/ui';
+import { Avatar, Badge, Button, Callout, CampoFecha, CampoMotivo, Card, Dialog, Empty, Field, PageHeader, Segmented, Skeleton, Switch, ErrorCarga, EsqueletoTabla } from '@/components/ui';
 import { EstadoCarga, useCarga } from '@/lib/carga';
 import { useFormulario } from '@/lib/formulario';
 import { EnlaceAltaDialog } from '@/components/alta-enlace';
+import { ElegirResponsable, responsableElegido, SIN_ELEGIR, type Eleccion } from '@/components/altas/responsable';
 import { PasosDelAlta, accionDelPaso, useOnboarding } from '@/components/altas/pasos-del-alta';
 import { useSession } from '@/components/session';
 import type { IntakeCorrectionsSaved, IntakeDetail, IntakeList, IntakeResolved, IntakeSummary } from '@gymflow/core/contracts';
@@ -100,6 +101,17 @@ export default function AltasPage() {
   const [ocupado, setOcupado] = useState(false);
   const [falloAccion, setFalloAccion] = useState<string | null>(null);
   const [rechazo, setRechazo] = useState(false);
+  // Bloque 3.4. D-09: quién responde por el celular que comparte. D-10: el tutor que firma aquí por un menor.
+  const [responsable, setResponsable] = useState<Eleccion>(SIN_ELEGIR);
+  const [tutor, setTutor] = useState({ nombre: '', telefono: '', acepta: false, salud: false, nota: '' });
+  const altaAbierta = detalle?.intake.id ?? null;
+  const tutorEscrito = detalle?.intake.guardianName ?? '';
+  const celularDelTutor = detalle?.intake.guardianPhoneE164 ?? '';
+  useEffect(() => {
+    // Otra alta: nada de lo elegido para la anterior vale. El tutor que el menor escribió se propone; firmar es aparte.
+    setResponsable(SIN_ELEGIR);
+    setTutor({ nombre: tutorEscrito, telefono: celularDelTutor.replace(/^\+52/, ''), acepta: false, salud: false, nota: '' });
+  }, [altaAbierta, tutorEscrito, celularDelTutor]);
 
   // Sede y buscador los resuelve la API (9-06, 9-09): nombre, celular o el folio que dicta el socio.
   const [sede, setSede] = useState('');
@@ -236,11 +248,23 @@ export default function AltasPage() {
     } catch (err) { await alFallar(err, 'No se pudo guardar'); } finally { setOcupado(false); }
   }
 
+  /** Lo que se decide además de corregir: el responsable del celular compartido (D-09) y la firma del tutor (D-10). */
+  function decision(): Record<string, unknown> {
+    const r = comparten.length > 0 ? responsableElegido(responsable) : null;
+    return {
+      ...(r ? { responsible: r } : {}),
+      ...(detalle?.intake.minor && tutorListo ? { guardian: {
+        name: tutor.nombre.trim(), ...(tutor.telefono.trim() ? { phoneE164: tutor.telefono.trim() } : {}),
+        healthConsent: tutor.salud, ...(tutor.salud && tutor.nota.trim() ? { healthNotes: tutor.nota.trim() } : {}),
+      } } : {}),
+    };
+  }
+
   async function aprobar(id: string, force: boolean) {
     setOcupado(true); setFalloAccion(null);
     const corrections = enPantalla();
     try {
-      const r = await api<IntakeResolved>(`/intakes/${id}/approve`, { method: 'POST', body: JSON.stringify({ force, ...(corrections ? { corrections } : {}) }) });
+      const r = await api<IntakeResolved>(`/intakes/${id}/approve`, { method: 'POST', body: JSON.stringify({ force, ...(corrections ? { corrections } : {}), ...decision() }) });
       // No se salta a la siguiente: el socio está delante y lo que sigue es
       // venderle su plan. La pantalla lo ofrece en vez de dejarlo a la memoria.
       setAprobada({
@@ -256,7 +280,7 @@ export default function AltasPage() {
     setOcupado(true); setFalloAccion(null);
     const corrections = enPantalla();
     try {
-      const r = await api<IntakeResolved>(`/intakes/${id}/link`, { method: 'POST', body: JSON.stringify({ memberId: c.candidateId, ...(corrections ? { corrections } : {}) }) });
+      const r = await api<IntakeResolved>(`/intakes/${id}/link`, { method: 'POST', body: JSON.stringify({ memberId: c.candidateId, ...(corrections ? { corrections } : {}), ...decision() }) });
       setAprobada({ memberId: r.memberId, memberCode: r.memberCode, nombre: c.fullName ?? 'El socio', pendientes: r.pendingReconsent, vinculada: true, eraInteresado: !!r.convertedProspectId });
     } catch (err) { await alFallar(err, 'No se pudo vincular'); } finally { setOcupado(false); }
   }
@@ -267,8 +291,13 @@ export default function AltasPage() {
   const ahora = detalle ? conCorrecciones(detalle) : null;
   const corregidos = detalle?.intake.corrections ?? null;
   const faltan = (detalle?.pendingFields ?? []).filter((k) => FALTA[k]);
-  // Mismo celular que un socio activo y otro nombre (9-02): se avisa antes de pulsar.
-  const comparte = detalle?.matches.find((m) => m.sharedPhone && m.status !== 'ARCHIVED') ?? null;
+  // Mismo celular que un socio vivo y que no es esta persona (D-09): pueden compartirlo anotando quién responde por él.
+  const comparten = (detalle?.matches ?? []).filter((m) => !!m.phoneE164 && m.phoneE164 === ahora?.phoneE164 && m.status !== 'ARCHIVED' && m.score < 90)
+    .map((m) => ({ id: m.candidateId, fullName: m.fullName ?? 'Otro socio', memberCode: m.memberCode }));
+  const faltaResponsable = comparten.length > 0 && !responsableElegido(responsable);
+  // D-10: un menor se aprueba cuando su tutor firma aquí.
+  const tutorListo = tutor.nombre.trim().length >= 3 && tutor.acepta;
+  const faltaTutor = !!detalle?.intake.minor && !tutorListo;
   const nCambios = cambios();
   const dato = (k: Campo, pintar: (v: string | null) => React.ReactNode) => (
     <>{pintar(ahora?.[k] ?? null)}{corregidos && k in corregidos ? <span className="tiny muted dato-corregido"> · corregido</span> : null}</>
@@ -397,11 +426,41 @@ export default function AltasPage() {
                     {detalle.prospect.branchId !== detalle.intake.branchId ? ` en ${branchName(detalle.prospect.branchId)}` : ''}. Al aprobar o vincular sale solo de seguimiento, como inscrito.
                   </Callout>
                 )}
-                {comparte && (
-                  <Callout tone="warn" title={`Comparte celular con ${comparte.fullName ?? 'otro socio'}`}>
-                    Dos socios todavía no pueden tener el mismo celular. Si es otra persona (un familiar), en «Corregir o completar» pon otro celular, o déjalo vacío y usa su correo.
-                  </Callout>
+                {detalle.intake.minor && (
+                  <div className="tutor-del-alta" data-testid="falta-su-tutor">
+                    <Callout tone="danger" title="Falta su tutor">
+                      Tiene menos de 18 años: su alta se aprueba cuando su papá, mamá o tutor firma aquí, en el mostrador.
+                      {detalle.intake.guardianName ? <> Escribió a <strong>{detalle.intake.guardianName}</strong>{detalle.intake.guardianPhoneE164 ? <> · {telefono(detalle.intake.guardianPhoneE164)}</> : null}.</> : ' No escribió a quién llamar.'}
+                    </Callout>
+                    {revisa && (
+                      <div className="stack-sm mt-8">
+                        <div className="grid grid-2 gap-10">
+                          <Field label="Quién firma (papá, mamá o tutor)" htmlFor="tu-nombre" required>
+                            <input id="tu-nombre" className="input" value={tutor.nombre} onChange={(e) => setTutor({ ...tutor, nombre: e.target.value })} />
+                          </Field>
+                          <Field label="Su celular" htmlFor="tu-tel">
+                            <input id="tu-tel" className="input" inputMode="tel" placeholder="10 dígitos" value={tutor.telefono} onChange={(e) => setTutor({ ...tutor, telefono: e.target.value })} />
+                          </Field>
+                        </div>
+                        <Switch checked={tutor.acepta} onChange={(v) => setTutor({ ...tutor, acepta: v })}>
+                          Está aquí, leyó el aviso de privacidad y el reglamento, y los acepta por {detalle.intake.firstName}
+                        </Switch>
+                        <Switch checked={tutor.salud} onChange={(v) => setTutor({ ...tutor, salud: v })}>
+                          También acepta que el gimnasio guarde datos de salud de {detalle.intake.firstName}
+                        </Switch>
+                        {tutor.salud && (
+                          <Field label="Nota de salud (la dice su tutor)" htmlFor="tu-nota" hint="Lesiones, padecimientos o alergias. Solo la ven la gerencia y su coach.">
+                            <textarea id="tu-nota" className="textarea" rows={2} maxLength={1000} value={tutor.nota} onChange={(e) => setTutor({ ...tutor, nota: e.target.value })} />
+                          </Field>
+                        )}
+                        <p className="tiny muted">La aceptación queda a nombre del tutor, con la fecha de hoy y quién lo atendió. Sin ella no se guarda ninguna nota de salud.</p>
+                      </div>
+                    )}
+                  </div>
                 )}
+                {comparten.length > 0 && (revisa
+                  ? <ElegirResponsable comparten={comparten} valor={responsable} onChange={setResponsable} quien={`${detalle.intake.firstName} (esta persona)`} />
+                  : <Callout tone="warn" title={`Comparte celular con ${comparten.map((c) => c.fullName).join(' y ')}`}>Al aprobar se anota quién responde por ese número.</Callout>)}
                 {!editando && faltan.length > 0 && (
                   <Callout tone="warn" title={faltan.length === 1 ? 'Falta un dato' : `Faltan ${faltan.length} datos`}>
                     <span data-testid="faltan-datos">{faltan.map((k) => FALTA[k]).join(' y ')}. </span>
@@ -432,7 +491,8 @@ export default function AltasPage() {
                   <dt>Socio desde</dt><dd>{dato('memberSince', (v) => (v ? fecha(v) : 'Es nuevo'))}</dd>
                   <dt>Emergencia</dt><dd>{ahora!.emergencyContactName
                     ? `${ahora!.emergencyContactName}${ahora!.emergencyContactPhone ? ` · ${telefono(ahora!.emergencyContactPhone)}` : ''}` : '—'}{corregidos && ('emergencyContactName' in corregidos || 'emergencyContactPhone' in corregidos) ? <span className="tiny muted dato-corregido"> · corregido</span> : null}</dd>
-                  <dt>Salud</dt><dd>{detalle.intake.healthNotes
+                  <dt>Salud</dt><dd>{detalle.intake.minor ? 'Es menor: lo de salud lo autoriza y lo dice su tutor al firmar'
+                    : detalle.intake.healthNotes
                     ?? (detalle.intake.hasHealthNotes ? 'Dejó una nota (solo la ve gerencia o su coach)' : 'Sin notas')}</dd>
                 </dl>
                 )}
@@ -451,7 +511,7 @@ export default function AltasPage() {
                     ))}
                     {detalle.intake.acceptedConsents.filter((c) => c.granted).length === 0 && <span className="muted small">Nada</span>}
                   </div>
-                  <p className="tiny muted mt-6">Desde su teléfono</p>
+                  <p className="tiny muted mt-6">Desde su teléfono{detalle.intake.minor ? '. Es menor: lo que vale es la firma de su tutor en el mostrador' : ''}</p>
                 </div>
 
                 {detalle.matches.length > 0 && (
@@ -471,7 +531,7 @@ export default function AltasPage() {
                               <td>{m.sharedPhone ? <Badge tone="warn">Comparten celular</Badge> : <Badge tone={m.score >= 90 ? 'danger' : 'warn'}>{Math.round(m.score)}%</Badge>}</td>
                               <td className="small muted">{m.explanation}</td>
                               <td className="right text-right">
-                                {revisa && <Button size="sm" variant="secondary" icon={<Link2 />} disabled={ocupado}
+                                {revisa && <Button size="sm" variant="secondary" icon={<Link2 />} disabled={ocupado || faltaTutor}
                                   onClick={() => void vincular(detalle.intake.id, m)}>Es esta persona</Button>}
                               </td>
                             </tr>
@@ -491,12 +551,14 @@ export default function AltasPage() {
                 {/* Con coincidencias, "Aprobar" chocaría contra el duplicado: la
                     decisión es "es esta persona" (arriba) o "es otra". */}
                 {detalle.matches.length === 0
-                  ? <Button icon={<Check />} loading={ocupado} onClick={() => void aprobar(detalle.intake.id, false)}>{nCambios > 0 ? 'Aprobar con los cambios' : 'Aprobar'}</Button>
+                  ? <Button icon={<Check />} loading={ocupado} disabled={faltaTutor} onClick={() => void aprobar(detalle.intake.id, false)}>{nCambios > 0 ? 'Aprobar con los cambios' : 'Aprobar'}</Button>
                   : (
-                    <Button variant="secondary" icon={<UserPlus />} disabled={ocupado} onClick={() => void aprobar(detalle.intake.id, true)}>
+                    <Button variant="secondary" icon={<UserPlus />} disabled={ocupado || faltaTutor || faltaResponsable} onClick={() => void aprobar(detalle.intake.id, true)}>
                       Es otra persona: crear socio nuevo
                     </Button>
                   )}
+                {faltaTutor && <span className="tiny muted" data-testid="espera-tutor">Para aprobar, que firme su tutor (arriba).</span>}
+                {!faltaTutor && faltaResponsable && <span className="tiny muted">Para crear al socio, elige quién responde por el celular.</span>}
                 {/* Lo corregido no se pierde si el socio va por su identificación o llega otra alta (9-21). */}
                 {editando && <Button variant="ghost" icon={<Save />} disabled={ocupado} onClick={() => void guardarSinAprobar(enPantalla())}>Guardar sin aprobar</Button>}
                 <span className="flex-1" />

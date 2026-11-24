@@ -46,3 +46,7 @@
 }
 @media print { .franja-firmas { display: none !important; } }
 
+/* ── 3.9 · Conservación (D-32): el plazo del gimnasio, en un campo corto ───── */
+.conservacion-plazo { align-items: flex-end; }
+.conservacion-plazo > .field { flex: 0 1 240px; }
+

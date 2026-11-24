@@ -12,5 +12,7 @@
  * `components/camara-rostro.tsx`, que comparte con la Estación.
  */
 export { BiometriaTab } from './pestana';
+// Fase 3 · bloque 3.3 (D-06): la regla «entrar solo con rostro» del gimnasio, en la pantalla Biometría.
+export { ReglaDelRostro } from './regla-del-rostro';
 export { FirmarTextoVigenteDialog } from './firmar';
 export type { Enrollment, FirmaPorRenovar } from './comun';

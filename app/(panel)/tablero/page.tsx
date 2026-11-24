@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { Wallet, TrendingUp, Hourglass, Repeat, Landmark, AlertTriangle, Users, Clock, ArrowRight, HeartPulse, Scale, Lock, Rocket } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
-import { comparar, fecha, hora, pesos, ultimoDia } from '@/lib/format';
+import { comparar, fecha, hora, nombreMes, pesos, ultimoDia } from '@/lib/format';
 import { hoyEn } from '@/lib/zonas';
 import { useSession } from '@/components/session';
 import { Badge, Callout, Card, Empty, ErrorCarga, PageHeader, Segmented, Skeleton, Stat, Button, ButtonLink } from '@/components/ui';
@@ -12,6 +12,7 @@ import { useCarga } from '@/lib/carga';
 import { Exportar } from '@/components/exportar';
 import { CerrarMesDialog, CierresDeMes, useCierresDeMes } from '@/components/cierre-mes';
 import { GLOSARIO } from '@/lib/glosario';
+import { GlosarioDinero } from '@/components/glosario-dinero';
 import type { Dashboard, RetentionSummary } from '@gymflow/core/contracts';
 
 /**
@@ -138,9 +139,23 @@ export default function TableroPage() {
           <Segmented value={dias} onChange={setDias} options={RANGOS} />
         </div>}
       />
-      {data?.closed && <Callout tone="ok" title={`Mes cerrado el ${fecha(data.closed.closedAt)}`}>La foto de este mes ya no se reescribe.{cierreVisto?.closedByName ? ` Cerró ${cierreVisto.closedByName}${cierreVisto.approvedByName ? ` y firmó ${cierreVisto.approvedByName}` : ''}.` : ''}{data.closed.note ? ` Nota: ${data.closed.note}` : ''}</Callout>}
-      {data?.priorAdjustmentsCents && BigInt(data.priorAdjustmentsCents) > 0n && (
-        <Callout tone="info">Incluye {pesos(data.priorAdjustmentsCents)} de <strong>ajustes de meses anteriores</strong>: cobros de un mes ya cerrado que se registraron después del cierre.</Callout>
+      {/* D-22: las cifras de un mes cerrado salen de su foto y ya no cambian. */}
+      {data?.closed && (
+        <Callout tone="ok" title={`Mes cerrado el ${fecha(data.closed.closedAt)}`}>
+          {data.closed.fromSnapshot
+            ? 'Sus cifras quedaron fijas al cerrarlo: son las de la foto del cierre. Lo que llegue después se anota en el mes en curso como ajuste.'
+            : 'Este cierre es anterior a la foto completa: sus cifras se calculan al momento.'}
+          {cierreVisto?.closedByName ? ` Cerró ${cierreVisto.closedByName}${cierreVisto.approvedByName ? ` y firmó ${cierreVisto.approvedByName}` : ''}.` : ''}{data.closed.note ? ` Nota: ${data.closed.note}` : ''}
+        </Callout>
+      )}
+      {/* Lo que llegó tarde a un mes cerrado y se anotó en este periodo, etiquetado (D-22). */}
+      {data && data.adjustments.length > 0 && (
+        <div data-testid="ajustes-de-meses-cerrados">
+          <Callout tone="info" title="Incluye ajustes de meses cerrados">
+            {data.adjustments.map((a) => `ajuste de ${nombreMes(a.month)}: ${BigInt(a.cents) < 0n ? `${pesos(-BigInt(a.cents))} a favor` : pesos(a.cents)}`).join(' · ')}.
+            {' '}Están dentro de los gastos fijos de este periodo; el detalle, en <Link href="/movimientos">Movimientos</Link>.
+          </Callout>
+        </div>
       )}
       {cerrar && <CerrarMesDialog month={cerrar} onClose={() => setCerrar(null)} onHecho={() => { setCerrar(null); void tablero.recargar(); void cierres.recargar(); }} />}
 
@@ -160,6 +175,9 @@ export default function TableroPage() {
                   contra(data.money.profitCents, data.previous.profitCents, CONTRA[dias]),
                   // El sobrante no sube la utilidad (13-05): se dice aparte.
                   data.money.cashOverageCents && BigInt(data.money.cashOverageCents) > 0n ? `sobró ${pesos(data.money.cashOverageCents, { decimals: false })} en caja por aclarar (no suma)` : '',
+                  // El costo de lo vendido en la tienda ya va restado (D-21); el retiro del dueño no resta (D-23).
+                  BigInt(data.money.costOfGoodsCents) < 0n ? `ya resta ${pesos(-BigInt(data.money.costOfGoodsCents), { decimals: false })} de costo de lo vendido` : '',
+                  BigInt(data.money.ownerDrawsCents) > 0n ? `retiros del dueño ${pesos(data.money.ownerDrawsCents, { decimals: false })} (no restan)` : '',
                   'en caja quedó otra cifra: ver Movimientos',
                 )} />
               <Stat icon={<Hourglass />} label={GLOSARIO.porPrestar.nombre} value={pesos(data.money.deferredCents, { decimals: false })} note={GLOSARIO.porPrestar.explica} />
@@ -168,17 +186,13 @@ export default function TableroPage() {
         </div>
       )}
       {data && (
-        <details className="explica" style={{ marginTop: -12, marginBottom: 24 }}>
-          <summary className="small strong">¿Por qué no coinciden lo cobrado y lo ganado?</summary>
-          <p className="small muted" style={{ marginTop: 8, maxWidth: 760 }}>
-            <strong>Cobrado</strong> es el dinero que entró en estos días, sea del mes que sea: una anualidad pagada hoy entra completa.
-            <strong> Ganado</strong> es solo la parte del servicio que ya se dio en el periodo: de esa anualidad, un mes.
-            La diferencia es <strong>por prestar</strong>: dinero que ya tienes pero que todavía le debes al socio en días de gimnasio.
-            Si por prestar está en cero, todo lo cobrado ya se ganó. <strong>Utilidad</strong> es lo ganado menos los gastos pagados de la
-            caja, los faltantes de cada corte y los gastos fijos (renta, nómina) que se registran en Movimientos, repartidos por día.
-            {' '}{GLOSARIO.descuadre.explica}
-          </p>
-        </details>
+        <div className="glosario-tablero">
+          {/* El mismo glosario que Movimientos e Inicio (D-24). */}
+          <GlosarioDinero titulo="¿Por qué no coinciden lo que entró y lo ganado?" terminos={['entro', 'ganado', 'porPrestar', 'utilidad', 'costoVendido', 'descuadre', 'retiroDueno', 'ajuste']}>
+            Si «{GLOSARIO.porPrestar.nombre}» está en cero, todo lo que entró ya se ganó.
+            {data.notes.soldWithoutCost > 0 && ` ${data.notes.soldWithoutCost} ${data.notes.soldWithoutCost === 1 ? 'pieza vendida no tiene' : 'piezas vendidas no tienen'} costo registrado en Productos: su costo no se pudo restar.`}
+          </GlosarioDinero>
+        </div>
       )}
 
       {data && (
@@ -228,7 +242,7 @@ export default function TableroPage() {
           <div className="stack">
             <Card title="Cartera">
               <div className="stack-sm">
-                <div className="row-between"><span className="muted">Por cobrar</span><span className="num strong">{pesos(data.portfolio.outstandingCents, { decimals: false })}</span></div>
+                <div className="row-between"><span className="muted">{GLOSARIO.porCobrar.nombre}</span><span className="num strong">{pesos(data.portfolio.outstandingCents, { decimals: false })}</span></div>
                 {data.portfolio.overdueCents !== data.portfolio.outstandingCents && <div className="row-between"><span className="muted">Ya vencido</span><span className="num strong">{pesos(data.portfolio.overdueCents, { decimals: false })}</span></div>}
                 {/* Sin enlaces a pantallas que no son de su puesto (UX5-D-06). */}
                 {can('members:read')

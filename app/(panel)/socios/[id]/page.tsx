@@ -18,6 +18,7 @@ import { ClasesSocioCard } from '@/components/clase-socio';
 import { AccionesMembresia, type Membresia } from '@/components/membresia';
 import { EntradaDialog } from '@/components/entrada';
 import { EditarSocioDialog } from '@/components/socio-form';
+import { CelularCompartido } from '@/components/altas/responsable';
 import { RutinaSocioTab } from '@/components/rutina-socio';
 import { EstadoDeCuenta } from '@/components/estado-de-cuenta';
 import type { MemberDayPasses, MemberStatement } from '@gymflow/core/contracts';
@@ -406,6 +407,9 @@ export default function SocioPage() {
               <dt>Socio desde</dt><dd>{fecha(m.joinedAt)}</dd>
               {(can('members:create') || can('training:assign')) && <><dt>Coach</dt><dd><CoachDelSocio memberId={m.id} coachUserId={m.coachUserId ?? null} homeBranchId={m.homeBranchId} onCambio={(c) => setM({ ...m, coachUserId: c })} /></dd></>}
             </dl>
+            {/* Bloque 3.4 (D-09, D-11): «Comparte celular con…», quién responde por el número y «Completar datos» (solo lo vacío). */}
+            {veContacto && !m.anonymizedAt && m.status !== 'ARCHIVED' && <CelularCompartido memberId={m.id} nombre={m.firstName} puedeEditar={can('members:update')} puedeCompletar={can('members:create')} onCambio={() => void recargarSocio()}
+              vacios={{ phoneE164: !m.phoneE164, email: !m.email, birthDate: !m.birthDate, emergencyContactName: !m.emergencyContactName, emergencyContactPhone: !m.emergencyContactPhone }} />}
             <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--line)' }} className="stack-sm">
               <p className="label row gap-6"><LifeBuoy size={14} />En caso de emergencia</p>
               <p className="small">{m.emergencyContactName

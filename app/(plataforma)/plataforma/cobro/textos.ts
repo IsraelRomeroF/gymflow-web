@@ -33,7 +33,15 @@ export type Pago = {
   /** Sigue vivo y no pasó el plazo para deshacerlo. */
   canUndo: boolean; undoUntil: string;
 };
-export type FacturaConPagos = Factura & { payments: Pago[] };
+/** Cómo quedó el servicio de la marca al registrar un pago (D-37, bloque 3.11). */
+export type ServicioTrasElPago = { status: 'PENDING' | 'ACTIVE' | 'SUSPENDED'; suspendedAutomatically: boolean; canResume: boolean; resumed: boolean; holdUntil: string | null };
+export type FacturaConPagos = Factura & {
+  payments: Pago[];
+  /** Solo en la respuesta de registrar un pago. */
+  service?: ServicioTrasElPago;
+  /** Solo en el comprobante (`GET /platform/invoices/:id`). */
+  organization?: { tradeName: string; legalName: string; serviceStatus: 'PENDING' | 'ACTIVE' | 'SUSPENDED'; suspendedAutomatically: boolean } | null;
+};
 
 export type EstadoDeCobro = 'VENCIDA' | 'NO_FACTURABLE' | 'SIN_FACTURA_DEL_MES' | 'POR_VENCER' | 'AL_CORRIENTE' | 'SIN_COBRO';
 export type CobroDeMarca = { code: EstadoDeCobro; overdueDays: number; pendingCents: string };

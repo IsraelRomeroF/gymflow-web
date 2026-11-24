@@ -10,6 +10,7 @@ import { Badge, Button, ButtonLink, Callout, Card, Empty, Skeleton, ErrorCarga }
 import { Anular } from './anular';
 import { Emitir } from './emitir';
 import { Pagar } from './pagar';
+import { AvisosDeMarca, Prorroga, RenglonDeCobranza, type Aviso, type Cobranza, type Dueno } from './cobranza';
 import { ESTADO_COBRO, ESTADO_FACTURA, FORMA_DE_PAGO, dias, fraseDeCobro, periodo, type CobroDeMarca, type Factura, type Linea } from './textos';
 
 type Resumen = {
@@ -22,6 +23,12 @@ type Resumen = {
   billableMonths: Array<{ month: string; invoiced: boolean }>;
   /** Solo a una marca en uso se le emite. */
   canIssue: boolean;
+  /** La mensualidad que ya se le anunció para una fecha próxima, si cambia (D-38). */
+  upcoming: { effectiveFrom: string; totalCents: string } | null;
+  /** La escalera de cobranza (D-37): cuándo se suspende sola, sus avisos y a quién van. */
+  collections: Cobranza;
+  notices: Aviso[];
+  owners: Dueno[];
 };
 
 /**
@@ -30,8 +37,9 @@ type Resumen = {
  * deshacer un pago y anular dejan rastro en la bitácora de la marca. El
  * estado de la marca y el de cada factura los dice el servidor (23-02).
  */
-export function Cobro({ organizationId, tradeName }: { organizationId: string; tradeName: string }) {
+export function Cobro({ organizationId, tradeName, onServicio }: { organizationId: string; tradeName: string; /** El pago reanudó el servicio: la ficha se vuelve a leer. */ onServicio?: () => void }) {
   const [emitir, setEmitir] = useState(false);
+  const [prorroga, setProrroga] = useState(false);
   const [pagar, setPagar] = useState<Factura | null>(null);
   const [anular, setAnular] = useState<Factura | null>(null);
   const pedir = useCallback(() => api<Resumen>(`/platform/organizations/${organizationId}/billing`), [organizationId]);
@@ -57,6 +65,12 @@ export function Cobro({ organizationId, tradeName }: { organizationId: string; t
             </p>
             <p className="small"><span className="muted">Mensualidad de hoy: </span><span className="strong num" data-testid="mensualidad">{pesos(r.monthly.totalCents)}</span></p>
           </div>
+          <RenglonDeCobranza cobranza={r.collections} onProrroga={() => setProrroga(true)} />
+          {r.upcoming && (
+            <Callout tone="info" title={`Desde la factura de ${periodo(r.upcoming.effectiveFrom).toLowerCase()}: ${pesos(r.upcoming.totalCents)} al mes`}>
+              Ya se le anunció. Hasta entonces conserva la mensualidad de hoy; el cambio se ve y se cancela en <Link href="/plataforma/precios">Precios</Link>.
+            </Callout>
+          )}
           {sinPrecios && <Callout tone="warn">Sin precio: {r.monthly.missingPrices.join(', ')}. <Link href="/plataforma/precios">Fíjalo en Precios</Link> para poder facturar.</Callout>}
           {r.monthly.lines.length > 0 && <div className="table-wrap">
             <table className="table">
@@ -100,11 +114,13 @@ export function Cobro({ organizationId, tradeName }: { organizationId: string; t
                 </table>
               </div>
             )}
+          <AvisosDeMarca avisos={r.notices} duenos={r.owners} onCambio={cargar} />
         </div>
       </Card>
 
       {emitir && <Emitir mesActual={r.month} marca={{ id: organizationId, tradeName, totalCents: r.monthly.totalCents, meses: r.billableMonths }} onClose={() => setEmitir(false)} onHecho={() => { setEmitir(false); cargar(); }} />}
-      {pagar && <Pagar factura={pagar} onClose={() => setPagar(null)} onHecho={() => { setPagar(null); cargar(); }} />}
+      {pagar && <Pagar factura={pagar} onClose={() => setPagar(null)} onHecho={(f) => { setPagar(null); cargar(); if (f?.service?.resumed) onServicio?.(); }} />}
+      {prorroga && <Prorroga organizationId={organizationId} tradeName={tradeName} actual={r.collections.holdUntil} onClose={() => setProrroga(false)} onHecho={() => { setProrroga(false); cargar(); onServicio?.(); }} />}
       {anular && <Anular factura={anular} onClose={() => setAnular(null)} onHecho={() => { setAnular(null); cargar(); }} />}
     </>
   );

@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { textosDeMotivo } from '@gymflow/core/motivos';
 import { api, ApiError, motivoDe } from '@/lib/api';
 import { fecha, pesos } from '@/lib/format';
 import { useFormulario } from '@/lib/formulario';
 import { errorText, useToast } from '@/components/session';
 import { InputPesos } from '@/components/input-pesos';
-import { Button, CampoFecha, CampoMotivo, Dialog, ERROR_MOTIVO, faltaMotivo, Field } from '@/components/ui';
+import { Button, Callout, CampoFecha, CampoMotivo, Dialog, ERROR_MOTIVO, faltaMotivo, Field, Switch } from '@/components/ui';
 import { FORMA_DE_PAGO, PIDE_REFERENCIA, hoyDeCobro, periodo, type Factura, type FacturaConPagos, type Pago } from './textos';
 
 type Campo = 'importe' | 'fecha' | 'referencia';
@@ -20,6 +20,11 @@ const CAMPO_DE: Record<string, Campo> = { amountCents: 'importe', paidOn: 'fecha
  * qué referencia, obligatoria en transferencia y tarjeta: sin ella no se
  * concilia. Con menos que el saldo queda como abono y la factura dice cuánto
  * resta.
+ *
+ * Si la marca está SUSPENDIDA, aquí mismo se ofrece reanudar el servicio
+ * (D-37, bloque 3.11): encendido por omisión cuando el pago cubre lo que
+ * falta, apagado en un abono. Reanudar nunca es automático: lo decide quien
+ * registra el pago, en este paso.
  */
 export function Pagar({ factura, onClose, onHecho }: { factura: Factura; onClose: () => void; onHecho: (f: FacturaConPagos | null) => void }) {
   const toast = useToast();
@@ -28,6 +33,19 @@ export function Pagar({ factura, onClose, onHecho }: { factura: Factura; onClose
   const [importe, setImporte] = useState<bigint | null>(saldo);
   const [d, setD] = useState({ paymentMethod: 'SPEI_TRANSFER', paymentRef: '', note: '', paidOn: hoy });
   const [error, setError] = useState<string | null>(null);
+  // ¿La marca está suspendida? El diálogo se abre desde tres pantallas y solo una lo sabe: se pregunta.
+  const [suspendida, setSuspendida] = useState<{ automatica: boolean; marca: string } | null>(null);
+  /** null = lo que conviene según el importe; un valor = lo eligió quien registra. */
+  const [reanudarElegido, setReanudarElegido] = useState<boolean | null>(null);
+  useEffect(() => {
+    let vivo = true;
+    api<FacturaConPagos>(`/platform/invoices/${factura.id}`).then((r) => {
+      if (vivo && r.organization?.serviceStatus === 'SUSPENDED') setSuspendida({ automatica: r.organization.suspendedAutomatically, marca: r.organization.tradeName });
+    }).catch(() => { /* Sin el dato no se ofrece aquí; la respuesta del pago vuelve a decir si se puede reanudar. */ });
+    return () => { vivo = false; };
+  }, [factura.id]);
+  const cubre = importe !== null && importe >= saldo;
+  const reanudar = suspendida !== null && (reanudarElegido ?? cubre);
   const pideReferencia = PIDE_REFERENCIA.has(d.paymentMethod);
   const f = useFormulario<Campo>({
     importe: importe === null || importe <= 0n ? 'Escribe cuánto llegó, en pesos.' : importe > saldo && `Es más de lo que falta: la factura debe ${pesos(saldo)}.`,
@@ -43,9 +61,13 @@ export function Pagar({ factura, onClose, onHecho }: { factura: Factura; onClose
         body: JSON.stringify({
           amountCents: importe!.toString(), paymentMethod: d.paymentMethod, paidOn: d.paidOn,
           ...(d.paymentRef.trim() ? { paymentRef: d.paymentRef.trim() } : {}), ...(d.note.trim() ? { note: d.note.trim() } : {}),
+          ...(reanudar ? { resume: true } : {}),
         }),
       });
-      toast('ok', r.status === 'PAID' ? `Factura ${factura.folio} pagada.` : `Abono de ${pesos(importe!)} registrado en ${factura.folio}: resta ${pesos(r.balanceCents)}.`);
+      const servicio = r.service?.resumed
+        ? ` Servicio reanudado${r.service.holdUntil ? `; como todavía debe algo vencido, el sistema no la vuelve a suspender antes del ${fecha(r.service.holdUntil)}` : ''}.`
+        : r.service?.canResume ? ' El servicio SIGUE suspendido: se reanuda desde la ficha de la marca.' : '';
+      toast('ok', (r.status === 'PAID' ? `Factura ${factura.folio} pagada.` : `Abono de ${pesos(importe!)} registrado en ${factura.folio}: resta ${pesos(r.balanceCents)}.`) + servicio);
       onHecho(r);
     } catch (e) {
       // Alguien más la pagó o la anuló mientras tanto: se dice y se recarga.
@@ -80,6 +102,19 @@ export function Pagar({ factura, onClose, onHecho }: { factura: Factura; onClose
           <input id="pg-r" className="input mono" maxLength={120} value={d.paymentRef} onChange={(e) => { setD({ ...d, paymentRef: e.target.value }); f.limpiar('referencia'); }} />
         </Field>
         <Field label="Nota (opcional)" htmlFor="pg-n"><input id="pg-n" className="input" maxLength={300} value={d.note} onChange={(e) => setD({ ...d, note: e.target.value })} /></Field>
+        {suspendida && (
+          <div data-testid="reanudar-al-pagar">
+            <Callout tone="warn" title={`${suspendida.marca} tiene el servicio suspendido${suspendida.automatica ? ' por falta de pago' : ''}`}>
+              <p>Nadie de la marca puede entrar. ¿Reanudar el servicio con este pago?</p>
+              <Switch id="pg-reanudar" checked={reanudar} onChange={setReanudarElegido}>Reanudar el servicio al registrar el pago</Switch>
+              <p className="tiny muted">
+                {reanudar
+                  ? cubre ? 'Queda en uso en cuanto se registre, y en la bitácora como «reanudó el servicio» con el folio.' : 'Es un abono: queda en uso y, como seguirá debiendo, el sistema no la vuelve a suspender en 15 días.'
+                  : 'Seguirá suspendida aunque se registre el pago; se reanuda después desde su ficha.'}
+              </p>
+            </Callout>
+          </div>
+        )}
       </div>
     </Dialog>
   );

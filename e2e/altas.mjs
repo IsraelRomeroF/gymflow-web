@@ -37,6 +37,8 @@ await recorrido('altas', async (r) => {
   await tel.getByLabel('Nombre(s)').fill(nombre);
   await tel.getByLabel('Apellidos').fill('Montes Ibarra');
   await tel.getByLabel('Celular').fill(celular());
+  // D-10 (bloque 3.4): sin fecha de nacimiento, el formulario pregunta si tiene 18 años o más.
+  await tel.locator('#ad-si').click();
   await tel.getByLabel('¿Desde cuándo vienes al gimnasio?').fill('2023-03-15');
   await tel.locator('#en').fill('Rosa Ibarra');
   await tel.locator('#ep').fill('5512345678');

@@ -288,7 +288,7 @@ export function VenderDialog({
                 </Field>
               )}
               {puedePactar && (
-                <Field label="Precio pactado por periodo" htmlFor="pactado" hint="Opcional. Queda escrito en la membresía: sus cuotas se cobran a este precio aunque el de lista cambie." error={errores.agreedPriceCents}>
+                <Field label="Precio pactado por periodo" htmlFor="pactado" hint="Opcional. Queda escrito en la membresía y conserva este precio: un cambio de precio del plan no le toca salvo que la gerencia lo decida." error={errores.agreedPriceCents}>
                   <input id="pactado" className="input num" inputMode="decimal" placeholder={pesos(plan.effectivePriceCents ?? plan.priceCents)} value={pactado} onChange={(e) => setPactado(e.target.value)} />
                 </Field>
               )}

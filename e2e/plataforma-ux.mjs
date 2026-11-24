@@ -74,5 +74,16 @@ await recorrido('plataforma-ux', async (r) => {
   r.ok(await aparece(dlg, T.ui), 'con la reconfirmación vencida, cambiar un precio pide la contraseña');
   await dlg.getByLabel('Tu contraseña').fill(CLAVE_PRUEBAS);
   await dlg.getByRole('button', { name: 'Confirmar' }).click();
-  r.ok(await aparece(p.getByText(/precio guardado|precios guardados/), T.respuesta), 'tras confirmar, el cambio se guarda solo');
+  // Bloque 3.11 (D-38): si el cambio le mueve la mensualidad a alguna marca, antes de guardar se confirma desde qué factura aplica.
+  const anunciar = p.getByRole('dialog').getByRole('button', { name: /^Anunciar desde/ });
+  if (await aparece(anunciar, T.ui)) await anunciar.click();
+  r.ok(await aparece(p.getByText(/precio guardado|precios guardados/), T.respuesta), 'tras confirmar, el cambio se guarda solo (o queda anunciado para su fecha)');
+  // Lo anunciado se cancela para que la siguiente corrida encuentre el precio libre.
+  const cancelar = p.getByTestId('cambios-anunciados').getByRole('button', { name: 'Cancelar cambio' }).first();
+  if (await aparece(cancelar, T.ui)) {
+    await cancelar.click();
+    await p.getByRole('dialog').getByLabel('Motivo').fill('Fin del recorrido');
+    await p.getByRole('dialog').getByRole('button', { name: 'Cancelar el cambio' }).click();
+    r.ok(await aparece(p.getByText('Cambio cancelado: todo sigue como estaba.'), T.respuesta), 'un cambio anunciado se cancela con motivo');
+  }
 });

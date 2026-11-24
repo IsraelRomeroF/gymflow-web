@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Check, History, ShieldCheck, X } from 'lucide-react';
+import { Check, History, MessageCircleQuestion, ShieldCheck, X } from 'lucide-react';
+import { APPROVAL_QUESTION_SUGGESTIONS } from '@gymflow/core';
 import type { ApprovalHistory, ApprovalHistoryItem, ApprovalInbox, ApprovalInboxItem } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
 import { hace, hora, pesos } from '@/lib/format';
@@ -9,7 +10,9 @@ import { useSession, useToast, errorText } from '@/components/session';
 import { Badge, Button, Callout, CampoMotivo, Card, Dialog, Empty, ERROR_MOTIVO, ErrorCarga, faltaMotivo, Field, PageHeader, EsqueletoLista, Tabs, type Tono } from '@/components/ui';
 import { useFormulario } from '@/lib/formulario';
 import { AvisosEnTelefono } from '@/components/push';
+import { ListaPorFirmar } from '@/components/privacidad';
 import { textoDeErrorDeFirma } from '@/components/autorizacion';
+import { ResumenAlFirmar } from '@/components/resumen-al-firmar';
 import { FIRMAS } from '@/modules/registro';
 
 type Solicitud = ApprovalInboxItem;
@@ -21,6 +24,8 @@ const QUE: Record<string, string> = {
   'members:anonymize': 'Anonimizar a un socio (ARCO)', 'memberships:visitpack:adjust': 'Ajustar visitas de un paquete',
   // Desde el bloque 0.9 el cierre de mes también se pide al teléfono (20-01).
   'reports:month:close': 'Cerrar el mes',
+  // Fase 3 · bloque 3.3 (D-06): la gerencia no está y un socio sin rostro espera en la puerta.
+  'access:entry:authorize': 'Dejar entrar a un socio sin su rostro registrado',
 };
 
 /**
@@ -31,6 +36,11 @@ const QUE: Record<string, string> = {
  * Dos pestañas (20-05): «Pendientes» y «Resueltas hoy». Antes una solicitud
  * vencida o rechazada desaparecía sin más y nadie sabía qué se firmó hoy.
  * Quien no da la segunda firma solo tiene «Resueltas hoy», con lo que pidió.
+ *
+ * D-03 (bloque 3.2): si la operación ya se rechazó, la tarjeta lo dice («2.ª
+ * vez · ya la rechazaste a las 15:26») con la respuesta que quien pide tuvo
+ * que escribir; y además de autorizar o no, se puede «Preguntar»: la
+ * solicitud sigue viva y la respuesta llega a esta misma tarjeta.
  */
 export default function AutorizacionesPage() {
   const { branchName, can } = useSession();
@@ -41,6 +51,7 @@ export default function AutorizacionesPage() {
   const [error, setError] = useState<string | null>(null);
   const [aprobar, setAprobar] = useState<Solicitud | null>(null);
   const [rechazar, setRechazar] = useState<Solicitud | null>(null);
+  const [preguntar, setPreguntar] = useState<Solicitud | null>(null);
 
   const cargar = useCallback(() => {
     if (!firma) return;
@@ -64,6 +75,8 @@ export default function AutorizacionesPage() {
       <PageHeader title="Autorizaciones"
         sub={firma ? 'Lo que el mostrador te pide autorizar. Apruébalo aquí con tu contraseña; allá la operación sigue sola.' : 'Lo que pediste autorizar hoy y en qué quedó.'}
         actions={firma ? <AvisosEnTelefono /> : undefined} />
+      {/* Bloque 3.9 (D-32): la lista mensual de exsocios por anonimizar, solo si hay una en espera de firma. */}
+      {firma && <ListaPorFirmar />}
       {firma && (
         <Tabs value={pestana} onChange={setPestana} tabs={[
           { value: 'pendientes', label: 'Pendientes', icon: <ShieldCheck size={16} />, count: lista?.length ?? 0 },
@@ -85,10 +98,16 @@ export default function AutorizacionesPage() {
                     <div className="stack-sm">
                       <p className="strong">{s.context ?? s.summary}</p>
                       {s.context && <p className="small muted">{s.summary}</p>}
+                      {/* Bloque 3.7 (D-25): de quién se trata, en tres datos y sin abrir su expediente. */}
+                      <ResumenAlFirmar resourceType={s.resourceType} resourceId={s.resourceId} />
                       {s.reason && <p className="small">Motivo: <span className="strong">{s.reason}</span></p>}
                       {s.amountCents && <p className="num resuelta-importe">{pesos(s.amountCents)}</p>}
+                      <Historia s={s} />
                       <div className="row wrap gap-8">
                         <Button icon={<Check />} onClick={() => setAprobar(s)}>Autorizar</Button>
+                        {!(s.question && !s.question.answer) && (
+                          <Button variant="secondary" icon={<MessageCircleQuestion />} onClick={() => setPreguntar(s)}>Preguntar</Button>
+                        )}
                         <Button variant="secondary" icon={<X />} onClick={() => setRechazar(s)}>No autorizar</Button>
                       </div>
                     </div>
@@ -100,7 +119,43 @@ export default function AutorizacionesPage() {
         </>
       )}
       {aprobar && <Aprobar s={aprobar} onClose={() => setAprobar(null)} onListo={() => { setAprobar(null); toast('ok', 'Autorizado. La operación se completa en cuanto la pantalla que la pidió la reciba (tiene 5 minutos). Queda en «Resueltas hoy».'); cargar(); }} />}
-      {rechazar && <Rechazar s={rechazar} onClose={() => setRechazar(null)} onListo={() => { setRechazar(null); toast('ok', 'No autorizada. Quien la pidió lo ve en su pantalla si sigue abierta, y queda en la bitácora y en «Resueltas hoy».'); cargar(); }} />}
+      {rechazar && <Rechazar s={rechazar} onClose={() => setRechazar(null)} onListo={() => { setRechazar(null); toast('ok', 'No autorizada. Quien la pidió lo ve en su pantalla si sigue abierta, y queda en «Resueltas hoy». Si te la vuelven a pedir verás tu «no» y su respuesta; durante 30 minutos nadie la firma en el mostrador.'); cargar(); }} />}
+      {preguntar && <Preguntar s={preguntar} onClose={() => setPreguntar(null)} onListo={() => { setPreguntar(null); toast('ok', 'Pregunta enviada. La solicitud sigue viva y su respuesta llega a esta tarjeta.'); cargar(); }} />}
+    </>
+  );
+}
+
+const ordinal = (n: number) => `${n}.ª vez`;
+
+/**
+ * LO QUE YA PASÓ CON ESTA OPERACIÓN (D-03): el «no» anterior con la respuesta
+ * que quien pide tuvo que escribir, y la pregunta con su contestación.
+ */
+function Historia({ s }: { s: Solicitud }) {
+  const userId = useSession().me.userId;
+  const pide = s.requesterName ?? 'Quien la pide';
+  // Con más de una persona que firma (apoderado, D-02), el «no» o la pregunta pueden ser de la otra.
+  const r = s.previousRejection;
+  const mio = !r?.byUserId || r.byUserId === userId;
+  const q = s.question;
+  const miPregunta = !q?.byUserId || q.byUserId === userId;
+  return (
+    <>
+      {s.previousRejection ? (
+        <Callout tone="warn" title={`${ordinal(Math.max(2, s.attempt))} · ${mio ? 'Ya la rechazaste' : `${s.previousRejection.byName ?? 'Otra persona'} ya la rechazó`} a las ${hora(s.previousRejection.at)}`}>
+          {s.previousRejection.reason && <p className="small">{mio ? 'Tu motivo' : 'Su motivo'}: «{s.previousRejection.reason}»</p>}
+          <p className="firma-cita" data-testid="firma-respuesta">{pide} responde: «{s.reply ?? ''}»</p>
+        </Callout>
+      ) : s.attempt > 1 ? (
+        <p className="small muted">{ordinal(s.attempt)} que te la piden en esta hora.</p>
+      ) : null}
+      {s.question && (
+        <Callout tone={s.question.answer ? 'info' : 'warn'} title={`${miPregunta ? 'Preguntaste' : `${s.question.byName ?? 'Otra persona'} preguntó`} a las ${hora(s.question.at)}: «${s.question.text}»`}>
+          {s.question.answer
+            ? <p className="firma-cita" data-testid="firma-contestacion">{pide} contesta: «{s.question.answer}»</p>
+            : <p className="small">Esperando su respuesta. Puedes autorizar o no autorizar sin esperarla.</p>}
+        </Callout>
+      )}
     </>
   );
 }
@@ -167,6 +222,12 @@ function Resueltas() {
                 {s.mine ? 'La pediste tú' : `La pidió ${s.requesterName ?? 'alguien del personal'}`} · {hace(s.createdAt)}{s.branchId ? ` · ${branchName(s.branchId)}` : ''}
                 {s.reason ? <> · Motivo: {s.reason}</> : null}
               </p>
+              {s.previousRejection && (
+                <p className="small muted">Ya se había rechazado a las {hora(s.previousRejection.at)}{s.previousRejection.reason ? `: «${s.previousRejection.reason}»` : ''}. Respuesta: «{s.reply ?? ''}»</p>
+              )}
+              {s.question && (
+                <p className="small muted">Pregunta: «{s.question.text}»{s.question.answer ? ` · Respuesta: «${s.question.answer}»` : ' · sin respuesta'}</p>
+              )}
               <p className="small">{enQueQuedo(s)}</p>
             </div>
             <div className="stack-sm">
@@ -225,6 +286,31 @@ function Rechazar({ s, onClose, onListo }: { s: Solicitud; onClose: () => void; 
       footer={<><Button variant="secondary" onClick={onClose} disabled={f.enviando}>Cancelar</Button><Button variant="danger" loading={f.enviando} onClick={() => void f.enviar(enviar)}>No autorizar</Button></>}>
       <CampoMotivo id="rz-m" autoFocus value={motivo} onChange={setMotivo} error={f.error('motivo')}
         placeholder="Primero confirma su identificación" hint="Lo ve quien la pidió y queda en la bitácora." />
+    </Dialog>
+  );
+}
+
+/**
+ * «PREGUNTAR» EN VEZ DE «NO AUTORIZAR» (D-03): para pedir un dato ya no hay
+ * que rechazar y obligar a empezar de nuevo. La solicitud sigue viva y su
+ * reloj vuelve a empezar; quien la pidió contesta en su pantalla.
+ */
+function Preguntar({ s, onClose, onListo }: { s: Solicitud; onClose: () => void; onListo: () => void }) {
+  const [pregunta, setPregunta] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const f = useFormulario({ pregunta: faltaMotivo(pregunta) && 'Escribe tu pregunta o elige una de abajo.' });
+  async function enviar() {
+    setError(null);
+    try {
+      await api(`/approvals/requests/${s.id}/ask`, { method: 'POST', body: JSON.stringify({ question: pregunta.trim() }) });
+      onListo();
+    } catch (e) { setError(errorText(e, 'No se pudo enviar la pregunta')); }
+  }
+  return (
+    <Dialog open size="sm" onClose={onClose} title="Preguntar antes de decidir" sub={s.context ?? s.summary} error={error}
+      footer={<><Button variant="secondary" onClick={onClose} disabled={f.enviando}>Cancelar</Button><Button loading={f.enviando} onClick={() => void f.enviar(enviar)}>Preguntar</Button></>}>
+      <CampoMotivo id="pg-q" label={`Tu pregunta para ${s.requesterName ?? 'quien la pidió'}`} autoFocus value={pregunta} onChange={setPregunta} error={f.error('pregunta')}
+        motivos={APPROVAL_QUESTION_SUGGESTIONS} hint="No la rechazas: la solicitud sigue viva y su reloj vuelve a empezar. La respuesta llega a esta tarjeta." />
     </Dialog>
   );
 }

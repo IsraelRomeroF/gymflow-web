@@ -6,7 +6,7 @@ import { Check, Smartphone, X } from 'lucide-react';
 import type { ApprovalRequestState } from '@gymflow/core/contracts';
 import { api, ApiError } from '@/lib/api';
 import { Button, Dialog } from '../ui';
-import { Desenlace, reloj, type Firmante } from './desenlace';
+import { Desenlace, preguntaAbierta, reloj, type Firmante } from './desenlace';
 import { abrirEspera, ponerEspera, quitarEspera, useEsperas, type Espera } from './espera';
 
 /** Cada cuánto pregunta la franja por una espera que ningún diálogo atiende. */
@@ -18,7 +18,8 @@ const firmantesDe = (e: Espera): Firmante[] => (e.quienes ? [{ userId: e.id, ful
 
 function tono(e: Espera): '' | 'franja-firma-danger' | 'franja-firma-warn' | 'franja-firma-ok' {
   switch (e.estado) {
-    case 'PENDING': return '';
+    // Quien firma preguntó (D-03): hay algo que hacer aquí, contestarle.
+    case 'PENDING': return e.solicitud && preguntaAbierta(e.solicitud) ? 'franja-firma-warn' : '';
     case 'REJECTED': return 'franja-firma-danger';
     case 'EXPIRED': case 'CANCELED': return 'franja-firma-warn';
     case 'APPROVED': return e.solicitud?.delivery === 'expired' ? 'franja-firma-warn' : 'franja-firma-ok';
@@ -31,6 +32,9 @@ function texto(e: Espera, ahora: number): React.ReactNode {
   switch (e.estado) {
     case 'PENDING': {
       const restan = e.limite === null ? null : Math.max(0, Math.round((e.limite - ahora) / 1000));
+      if (e.solicitud && preguntaAbierta(e.solicitud)) {
+        return <>{e.solicitud.question!.byName ?? e.quienes ?? 'quien autoriza'} te pregunta: «{e.solicitud.question!.text}» · contéstale en «Ver»{restan !== null && <> · <span className="num">{reloj(restan)}</span></>}</>;
+      }
       return <>esperando a {e.quienes || 'quien puede autorizar'}{restan !== null && <> · <span className="num">{reloj(restan)}</span></>}</>;
     }
     case 'REJECTED': return <>{quien} no la autorizó</>;
@@ -133,8 +137,9 @@ export function FranjaDeFirmas() {
           </>}>
           <div className="stack">
             <Desenlace s={vista.solicitud} firmantes={firmantesDe(vista)} restan={vista.limite === null ? null : Math.max(0, Math.round((vista.limite - ahora) / 1000))}
-              minutos={minutosDe(vista.solicitud)} minutosFirma={5} />
-            {vista.estado === 'PENDING' && (
+              minutos={minutosDe(vista.solicitud)} minutosFirma={5}
+              onCambio={(s) => ponerEspera({ id: vista.id, estado: s.status, solicitud: s, limite: s.status === 'PENDING' ? Date.now() + s.secondsLeft * 1000 : null })} />
+            {vista.estado === 'PENDING' && !preguntaAbierta(vista.solicitud) && (
               <p className="small muted">La pediste en otra pantalla. Cuando la autoricen, vuelve ahí y repite la operación: se usa esta misma firma, sin pedir otra.</p>
             )}
           </div>

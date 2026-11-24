@@ -65,6 +65,8 @@ await recorrido('bloque3', async (r) => {
   const dlg = rec.getByRole('dialog');
   r.ok((await dlg.locator('#sf-fn').inputValue()) === 'Rodrigo', 'el alta arranca con el nombre que se buscó');
   await dlg.locator('#sf-ph').fill(celular());
+  // Alta mínima (D-11, bloque 3.4): el contacto de emergencia está detrás de «Agregar más datos».
+  await dlg.getByTestId('mas-datos').click();
   await dlg.locator('#sf-en').fill('Ana Q');
   await dlg.getByRole('button', { name: 'Leer texto' }).first().click();
   r.ok(await dlg.locator('.doc-texto').count() > 0, 'el texto del aviso se puede leer completo');
@@ -280,6 +282,8 @@ await recorrido('bloque3', async (r) => {
   await form.getByLabel('Nombre(s)').fill(activo.firstName);
   await form.getByLabel('Apellidos').fill(activo.lastName);
   await form.getByLabel('Celular').fill(celular());
+  // D-10 (bloque 3.4): sin fecha de nacimiento, el formulario pregunta si tiene 18 años o más.
+  await form.locator('#ad-si').click();
   for (const c of await form.getByRole('checkbox').all()) await c.check();
   await form.getByRole('button', { name: 'Enviar mis datos' }).click();
   await form.getByText('Solo falta pasar a recepción').waitFor({ timeout: T.respuesta });

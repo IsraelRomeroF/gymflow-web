@@ -52,3 +52,8 @@
 .aviso-inicio { margin-bottom: 24px; }
 .aviso-inicio:empty { display: none; }
 
+
+/* ── Altas (3.4): celular compartido con responsable, tutor del menor y alta mínima ── */
+.responsable { padding: var(--s-3); border: 1px solid var(--line); border-radius: var(--r-control); background: var(--surface-2); }
+.celular-compartido { margin-top: var(--s-3); padding-top: var(--s-3); border-top: 1px solid var(--line); display: grid; gap: var(--s-2); }
+.tutor-del-alta { padding-bottom: var(--s-2); }

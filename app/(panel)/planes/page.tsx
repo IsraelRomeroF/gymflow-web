@@ -9,6 +9,7 @@ import { useSession, errorText } from '@/components/session';
 import { Badge, Button, ButtonLink, Callout, Card, Empty, PageHeader, Skeleton, ErrorCarga } from '@/components/ui';
 import { Exportar } from '@/components/exportar';
 import { PlanDialog, type DetalleDePlan } from './plan-dialog';
+import { ProtegidosDialog } from './protegidos-dialog';
 
 const ICONO: Record<Plan['billingModel'], React.ReactNode> = {
   RECURRING: <Repeat />, PREPAID_PERIOD: <CalendarRange />, VISIT_PACK: <Ticket />, DAY_PASS: <CalendarDays />,
@@ -17,16 +18,17 @@ const ICONO: Record<Plan['billingModel'], React.ReactNode> = {
 /**
  * PLANES: donde la gerencia arma lo que se vende (bajo la llave del dueño).
  * Quien solo necesita saber cuánto cuesta algo tiene la Lista de precios
- * (`/precios`, 16-02). Cambiar un precio no toca lo ya cobrado ni a quien ya
- * tiene el plan con precio pactado; el formulario dice a quién toca cada
- * cambio ANTES de guardar (16-04). Que un aumento llegue a todos en su
- * siguiente pago es D-19 (fase 3).
+ * (`/precios`, 16-02). Cambiar un precio no toca lo ya cobrado, pero le
+ * cambia a todos los que tienen el plan en su siguiente pago (D-19, bloque
+ * 3.6), salvo a quienes «conservan su precio»; el formulario dice a quién
+ * toca cada cambio ANTES de guardar (16-04).
  */
 export default function PlanesPage() {
   const { canOrg, branchName, activo } = useSession();
   const [planes, setPlanes] = useState<Array<Plan & DetalleDePlan> | null>(null);
   const [verInactivos, setVerInactivos] = useState(false);
   const [editar, setEditar] = useState<(Plan & DetalleDePlan) | 'nuevo' | null>(null);
+  const [protegidos, setProtegidos] = useState<Plan | null>(null);
   // Un plan vale para todo el gimnasio: lo maneja quien tiene alcance organizacional (SEC2-04).
   const gestiona = canOrg('catalog:manage');
 
@@ -118,6 +120,12 @@ export default function PlanesPage() {
                   <div className="card-foot row-between gap-8">
                     <span className="tiny muted min-w-0">
                       <span className="row gap-6"><Users size={13} />{tienen}</span>
+                      {/* Quiénes no cambian solos al cambiar el precio (D-19): se ve y se administra desde aquí. */}
+                      {gestiona && p.liveMemberships > 0 && (
+                        <button type="button" className="row-link plan-conservan" onClick={() => setProtegidos(p)}>
+                          {(p.protectedPrices ?? 0) === 0 ? 'Nadie conserva su precio' : `${p.protectedPrices} ${p.protectedPrices === 1 ? 'conserva' : 'conservan'} su precio`}
+                        </button>
+                      )}
                       <span className="ellipsis block">{enVenta.length ? enVenta.map((a) => branchName(a.branchId)).join(' · ') : 'No se vende en ninguna sede'}</span>
                     </span>
                     {gestiona && <Button variant="secondary" size="sm" icon={<Pencil />} onClick={() => setEditar(p)}>Editar</Button>}
@@ -129,6 +137,7 @@ export default function PlanesPage() {
         </section>
       ))}
 
+      {protegidos && <ProtegidosDialog plan={protegidos} onClose={() => setProtegidos(null)} onCambio={() => void cargar()} />}
       {editar && (
         <PlanDialog
           plan={editar === 'nuevo' ? null : editar}

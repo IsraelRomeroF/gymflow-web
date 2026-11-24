@@ -107,7 +107,7 @@ export default function MarcaPage() {
 
         <PersonalMarca marca={d} onAgregar={() => setNuevaCuenta(true)} onNuevaContrasena={setReset} onQueVe={setQueVe} onActivar={setActivar} />
 
-        <Cobro organizationId={d.id} tradeName={d.tradeName} />
+        <Cobro organizationId={d.id} tradeName={d.tradeName} onServicio={cargar} />
 
         <Card title="Módulos contratados" sub="Con su plan o como agregado. La gerencia enciende y apaga dentro de esto." pad={false}>
           {/* Cuadrícula compacta: nombre, descripción corta, estado y el interruptor (UX5-PL-09). */}

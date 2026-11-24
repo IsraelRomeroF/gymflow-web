@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { DoorOpen, CircleCheck, Ticket, TriangleAlert, RotateCw, Printer } from 'lucide-react';
+import { DoorOpen, CircleCheck, Ticket, TriangleAlert, RotateCw, Printer, Repeat } from 'lucide-react';
 import type { AccessAttemptPreview, AccessAttemptResult } from '@gymflow/core/contracts';
 import { textosDeMotivo } from '@gymflow/core/motivos';
 import { api, ApiError } from '@/lib/api';
@@ -39,6 +39,15 @@ const SIN_CONEXION = 'Sin conexión. No lo dejes pasar todavía: reintenta en cu
  *     pide el motivo, de un toque.
  * Antes el motivo se pedía antes de saber si hacía falta: recepción escribía
  * por qué entraba por el mostrador alguien que de todos modos no entraba.
+ *
+ * FASE 3, BLOQUE 3.3:
+ *   · Una entrada por día y sucursal (D-07): si ya entró hoy aquí, pasa otra
+ *     vez pero es una REENTRADA; se dice que no cuenta otra visita ni descuenta.
+ *   · Sin rostro no entra (D-06), donde el gimnasio encendió la regla: la
+ *     puerta lo rechaza (`BIOMETRIC_REQUIRED`) y las salidas —registrar su
+ *     rostro o la autorización de la gerencia para esa visita— las pone
+ *     `entrada-sin-rostro.tsx` por la misma vía que cualquier rechazo.
+ *   · Sin membresía: junto a «Vender y abrir» sale su pase de prueba (D-08).
  */
 export function EntradaDialog({ memberId, memberName, onClose, onDone }: {
   memberId: string; memberName: string; onClose: () => void; onDone: () => void;
@@ -154,8 +163,9 @@ export function EntradaDialog({ memberId, memberName, onClose, onDone }: {
         <Callout tone="ok" title={`${memberName} sí entra: falta el motivo`}>
           {previa.policy.hasBiometric
             ? 'Lo normal es que entre con su rostro o su huella. Di por qué hoy entra por el mostrador: queda en la bitácora con tu nombre.'
-            : <>Aún no tiene su rostro o huella: dáselos de alta en su ficha (<Link href={`/socios/${memberId}?tab=biometria`} className="row-link">ir a Biometría</Link>). Mientras, di por qué entra por el mostrador: queda en la bitácora con tu nombre.</>}
+            : <>Aún no tiene su rostro o huella: dáselos de alta en su ficha (<Link href={`/socios/${memberId}?tab=biometria&registrar=rostro`} className="row-link">registrar su rostro</Link>). Mientras, di por qué entra por el mostrador: queda en la bitácora con tu nombre.</>}
           {previa.wouldConsumeVisit && <span className="block mt-6">Al registrarla se descuenta una visita de su paquete.</span>}
+          {previa.reentry && <span className="block mt-6" data-testid="entrada-sera-reentrada">Ya entró hoy en esta sucursal: es una reentrada y no cuenta otra visita.</span>}
         </Callout>
         <div onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName === 'INPUT') confirmarExcepcion(); }}>
           <CampoMotivo id="mot-excepcion" label="Motivo de la excepción" hint={null} autoFocus value={motivoExcepcion}
@@ -195,6 +205,7 @@ export function EntradaDialog({ memberId, memberName, onClose, onDone }: {
             </p>
           )}
           {intento.consumedVisit && <p className="small row gap-6"><Ticket size={14} />Se descontó una visita de su paquete.</p>}
+          {intento.reentry && <p className="small row gap-6" data-testid="entrada-reentrada"><Repeat size={14} />Ya había entrado hoy: esta reentrada no cuenta otra visita ni descuenta.</p>}
           {intento.warning && <p className="small row gap-6"><TriangleAlert size={14} />{DENIAL_REASON[intento.warning] ?? intento.warning}</p>}
           <div className="entrada-cuenta" style={{ animationDuration: `${AUTO_MS}ms` }} aria-hidden />
         </div>

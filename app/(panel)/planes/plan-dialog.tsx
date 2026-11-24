@@ -1,20 +1,25 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
-import type { PlanImpact } from '@gymflow/core/contracts';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { PlanImpact, PlanPriceChangePreview, ProtectedPrices } from '@gymflow/core/contracts';
 import { api, ApiError } from '@/lib/api';
-import { pesos } from '@/lib/format';
+import { fecha, pesos } from '@/lib/format';
 import { MODELO, type Plan } from '@/lib/plans';
 import { useSession, useToast, errorText } from '@/components/session';
-import { Button, Callout, CampoMotivo, Dialog, ErrorCarga, Field, Segmented, Switch, VistaPrevia, type CifraPrevia } from '@/components/ui';
+import { Button, Callout, CampoMotivo, Dialog, ErrorCarga, Field, Opciones, Segmented, Switch, VistaPrevia, type CifraPrevia } from '@/components/ui';
 import { useCarga, type Carga } from '@/lib/carga';
 import { parsePesos } from '@/lib/pesos';
 
 export type DetalleDePlan = {
   availability: Array<{ branchId: string; isAvailable: boolean; priceOverrideCents: string | null }>;
   liveMemberships: number;
+  /** De esas, las que conservan su precio ante un cambio de precio (D-19). */
+  protectedPrices?: number;
   livePacks: number;
 };
+
+/** Qué se decide de quienes conservan su precio al cambiar el precio del plan (D-19). */
+type Decision = 'conservan' | 'tambien';
 
 type Form = {
   code: string; name: string; billingModel: Plan['billingModel'];
@@ -50,6 +55,10 @@ const MOTIVOS_EDITAR = ['Ajuste de precio', 'Corrección de datos', 'Ya no se ve
  * cambio (16-04): al mover el precio, al dejar de venderlo en una sucursal y
  * al desactivarlo. La visita suelta se vende como pase del día: sin
  * inscripción, gracia ni duración (16-08, 16-11).
+ *
+ * Cambiar el precio le cambia a TODOS en su siguiente pago (D-19, bloque
+ * 3.6): la vista previa dice a cuántos y cuánto, y si hay socios que
+ * conservan su precio no se guarda sin decidir qué pasa con ellos.
  */
 export function PlanDialog({ plan, onClose, onDone }: { plan: (Plan & DetalleDePlan) | null; onClose: () => void; onDone: () => Promise<void> }) {
   const { branches, activo, branchName } = useSession();
@@ -77,6 +86,7 @@ export function PlanDialog({ plan, onClose, onDone }: { plan: (Plan & DetalleDeP
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [fallo, setFallo] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [decision, setDecision] = useState<Decision | null>(null);
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((x) => ({ ...x, [k]: v }));
 
   // Clases que se pueden incluir en un plan (2026-10-09). Sin red no es «No hay clases que se puedan incluir» (26-01).
@@ -98,6 +108,19 @@ export function PlanDialog({ plan, onClose, onDone }: { plan: (Plan & DetalleDeP
   const sedesApagadas = plan ? enVentaAntes.filter((id) => !f.branchIds.includes(id)) : [];
   const seDesactiva = !!plan && plan.isActive && !f.isActive;
   const hayCambioConImpacto = cambiaPrecio || sedesApagadas.length > 0 || seDesactiva;
+
+  // Lo que haría el cambio de precio (D-19): se pide cuando el precio tecleado se queda quieto un momento.
+  const [precioVisto, setPrecioVisto] = useState<string | null>(null);
+  useEffect(() => {
+    const t = setTimeout(() => setPrecioVisto(cambiaPrecio ? precioNuevo : null), 350);
+    return () => clearTimeout(t);
+  }, [cambiaPrecio, precioNuevo]);
+  // Otra cifra es otra decisión: lo elegido para un precio no vale para el siguiente.
+  useEffect(() => { setDecision(null); }, [precioNuevo]);
+  const cargarCambio = useCallback(() => api<PlanImpact>(`/plans/${planId}/impact?newPriceCents=${precioVisto}`).then((i) => i.priceChange ?? null), [planId, precioVisto]);
+  const cambioDe = useCarga(planId && precioVisto !== null ? cargarCambio : null);
+  // La vista previa vale solo si es la del precio que está escrito.
+  const cambio = cambiaPrecio && precioVisto === precioNuevo ? cambioDe.datos ?? null : null;
 
   const payload = useMemo(() => ({
     ...(plan ? {} : { code: f.code }),
@@ -130,14 +153,20 @@ export function PlanDialog({ plan, onClose, onDone }: { plan: (Plan & DetalleDeP
     if (f.branchIds.length === 0) locales.branchIds = 'Elige al menos una sucursal';
     if (f.includesClasses && f.soloAlgunas && f.includedClassTypeIds.length === 0) locales.includedClassTypeIds = 'Elige al menos una clase, o «Todas las clases»';
     if (f.reason.trim().length < 3) locales.reason = 'Escribe por qué (queda en la bitácora)';
+    // El precio no se cambia a ciegas: primero se ve a quién toca y, si hay quien conserva su precio, se decide (D-19).
+    if (cambiaPrecio && !cambio) locales.priceChange = 'Espera a ver a quién le cambia el precio antes de guardar';
+    else if (cambiaPrecio && cambio && cambio.protected > 0 && decision === null) locales.priceChange = 'Elige qué pasa con quienes conservan su precio';
     setErrores(locales);
     setFallo(null);
     if (Object.keys(locales).length > 0) return;
 
     setEnviando(true);
     try {
-      await api(plan ? `/plans/${plan.id}` : '/plans', { method: plan ? 'PATCH' : 'POST', body: JSON.stringify(payload) });
-      toast('ok', plan ? 'Plan actualizado.' : 'Plan creado. Ya aparece a la venta en las sucursales elegidas.');
+      const cuerpo = plan && cambiaPrecio ? { ...payload, priceChange: { fromPriceCents: plan.priceCents, includeProtected: decision === 'tambien' } } : payload;
+      await api(plan ? `/plans/${plan.id}` : '/plans', { method: plan ? 'PATCH' : 'POST', body: JSON.stringify(cuerpo) });
+      const tocados = cambio ? cambio.touched + (decision === 'tambien' ? cambio.protected : 0) : 0;
+      toast('ok', !plan ? 'Plan creado. Ya aparece a la venta en las sucursales elegidas.'
+        : tocados > 0 ? `Plan actualizado. ${socios(tocados)} ${tocados === 1 ? 'paga' : 'pagan'} el precio nuevo desde su siguiente pago; sus avisos quedaron en Mensajes.` : 'Plan actualizado.');
       await onDone();
     } catch (e) {
       // Los errores del dominio traen el campo: se marcan en el formulario.
@@ -147,6 +176,8 @@ export function PlanDialog({ plan, onClose, onDone }: { plan: (Plan & DetalleDeP
           if (lista.length) { setErrores(Object.fromEntries(lista.map((i) => [i.field, i.message]))); return; }
         } catch { /* sin detalle: se muestra el mensaje */ }
       }
+      // El precio o los socios cambiaron mientras se revisaba: se vuelve a calcular a quién toca.
+      if (e instanceof ApiError && (e.reason === 'PRICE_CHANGE_NEEDS_DECISION' || e.reason === 'PRICE_CHANGED_MEANWHILE')) void cambioDe?.recargar();
       setFallo(errorText(e, 'No se pudo guardar'));
     } finally {
       setEnviando(false);
@@ -285,7 +316,9 @@ export function PlanDialog({ plan, onClose, onDone }: { plan: (Plan & DetalleDeP
         </section>
 
         {plan && hayCambioConImpacto && impactoDe && (
-          <Impacto plan={plan} carga={impactoDe} precioNuevo={cambiaPrecio ? precioNuevo : null} sedesApagadas={sedesApagadas} seDesactiva={seDesactiva} nombreSede={branchName} />
+          <Impacto plan={plan} carga={impactoDe} precioNuevo={cambiaPrecio ? precioNuevo : null} sedesApagadas={sedesApagadas} seDesactiva={seDesactiva} nombreSede={branchName}
+            cambio={cambio} cambioCargando={cambiaPrecio && !cambio && !cambioDe?.error} cambioError={cambiaPrecio ? cambioDe?.error ?? null : null} onReintentarCambio={() => void cambioDe?.recargar()}
+            decision={decision} onDecision={setDecision} errorDecision={errores.priceChange ?? null} />
         )}
 
         <CampoMotivo id="mot" value={f.reason} onChange={(v) => set('reason', v)} error={errores.reason ?? null}
@@ -295,15 +328,20 @@ export function PlanDialog({ plan, onClose, onDone }: { plan: (Plan & DetalleDeP
   );
 }
 
+/** «$50 más» / «$50 menos», con la diferencia de un cambio de precio. */
+const diferencia = (deltaCents: string) => { const d = BigInt(deltaCents); return `${pesos(d < 0n ? -d : d, { decimals: false })} ${d < 0n ? 'menos' : 'más'}`; };
+
 /**
- * A QUIÉN TOCA EL CAMBIO (16-04), con la regla de hoy: cada socio renueva a su
- * precio pactado; el de lista vale para las ventas nuevas y para quien no
- * tiene pactado. Dejar de vender en una sucursal o desactivar el plan no le
- * quita nada a quien ya lo compró.
+ * A QUIÉN TOCA EL CAMBIO (16-04). Cambiar el precio le cambia a todos en su
+ * siguiente pago (D-19): aquí se dice a cuántos, cuánto, desde cuándo y
+ * quiénes conservan su precio, ANTES de guardar. Dejar de vender en una
+ * sucursal o desactivar el plan no le quita nada a quien ya lo compró.
  */
-function Impacto({ plan, carga, precioNuevo, sedesApagadas, seDesactiva, nombreSede }: {
+function Impacto({ plan, carga, precioNuevo, sedesApagadas, seDesactiva, nombreSede, cambio, cambioCargando, cambioError, onReintentarCambio, decision, onDecision, errorDecision }: {
   plan: Plan & DetalleDePlan; carga: Carga<PlanImpact>;
   precioNuevo: string | null; sedesApagadas: readonly string[]; seDesactiva: boolean; nombreSede: (id: string | null | undefined) => string;
+  cambio: PlanPriceChangePreview | null; cambioCargando: boolean; cambioError: string | null; onReintentarCambio: () => void;
+  decision: Decision | null; onDecision: (d: Decision) => void; errorDecision: string | null;
 }) {
   const i = carga.datos;
   if (!i) return <div data-testid="plan-impacto"><VistaPrevia cargando={carga.cargando} error={carga.error} onReintentar={() => void carga.recargar()} /></div>;
@@ -315,10 +353,23 @@ function Impacto({ plan, carga, precioNuevo, sedesApagadas, seDesactiva, nombreS
   if (precioNuevo !== null) {
     const sube = BigInt(precioNuevo) > BigInt(plan.priceCents);
     cifras.push({ etiqueta: 'Precio de lista', valor: `${pesos(plan.priceCents, { decimals: false })} → ${pesos(precioNuevo, { decimals: false })}`, nota: 'Para las ventas nuevas, desde que guardes' });
-    if (total > 0) {
-      cifras.push({ etiqueta: 'Siguen pagando lo que pactaron', valor: i.withAgreedPrice.toLocaleString('es-MX'), nota: 'Cada venta guarda su precio y renueva con él' });
-      if (i.withoutAgreedPrice > 0) {
-        cifras.push({ etiqueta: `Pagan el precio nuevo en su siguiente cuota`, valor: i.withoutAgreedPrice.toLocaleString('es-MX'), nota: 'No tienen precio pactado', tono: sube ? 'warn' : undefined });
+    if (cambio) {
+      if (cambio.touched > 0) {
+        cifras.push({
+          etiqueta: `${sube ? 'Les sube' : 'Les baja'} en su siguiente pago`, valor: socios(cambio.touched), tono: sube ? 'warn' : undefined,
+          nota: `Cada quien paga ${diferencia(cambio.deltaCents)} por periodo${cambio.touchedAtOtherPrice > 0 ? ` · ${cambio.touchedAtOtherPrice.toLocaleString('es-MX')} ${cambio.touchedAtOtherPrice === 1 ? 'paga' : 'pagan'} un precio distinto al de lista y ${cambio.touchedAtOtherPrice === 1 ? 'conserva' : 'conservan'} esa distancia` : ''}`,
+        });
+        cifras.push({ etiqueta: 'Entre todos', valor: `${diferencia(cambio.touchedDeltaCents)} por periodo`, nota: 'Lo ya cobrado y las cuotas ya emitidas no cambian' });
+        if (cambio.firstPaymentOn) cifras.push({ etiqueta: 'El primero lo paga el', valor: fecha(cambio.firstPaymentOn), nota: 'Cada socio, el día de su siguiente pago' });
+      } else if (total > 0) {
+        cifras.push({ etiqueta: 'Les cambia en su siguiente pago', valor: 'A nadie', nota: 'Nadie paga hoy el precio de lista de este plan' });
+      }
+      if (cambio.protected > 0) cifras.push({ etiqueta: 'Conservan su precio', valor: socios(cambio.protected), nota: 'No cambian solos: tú decides abajo' });
+      if (cambio.atOwnPriceBranches > 0) avisos.push(`${socios(cambio.atOwnPriceBranches)} ${cambio.atOwnPriceBranches === 1 ? 'lo compró' : 'lo compraron'} en una sucursal con precio propio: este cambio no ${cambio.atOwnPriceBranches === 1 ? 'lo' : 'los'} toca.`);
+      if (cambio.touched > 0) {
+        avisos.push(cambio.touchedWithoutPhone > 0
+          ? `El aviso de cada socio queda en Mensajes para mandarlo por WhatsApp. ${socios(cambio.touchedWithoutPhone)} no ${cambio.touchedWithoutPhone === 1 ? 'tiene' : 'tienen'} celular: se ${cambio.touchedWithoutPhone === 1 ? 'entera' : 'enteran'} en su recibo.`
+          : 'El aviso de cada socio queda en Mensajes para mandarlo por WhatsApp, y su recibo también lo dice.');
       }
     }
     const propias = i.branches.filter((b) => b.hasOwnPrice && b.isOpen);
@@ -345,8 +396,45 @@ function Impacto({ plan, carga, precioNuevo, sedesApagadas, seDesactiva, nombreS
   return (
     <div data-testid="plan-impacto" className="stack-sm">
       <p className="label">{titulo}</p>
-      <VistaPrevia titulo="Lo que cambia y lo que no" cifras={cifras} avisos={avisos} />
-      {precioNuevo !== null && total > 0 && <p className="hint">Lo ya cobrado no cambia. Subirle el precio a todos en su siguiente pago todavía no se hace desde aquí.</p>}
+      <VistaPrevia titulo="Lo que cambia y lo que no" cifras={cifras} avisos={avisos}
+        cargando={precioNuevo !== null && cambioCargando} error={precioNuevo !== null ? cambioError : null} onReintentar={onReintentarCambio} />
+      {precioNuevo !== null && cambio && cambio.protected > 0 && (
+        <QuienesConservan planId={plan.id} cambio={cambio} decision={decision} onDecision={onDecision} error={errorDecision} />
+      )}
+      {precioNuevo !== null && errorDecision && !(cambio && cambio.protected > 0) && <p className="hint text-danger">{errorDecision}</p>}
+    </div>
+  );
+}
+
+/**
+ * LA DECISIÓN SOBRE QUIENES CONSERVAN SU PRECIO (D-19): no viene marcada
+ * ninguna opción; lo que se elija queda en la bitácora con el cambio.
+ */
+function QuienesConservan({ planId, cambio, decision, onDecision, error }: {
+  planId: string; cambio: PlanPriceChangePreview; decision: Decision | null; onDecision: (d: Decision) => void; error: string | null;
+}) {
+  const [ver, setVer] = useState(false);
+  const cargar = useCallback(() => api<ProtectedPrices>(`/plans/${planId}/protected-prices`), [planId]);
+  const lista = useCarga(ver ? cargar : null);
+  const n = cambio.protected;
+  return (
+    <div className="stack-sm" data-testid="plan-conservan">
+      <p className="label" id="plan-conservan-rotulo">¿Y {n === 1 ? 'el socio que conserva' : `los ${n.toLocaleString('es-MX')} que conservan`} su precio?</p>
+      <Opciones forma="tarjetas" etiquetadaPor="plan-conservan-rotulo" value={decision} onChange={onDecision} opciones={[
+        { value: 'conservan', label: n === 1 ? 'Conserva su precio' : 'Conservan su precio', texto: n === 1 ? 'Sigue pagando lo mismo.' : 'Siguen pagando lo mismo.' },
+        { value: 'tambien', label: n === 1 ? 'También le cambia' : 'También les cambia', texto: `Cada quien paga ${diferencia(cambio.deltaCents)}; entre todos, ${diferencia(cambio.protectedDeltaCents)} por periodo.` },
+      ]} />
+      {error && <p className="hint text-danger">{error}</p>}
+      <div><Button variant="ghost" size="sm" onClick={() => setVer((v) => !v)}>{ver ? 'Ocultar quiénes son' : 'Ver quiénes son'}</Button></div>
+      {ver && lista && (lista.error ? <ErrorCarga titulo="No se pudo cargar la lista" mensaje={lista.error} onReintentar={() => void lista.recargar()} />
+        : !lista.datos ? <p className="hint">…</p> : (
+          <ul className="precio-protegidos">
+            {lista.datos.items.map((x) => (
+              <li key={x.membershipId}><span className="strong">{x.memberName}</span> <span className="tiny muted">{x.memberCode}</span><span className="num">{pesos(x.agreedPriceCents, { decimals: false })}</span></li>
+            ))}
+            {lista.datos.total > lista.datos.items.length && <li className="tiny muted">y {(lista.datos.total - lista.datos.items.length).toLocaleString('es-MX')} más</li>}
+          </ul>
+        ))}
     </div>
   );
 }

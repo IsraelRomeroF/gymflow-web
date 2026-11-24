@@ -8,6 +8,7 @@ import { fecha } from '@/lib/format';
 import { useSession, useToast, errorText } from '@/components/session';
 import { Avatar, Badge, Button, Card, Empty, ErrorCarga, PageHeader, Skeleton, Stat, EsqueletoTabla } from '@/components/ui';
 import { useCarga } from '@/lib/carga';
+import { ReglaDelRostro } from '@/components/biometria';
 import type { BiometricsSummary, FaceEngineStatus, PendingTemplateDeletion } from '@gymflow/core/contracts';
 
 /** Un borrado de plantilla pendiente: contrato del núcleo (6-17). */
@@ -152,6 +153,8 @@ export default function BiometriaPage() {
         </div>
 
         <div className="stack">
+        {/* Fase 3 · bloque 3.3 (D-06): quién entra sin rostro lo decide esta regla. */}
+        <ReglaDelRostro />
         {veElMotor && (
           <Card title="Motor facial" data-testid="bio-motor">
             {motor.error ? <ErrorCarga titulo="No se pudo preguntar por el motor" mensaje={motor.error} onReintentar={() => void motor.recargar()} />
@@ -180,7 +183,7 @@ export default function BiometriaPage() {
             <Principio icon={<ShieldCheck />} title="Sin consentimiento no hay registro"
               text="Se firma aparte, contra el texto publicado, antes de capturar nada. Si el texto cambia, se vuelve a firmar." />
             <Principio icon={<ScanFace />} title="Siempre hay alternativa"
-              text="Quien no quiera dar su rostro entra por recepción." />
+              text="Quien no quiera dar su rostro entra por recepción: con un motivo o, si el gimnasio exige el rostro, con la autorización de la gerencia en cada visita." />
           </div>
         </Card>
         </div>

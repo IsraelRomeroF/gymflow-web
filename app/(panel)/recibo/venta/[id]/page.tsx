@@ -50,7 +50,7 @@ export default function ReciboVentaPage({ params }: { params: Promise<{ id: stri
           <tbody>
             {v.lines.map((l, i) => (
               <tr key={i}>
-                <td>{l.quantity}× {nombres.get(l.productId)?.name ?? 'Producto'}<br /><span className="tiny muted">{pesos(l.unitPriceCents)} c/u</span></td>
+                <td>{l.quantity}× {nombres.get(l.productId)?.name ?? 'Producto'}<br /><span className="tiny muted">{pesos(l.unitPriceCents)} c/u{l.priceKind === 'MEMBER' ? ' · precio de socio' : ''}</span></td>
                 <td>{pesos(l.lineTotalCents)}</td>
               </tr>
             ))}

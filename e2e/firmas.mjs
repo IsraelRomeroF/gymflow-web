@@ -25,6 +25,16 @@ await recorrido('firmas', async (r) => {
   const cerrarDeNuevo = () => sql(`delete from monthly_closes where month = $1::date
       and "organizationId" = (select id from organizations where "tradeName" = 'Gimnasio Demo') returning id`, [mesPasado]);
 
+  // D-03 (fase 3, bloque 3.2): el «no» queda pegado a la operación un día y la
+  // misma operación se pide 3 veces por hora. Este recorrido rechaza un retiro
+  // del turno del gerente: para que se pueda repetir, y para que `escalera` o
+  // `firma-franja` no hereden ese «no», al empezar y al terminar los retiros
+  // ya resueltos de gymflow_pruebas pasan a ser de antier (lo que haría el tiempo).
+  const olvidarRetiros = () => sql(`update approval_requests
+       set "createdAt" = "createdAt" - interval '2 days', "decidedAt" = "decidedAt" - interval '2 days'
+     where permission = 'cash:withdraw' and status <> 'PENDING' and "createdAt" > now() - interval '1 day' returning id`);
+  await olvidarRetiros();
+
   // Lo que este recorrido pida y quede sin contestar se cancela al terminar,
   // para que ninguna solicitud suya se quede en la bandeja de la dueña.
   const pedidas = [];
@@ -34,6 +44,7 @@ await recorrido('firmas', async (r) => {
       const s = await gte.get(`/approvals/requests/${id}`).catch(() => null);
       if (s?.status === 'PENDING') await gte.post(`/approvals/requests/${id}/cancel`, {});
     }
+    await olvidarRetiros();
   });
 
   const ger = await r.como('gerente');
@@ -79,20 +90,31 @@ await recorrido('firmas', async (r) => {
   r.ok(await aparece(rechazo, T.respuesta), 'el mostrador ve que no la autorizó, sin recargar');
   r.ok(await au.getByText('«Primero cuenta el efectivo con la gerencia»').count() === 1, 'con el motivo de la dueña, como cita');
   r.ok(await ger.getByRole('dialog', { name: /^Retiro a caja fuerte · \$120\.00/ }).count() === 1, 'el título ya no dice «Autorizar» (29-07)');
-  r.ok(await au.getByRole('button', { name: 'Entendido' }).count() === 1 && await au.getByRole('button', { name: 'Volver a pedir' }).count() === 1, 'y ofrece «Entendido» y «Volver a pedir»');
+  r.ok(await au.getByRole('button', { name: 'Entendido' }).count() === 1 && await au.getByRole('button', { name: 'Responder y volver a pedir' }).count() === 1, 'y ofrece «Entendido» y «Responder y volver a pedir» (D-03)');
   await r.captura(ger, 'firmas-2-no-autorizada');
+  // D-03: durante 30 minutos nadie la firma en el mostrador, ni con la contraseña de la dueña.
+  const duenaId = (await sql(`select "approverUserId" as id from approval_requests where id = $1`, [s1.id]))[0]?.id;
+  const aqui = await json(ger, '/api/approvals', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ approverUserId: duenaId, password: CLAVE_PRUEBAS, permission: s1.permission, branchId: s1.branchId, resourceType: s1.resourceType, resourceId: s1.resourceId, amountCents: s1.amountCents }) });
+  r.ok(aqui.status === 409 && aqui.body?.reason === 'APPROVAL_REJECTED_RECENTLY', `lo recién rechazado no se firma en el mostrador ni con su contraseña (${aqui.status}: ${aqui.body?.message ?? ''})`);
 
   // 2. Vencimiento: la dueña no contesta; vence cuando el servidor lo dice.
   r.paso('la solicitud vence');
-  // 2.10 (29-08): «Volver a pedir» reenvía en un toque, sin volver al formulario.
+  // D-03: tras un «no», volver a pedir exige una respuesta; sin ella no sale ninguna solicitud.
+  await au.getByRole('button', { name: 'Responder y volver a pedir' }).click();
+  await au.getByRole('button', { name: 'Volver a pedir', exact: true }).click();
+  r.ok(await aparece(au.getByText('Escribe tu respuesta: sin ella no se puede volver a pedir.'), T.ui), 'sin respuesta no se vuelve a pedir: el campo lo dice');
   const otra = solicitud(ger);
-  await au.getByRole('button', { name: 'Volver a pedir' }).click();
+  await au.getByLabel(/^Tu respuesta para /).fill('Ya lo contamos juntas: es el depósito de hoy');
+  await au.getByRole('button', { name: 'Volver a pedir', exact: true }).click();
   await au.getByText('Esperando la autorización').waitFor({ timeout: T.respuesta });
   const s2 = await otra;
   pedidas.push(s2.id);
+  r.ok(s2.previousRejection?.requestId === s1.id && s2.attempt === 2, `la nueva solicitud queda ligada al «no» anterior y es la 2.ª vez (attempt ${s2.attempt})`);
   await duena.reload({ waitUntil: 'networkidle' });
   await tarjeta(MOT_NO).waitFor({ timeout: T.respuesta });
-  r.ok(true, '«Volver a pedir» manda otra solicitud con lo mismo');
+  r.ok(await tarjeta(MOT_NO).getByText(/2\.ª vez · Ya la rechazaste a las \d{1,2}:\d{2}/).count() === 1, 'la tarjeta de la dueña dice «2.ª vez · Ya la rechazaste a las…»');
+  r.ok(await tarjeta(MOT_NO).getByText(/responde: «Ya lo contamos juntas: es el depósito de hoy»/).count() === 1, 'con la respuesta que quien pide tuvo que escribir');
+  await r.captura(duena, 'firmas-2b-segunda-vez');
   // El mostrador pregunta cada 2.5 s: con dos respuestas «pendiente» del servidor, sigue esperando.
   const sondeos = await respuestas(ger, `/api/approvals/requests/${s2.id}`, 2, { metodo: 'GET', que: 'el sondeo del mostrador' });
   const dicen = await Promise.all(sondeos.map((x) => x.json().then((b) => b.status, () => '?')));
@@ -103,7 +125,7 @@ await recorrido('firmas', async (r) => {
   r.ok(movida.length === 1, 'pasan los 10 minutos de la solicitud sin que nadie conteste');
   r.ok(await aparece(au.getByText('Sin respuesta en 10 minutos'), T.respuesta), 'el mostrador dice «Sin respuesta en 10 minutos» en cuanto el servidor la da por vencida, con los minutos del servidor');
   r.ok(await au.getByText(/la tuvo a la vista desde las \d{1,2}:\d{2} y no contestó|No la vio|Le llegó el aviso/).count() === 1, 'y dice qué pasó del otro lado: si la vio, si le llegó el aviso o si no la vio (29-05)');
-  r.ok(await au.getByRole('button', { name: 'Que firme aquí' }).count() === 1, 'y ofrece «Que firme aquí»');
+  r.ok(await au.getByRole('button', { name: 'Que firme aquí' }).count() === 0, 'y no ofrece «Que firme aquí»: responde a un «no» de hace menos de 30 minutos (D-03)');
   await r.captura(ger, 'firmas-3-vencida');
   await duena.reload({ waitUntil: 'networkidle' });
   await duena.getByRole('heading', { name: 'Autorizaciones' }).waitFor({ timeout: T.respuesta });
@@ -111,17 +133,21 @@ await recorrido('firmas', async (r) => {
   r.ok(await tarjeta(MOT_NO).count() === 0, 'la vencida ya no está en la bandeja de la dueña');
   const tarde = await json(duena, `/api/approvals/requests/${s2.id}/approve`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: CLAVE_PRUEBAS }) });
   r.ok(tarde.status === 409, `autorizarla tarde ya no sirve (${tarde.status}: ${tarde.body?.message ?? ''})`);
-  // Cancelar (29-04): otra vez «Volver a pedir», y «Cancelar solicitud» la cancela en el servidor.
+  // Cancelar (29-04): otra vez «Volver a pedir» (2.10: en un toque; la respuesta al «no» viaja otra vez), y «Cancelar solicitud» la cancela en el servidor.
   const tercera = solicitud(ger);
-  await au.getByRole('button', { name: 'Volver a pedir' }).click();
+  await au.getByRole('button', { name: 'Volver a pedir', exact: true }).click();
   await au.getByText('Esperando la autorización').waitFor({ timeout: T.respuesta });
   const s3c = await tercera;
   pedidas.push(s3c.id);
+  r.ok(s3c.attempt === 3 && s3c.reply === s2.reply, `«Volver a pedir» tras vencer reenvía en un toque, con la misma respuesta (3.ª vez)`);
   await au.getByRole('button', { name: 'Cancelar solicitud' }).click();
   // Al cancelar se vuelve al formulario del movimiento (otro diálogo): lo que desaparece es la espera.
   await au.getByText('Esperando la autorización').waitFor({ state: 'hidden', timeout: T.ui });
   const cancelada = await json(ger, `/api/approvals/requests/${s3c.id}`);
   r.ok(cancelada.body?.status === 'CANCELED', `«Cancelar solicitud» la cancela en el servidor (${cancelada.body?.status})`);
+  // D-03: la misma operación se pide 3 veces por hora; la 4.ª es un 429 que dice a qué hora se puede otra vez.
+  const cuarta = await json(ger, '/api/approvals/requests', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ permission: s1.permission, branchId: s1.branchId, resourceType: s1.resourceType, resourceId: s1.resourceId, amountCents: s1.amountCents, summary: s1.summary, reply: 'Insisto por cuarta vez' }) });
+  r.ok(cuarta.status === 429 && /^Ya se pidió 3 veces en una hora/.test(cuarta.body?.message ?? ''), `la 4.ª solicitud de la misma operación en una hora no pasa (${cuarta.status}: ${cuarta.body?.message ?? ''})`);
   await ger.keyboard.press('Escape');
   await ger.reload({ waitUntil: 'networkidle' });
   await asentado(ger);

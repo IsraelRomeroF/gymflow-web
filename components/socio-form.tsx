@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { UserPlus, Save, FileSignature } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { UserPlus, Save, FileSignature, Plus } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { telefono } from '@/lib/format';
 import { MEMBER_STATUS } from '@/lib/labels';
@@ -11,6 +12,7 @@ import { Badge, Button, Callout, CampoFecha, Dialog, ErrorCarga, Field, Segmente
 import type { MemberSummary } from '@gymflow/core/contracts';
 import { hoyEn } from '@/lib/zonas';
 import { Coincidencias, useIdentidad } from './captacion/identidad';
+import { ElegirResponsable, responsableElegido, SIN_ELEGIR, type Eleccion } from './altas/responsable';
 
 type Doc = { id: string; consentType: string; version: string; status: string; title: string };
 type Texto = Doc & { bodyText: string };
@@ -90,11 +92,26 @@ function NoVisible({ id }: { id: string }) {
 }
 const AVISO_NO_VISIBLE = 'Lo cambia el personal de su sucursal.';
 
-function Campos({ d, set, errores = {}, limpiar, contactoOculto = false }: {
+/** Años cumplidos el día `hoy` (los dos `AAAA-MM-DD`). */
+function edadEl(nacimiento: string, hoy: string): number {
+  return Number(hoy.slice(0, 4)) - Number(nacimiento.slice(0, 4)) - (hoy.slice(5) < nacimiento.slice(5) ? 1 : 0);
+}
+
+function Campos({ d, set, errores = {}, limpiar, contactoOculto = false, minimo = false }: {
   d: Datos; set: (d: Datos) => void; errores?: Record<string, string>; limpiar?: (k: string) => void;
   /** El servidor ocultó teléfono, correo y contacto de emergencia (`hidden: ['contact']`): no se editan. */
   contactoOculto?: boolean;
+  /**
+   * ALTA MÍNIMA (D-11, bloque 3.4): con fila, solo nombre y un medio de
+   * contacto. Nacimiento y contacto de emergencia quedan detrás de «Agregar más
+   * datos»; lo que no se llene se completa después desde la ficha.
+   */
+  minimo?: boolean;
 }) {
+  const [mas, setMas] = useState(!minimo);
+  // Si el servidor marcó un error en un campo que está plegado, se abre para que se vea.
+  const hayErrorOculto = !!(errores.birthDate || errores.emergencyContactName || errores.emergencyContactPhone);
+  const verMas = mas || hayErrorOculto;
   // Al corregir un campo, su error se va (UX5-G-03).
   const f = (k: keyof Datos) => (e: React.ChangeEvent<HTMLInputElement>) => { set({ ...d, [k]: e.target.value }); limpiar?.(k); };
   const err = (k: keyof Datos) => errores[k] ?? null;
@@ -112,10 +129,16 @@ function Campos({ d, set, errores = {}, limpiar, contactoOculto = false }: {
               <Field error={err('phoneE164')} label="Celular" htmlFor="sf-ph" hint="Celular o correo: al menos uno, para avisarle de sus pagos."><input id="sf-ph" className="input" inputMode="tel" placeholder="10 dígitos" value={d.phoneE164} onChange={f('phoneE164')} aria-invalid={!!err('phoneE164')} /></Field>
               <Field error={err('email')} label="Correo" htmlFor="sf-em"><input id="sf-em" className="input" type="email" value={d.email} onChange={f('email')} aria-invalid={!!err('email')} /></Field>
             </>}
-        <Field error={err('birthDate')} label="Nacimiento" htmlFor="sf-bd"><CampoFecha id="sf-bd" value={d.birthDate} onChange={(v) => { set({ ...d, birthDate: v }); limpiar?.('birthDate'); }} aria-invalid={!!err('birthDate')} /></Field>
+        {verMas && <Field error={err('birthDate')} label="Nacimiento" htmlFor="sf-bd"><CampoFecha id="sf-bd" value={d.birthDate} onChange={(v) => { set({ ...d, birthDate: v }); limpiar?.('birthDate'); }} aria-invalid={!!err('birthDate')} /></Field>}
       </div>
-      <p className="section-label mt-8">En caso de emergencia</p>
-      <div className="grid grid-2 gap-12">
+      {!verMas && (
+        <div>
+          <button type="button" className="btn btn-ghost btn-sm" data-testid="mas-datos" onClick={() => setMas(true)}><Plus />Agregar más datos</button>
+          <span className="hint"> Nacimiento y contacto de emergencia se pueden completar después, desde su ficha.</span>
+        </div>
+      )}
+      {verMas && <p className="section-label mt-8">En caso de emergencia</p>}
+      {verMas && <div className="grid grid-2 gap-12">
         {contactoOculto
           ? <>
               <Field label="Nombre" htmlFor="sf-en" hint={AVISO_NO_VISIBLE}><NoVisible id="sf-en" /></Field>
@@ -125,7 +148,7 @@ function Campos({ d, set, errores = {}, limpiar, contactoOculto = false }: {
               <Field error={err('emergencyContactName')} label="Nombre" htmlFor="sf-en"><input id="sf-en" className="input" value={d.emergencyContactName} onChange={f('emergencyContactName')} aria-invalid={!!err('emergencyContactName')} /></Field>
               <Field error={err('emergencyContactPhone')} label="Teléfono" htmlFor="sf-ep"><input id="sf-ep" className="input" inputMode="tel" value={d.emergencyContactPhone} onChange={f('emergencyContactPhone')} aria-invalid={!!err('emergencyContactPhone')} /></Field>
             </>}
-      </div>
+      </div>}
     </>
   );
 }
@@ -148,7 +171,8 @@ export function NuevoSocioDialog({ nombreInicial, contactoInicial: contactoSuelt
   prospecto?: { id: string; firstName: string; lastName: string; phoneE164: string | null; email: string | null; branchId: string; source: string | null };
   onClose: () => void; onCreado: (id: string) => void;
 }) {
-  const { branches, inScope } = useSession();
+  const { branches, inScope, activoEn } = useSession();
+  const router = useRouter();
   const toast = useToast();
   const hoy = useHoy();
   const contactoInicial = prospecto ?? contactoSuelto;
@@ -164,8 +188,15 @@ export function NuevoSocioDialog({ nombreInicial, contactoInicial: contactoSuelt
   const [textos, setTextos] = useState<Texto[] | null>(null);
   const [falloTextos, setFalloTextos] = useState<string | null>(null);
   const [intentoTextos, setIntentoTextos] = useState(0);
-  const [aceptado, setAceptado] = useState<Record<string, boolean>>({});
+  // Un solo «acepto» para el aviso y el reglamento (D-11): cada texto se puede leer completo antes.
+  const [aceptado, setAceptado] = useState(false);
   const [abierto, setAbierto] = useState<string | null>(null);
+  // D-09: su celular ya es el de otro socio; se comparte anotando quién responde por el número.
+  const [responsable, setResponsable] = useState<Eleccion>(SIN_ELEGIR);
+  // D-10: es menor y viene con su papá, mamá o tutor; la aceptación queda a nombre del tutor.
+  const [tutor, setTutor] = useState({ nombre: '', telefono: '' });
+  // D-11: el rostro, ahora o después. Solo se ofrece donde Biometría está encendida.
+  const [rostro, setRostro] = useState<'despues' | 'ahora'>('despues');
   const [duplicados, setDuplicados] = useState<Array<Candidato & { socio: Resumen | null }> | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [reactivando, setReactivando] = useState<string | null>(null);
@@ -176,6 +207,11 @@ export function NuevoSocioDialog({ nombreInicial, contactoInicial: contactoSuelt
   const otros = people.filter((p) => (p.kind === 'PROSPECT' || p.kind === 'INTAKE') && p.id !== prospecto?.id);
   // El mismo interesado, encontrado por su celular y su nombre: al dar de alta queda inscrito, sin pasar por su fila.
   const interesadoId = prospecto?.id ?? people.find((p) => p.kind === 'PROSPECT' && p.id && !p.sharedPhone && p.score >= 90)?.id ?? null;
+  // Socios vivos con ese mismo celular que NO son esta persona (con 90 o más es la misma: eso lo detiene el alta).
+  const comparten = people.filter((p) => p.kind === 'MEMBER' && !!p.phoneE164 && p.score < 90);
+  const responsableListo = comparten.length > 0 ? responsableElegido(responsable) : null;
+  const esMenor = !!d.birthDate && edadEl(d.birthDate, hoy) < 18;
+  const conRostro = !!sede && activoEn('biometrics', sede);
 
   useEffect(() => {
     setFalloTextos(null); setTextos(null);
@@ -189,7 +225,7 @@ export function NuevoSocioDialog({ nombreInicial, contactoInicial: contactoSuelt
 
   const faltanTextos = textos !== null && textos.length < OBLIGATORIOS.length;
   const listo = d.firstName.trim() && d.lastName.trim() && (d.phoneE164.trim() || d.email.trim()) && sede && desdeListo(desde, hoy)
-    && textos && !faltanTextos && textos.every((t) => aceptado[t.consentType]);
+    && textos && !faltanTextos && aceptado && (comparten.length === 0 || responsableListo);
 
   async function crear(force: boolean) {
     if (!textos) return;
@@ -210,10 +246,15 @@ export function NuevoSocioDialog({ nombreInicial, contactoInicial: contactoSuelt
           homeBranchId: sede,
           consents: textos.map((t) => ({ consentType: t.consentType, documentVersion: t.version, documentText: t.bodyText, granted: true })),
           force,
+          ...(responsableListo ? { responsible: responsableListo } : {}),
+          ...(esMenor && tutor.nombre.trim().length >= 3 ? { guardian: { name: tutor.nombre.trim(), ...(tutor.telefono.trim() ? { phoneE164: tutor.telefono.trim() } : {}) } } : {}),
+          // (D-29, bloque 3.8: aquí viajará el coach que recepción elija al alta.)
         }),
       });
       toast('ok', `Socio dado de alta: ${r.memberCode}`);
-      onCreado(r.id);
+      // «Registrar su rostro ahora» (D-11): directo al asistente de su ficha; «después» sigue a vender, como siempre.
+      if (rostro === 'ahora' && conRostro) { onClose(); router.push(`/socios/${r.id}?tab=biometria&registrar=rostro`); }
+      else onCreado(r.id);
     } catch (e) {
       const candidatos = e instanceof ApiError && e.status === 409 ? (e.data?.candidates as Candidato[] | undefined) : undefined;
       if (candidatos) {
@@ -290,7 +331,24 @@ export function NuevoSocioDialog({ nombreInicial, contactoInicial: contactoSuelt
         {prospecto && (
           <p className="small muted" data-testid="viene-de-interesado">Viene de interesado{prospecto.source ? ` · ${prospecto.source}` : ''}. Al darlo de alta queda inscrito y sale de seguimiento.</p>
         )}
-        <Campos d={d} set={setD} errores={errores} limpiar={(k) => setErrores(({ [k]: _, ...resto }) => resto)} />
+        <Campos minimo d={d} set={setD} errores={errores} limpiar={(k) => setErrores(({ [k]: _, ...resto }) => resto)} />
+        {comparten.length > 0 && (
+          <ElegirResponsable comparten={comparten} valor={responsable} onChange={setResponsable}
+            quien={d.firstName.trim() ? `${d.firstName.trim()} (esta persona)` : 'Esta persona'} />
+        )}
+        {esMenor && (
+          <div data-testid="tutor-mostrador">
+            <p className="section-label mt-8">Es menor de edad</p>
+            <div className="grid grid-2 gap-12">
+              <Field label="Papá, mamá o tutor que lo acompaña" htmlFor="sf-tutor" error={errores['guardian.name'] ?? null} hint="Si viene con él, anótalo: la aceptación queda a su nombre.">
+                <input id="sf-tutor" className="input" value={tutor.nombre} onChange={(e) => setTutor({ ...tutor, nombre: e.target.value })} />
+              </Field>
+              <Field label="Celular del tutor" htmlFor="sf-tutor-tel" error={errores['guardian.phoneE164'] ?? null}>
+                <input id="sf-tutor-tel" className="input" inputMode="tel" placeholder="10 dígitos" value={tutor.telefono} onChange={(e) => setTutor({ ...tutor, telefono: e.target.value })} />
+              </Field>
+            </div>
+          </div>
+        )}
         {otros.length > 0 && (
           <div>
             <p className="label mb-8">¿Ya existe?</p>
@@ -326,9 +384,25 @@ export function NuevoSocioDialog({ nombreInicial, contactoInicial: contactoSuelt
               </button>
             </div>
             {abierto === t.id && <div className="doc-texto">{t.bodyText}</div>}
-            <Switch style={{ marginTop: 8 }} checked={!!aceptado[t.consentType]} onChange={(v) => setAceptado((a) => ({ ...a, [t.consentType]: v }))}>El socio lo leyó y lo acepta</Switch>
           </div>
         ))}
+        {textos && !faltanTextos && (
+          <Switch checked={aceptado} onChange={setAceptado}>
+            {esMenor && tutor.nombre.trim().length >= 3
+              ? <>Su tutor, {tutor.nombre.trim()}, leyó y acepta {textos.map((t) => t.title).join(' y ')}</>
+              : <>El socio leyó y acepta {textos.map((t) => t.title).join(' y ')}</>}
+          </Switch>
+        )}
+
+        {/* (D-29, bloque 3.8: aquí va «¿Con qué coach?», el coach que recepción elige al alta.) */}
+        {conRostro && (
+          <div data-testid="rostro-al-alta">
+            <p className="section-label mt-8">Su rostro para entrar</p>
+            <Segmented value={rostro} onChange={setRostro} etiqueta="Registrar su rostro"
+              options={[{ value: 'despues', label: 'Después' }, { value: 'ahora', label: 'Registrarlo ahora' }]} />
+            <p className="hint mt-6">{rostro === 'ahora' ? 'Al dar de alta se abre el registro de su rostro; su membresía se vende después, desde su ficha.' : 'Queda como pendiente en su ficha, en «Para terminar su alta».'}</p>
+          </div>
+        )}
       </div>
     </Dialog>
   );

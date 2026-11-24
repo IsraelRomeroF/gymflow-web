@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { ShieldCheck, Smartphone } from 'lucide-react';
+import { APPROVAL_REJECT_LOCK_MS } from '@gymflow/core';
 import type { ApprovalApprovers } from '@gymflow/core/contracts';
 import { api, ApiError } from '@/lib/api';
 import { hora, pesos } from '@/lib/format';
 import { errorText } from './session';
-import { Button, Callout, Dialog, ErrorCarga, Field, Segmented } from './ui';
+import { Button, Callout, CampoMotivo, Dialog, ErrorCarga, faltaMotivo, Field, Segmented } from './ui';
 import { useCarga } from '@/lib/carga';
-import { Desenlace, avisoDeAlcance, type Firmante, type Solicitud } from './firma/desenlace';
+import { Desenlace, RechazoAnterior, avisoDeAlcance, nombres, preguntaAbierta, type Firmante, type Solicitud } from './firma/desenlace';
 import { atenderEspera, esperaParaRetomar, ponerEspera, quitarEspera, soltarEspera } from './firma/espera';
 
 /** De qué registro se trata lo que se firma (29-01). Mismos valores que `APPROVAL_RESOURCE_TYPES` del núcleo. */
@@ -84,6 +85,13 @@ const LISTO_A_LA_VISTA_MS = 8000;
  * llega la firma. Antes de pedir y al vencer, dice si quien firma tiene cómo
  * enterarse (29-05), y «Volver a pedir» reenvía en un toque (29-08).
  *
+ * D-03 (bloque 3.2): el «no» queda pegado a la operación. Si ya la rechazaron
+ * en las últimas 24 horas, el diálogo lo dice desde que se abre —quién, a qué
+ * hora y por qué— y para volver a pedirla hay que escribir una respuesta, que
+ * quien firma lee junto con su «no». Durante 30 minutos tras el rechazo no se
+ * firma «aquí»; la misma operación se pide como mucho 3 veces por hora; y si
+ * quien firma pregunta en vez de rechazar, aquí mismo se le contesta.
+ *
  * Desde que se abre dice quién puede firmar; si nadie puede, lo dice y no
  * deja llenar nada (UXB-04). Si las firmas de alguien están en pausa por
  * intentos fallidos con su contraseña (24-11), también lo dice.
@@ -111,7 +119,12 @@ export function AutorizacionDialog({ permission, branchId, operacion, titulo, de
   const tituloDelResultado = monto ? `${resumen} · ${pesos(monto)}` : resumen;
   // "Aquí": quien autoriza teclea en este equipo. "A distancia": la recibe
   // en su teléfono y la aprueba ahí, sin venir al mostrador.
-  const [modo, setModo] = useState<'aqui' | 'distancia'>('aqui');
+  const [modoElegido, setModo] = useState<'aqui' | 'distancia'>('aqui');
+  // La respuesta al «no» anterior (D-03): obligatoria para volver a pedir lo rechazado.
+  const [respuesta, setRespuesta] = useState('');
+  const [faltaRespuesta, setFaltaRespuesta] = useState(false);
+  /** Tras un «no» en esta misma pantalla: se abrió el campo «Tu respuesta». */
+  const [respondiendo, setRespondiendo] = useState(false);
   const [solicitud, setSolicitud] = useState<Solicitud | null>(null);
   /** «Seguir atendiendo»: el diálogo se guarda y la franja del panel lo representa. */
   const [minimizada, setMinimizada] = useState(false);
@@ -119,6 +132,7 @@ export function AutorizacionDialog({ permission, branchId, operacion, titulo, de
   // del servidor: lo que le quedaba según la API, sumado a «ahora» (29-06).
   const [limite, setLimite] = useState<number | null>(null);
   const [ahora, setAhora] = useState(Date.now());
+  const idRegistro = operacion.resourceId ?? null;
   const listo = useRef(false);
   const guardada = useRef(false);
   guardada.current = minimizada;
@@ -129,13 +143,21 @@ export function AutorizacionDialog({ permission, branchId, operacion, titulo, de
 
   // Quién puede firmar. Si no responde, se dice (26-01): callar escondía «Pedir a su teléfono».
   const cargarFirmantes = useCallback(() => {
-    const qs = new URLSearchParams({ permission, ...(branchId ? { branchId } : {}), ...(monto ? { amountCents: monto } : {}) });
+    // Con el registro, la respuesta dice además cómo está ESTA operación: si ya la rechazaron y cuántas veces se pidió (D-03).
+    const qs = new URLSearchParams({ permission, ...(branchId ? { branchId } : {}), ...(monto ? { amountCents: monto } : {}), ...(idRegistro ? { resourceId: idRegistro } : {}) });
     return api<ApprovalApprovers>(`/approvals/approvers?${qs}`);
-  }, [permission, branchId, monto]);
+  }, [permission, branchId, monto, idRegistro]);
   const firmantesCarga = useCarga(cargarFirmantes);
   const firmantes = firmantesCarga.datos ?? null;
   const lista = firmantes?.approvers ?? [];
   const quienes = lista.map((a) => a.fullName).join(', ');
+  // D-03: el «no» vigente de esta operación, el candado del mostrador y el tope por hora.
+  const estadoOp = firmantes?.operation ?? null;
+  const rechazoPrevio = estadoOp?.previousRejection ?? null;
+  const candado = estadoOp?.localLockedUntil && Date.parse(estadoOp.localLockedUntil) > ahora ? estadoOp.localLockedUntil : null;
+  const topeHasta = estadoOp?.nextRequestAt && Date.parse(estadoOp.nextRequestAt) > ahora ? estadoOp.nextRequestAt : null;
+  // Con el candado puesto no hay «aquí»: solo queda pedirla a su teléfono.
+  const modo = candado ? 'distancia' : modoElegido;
 
   /**
    * Llegó la firma: la operación sigue sola. Si el diálogo estaba guardado, la
@@ -200,7 +222,10 @@ export function AutorizacionDialog({ permission, branchId, operacion, titulo, de
     return () => { clearInterval(tic); clearInterval(sondeo); };
   }, [idPendiente, recibir]);
 
-  async function pedir() {
+  /** `conRespuesta`: lo que se le contesta al «no» anterior de esta operación (D-03). */
+  async function pedir(conRespuesta?: string | null) {
+    const reply = (conRespuesta ?? (rechazoPrevio ? respuesta : '')).trim();
+    if (rechazoPrevio && !conRespuesta && faltaMotivo(respuesta)) { setFaltaRespuesta(true); return; }
     setEnviando(true); setError(null);
     try {
       const cruda = await api<SolicitudCruda>('/approvals/requests', {
@@ -210,6 +235,7 @@ export function AutorizacionDialog({ permission, branchId, operacion, titulo, de
           summary: resumen,
           ...(monto ? { amountCents: monto } : {}), ...(branchId ? { branchId } : {}),
           ...(motivo?.trim() ? { reason: motivo.trim().slice(0, 300) } : {}),
+          ...(reply ? { reply: reply.slice(0, 300) } : {}),
         }),
       });
       const s = leer(cruda);
@@ -218,7 +244,12 @@ export function AutorizacionDialog({ permission, branchId, operacion, titulo, de
       // Lo que le quedaba al nacer, medido con el reloj del servidor.
       setLimite(Date.now() + s.secondsLeft * 1000); setAhora(Date.now());
       setSolicitud(s);
-    } catch (e) { setError(errorText(e, 'No se pudo enviar la solicitud')); } finally { setEnviando(false); }
+      setRespondiendo(false); setFaltaRespuesta(false);
+    } catch (e) {
+      setError(errorText(e, 'No se pudo enviar la solicitud'));
+      // Alguien la rechazó mientras tanto, o se llegó al tope: el diálogo vuelve a decir cómo está la operación.
+      if (e instanceof ApiError && (e.status === 409 || e.status === 429)) void firmantesCarga.recargar();
+    } finally { setEnviando(false); }
   }
 
   /** «Cerrar» y «Volver a pedir» cancelan la anterior si seguía pendiente (29-06): nunca quedan dos vivas para lo mismo. */
@@ -230,14 +261,22 @@ export function AutorizacionDialog({ permission, branchId, operacion, titulo, de
   async function cerrar() { await soltarLaAnterior(); onClose(); }
   /** Reenvía en un toque (29-08): cancela la anterior y manda otra con lo mismo, sin volver al formulario. */
   async function volverAPedir() {
+    // Lo que respondía a un «no» lo sigue respondiendo: la misma respuesta viaja otra vez (D-03).
+    const misma = solicitud?.previousRejection ? solicitud.reply : null;
     await soltarLaAnterior();
-    await pedir();
+    await pedir(misma);
+  }
+  /** Tras un «no»: se vuelve a pedir con la respuesta escrita aquí, que quien firma lee junto a su rechazo (D-03). */
+  async function responderYVolverAPedir() {
+    if (faltaMotivo(respuesta)) { setFaltaRespuesta(true); return; }
+    await pedir(respuesta);
   }
   /** Tras vencer, quien firma está en el gimnasio: se pasa al formulario de la contraseña. */
   async function queFirmeAqui() {
     await soltarLaAnterior();
     listo.current = false;
     setSolicitud(null); setLimite(null); setError(null); setModo('aqui');
+    void firmantesCarga.recargar();
   }
 
   const nadie = firmantes !== null && lista.length === 0;
@@ -276,6 +315,8 @@ export function AutorizacionDialog({ permission, branchId, operacion, titulo, de
 
   if (solicitud) {
     const s = solicitud.status;
+    // D-03: si responde a un «no» de hace menos de 30 minutos, todavía no se firma aquí.
+    const sinFirmaAqui = !!solicitud.previousRejection && Date.parse(solicitud.previousRejection.at) + APPROVAL_REJECT_LOCK_MS > Date.now();
     return (
       <Dialog open onClose={() => void cerrar()} title={s === 'PENDING' ? titulo : tituloDelResultado} error={error}
         footer={s === 'PENDING' ? (
@@ -283,14 +324,20 @@ export function AutorizacionDialog({ permission, branchId, operacion, titulo, de
             <Button variant="secondary" onClick={() => void cerrar()}>Cancelar solicitud</Button>
             <Button variant="secondary" onClick={() => setMinimizada(true)}>Seguir atendiendo</Button>
           </>
-        ) : s === 'REJECTED' ? (
+        ) : s === 'REJECTED' ? (respondiendo ? (
           <>
-            <Button variant="secondary" loading={enviando} onClick={() => void volverAPedir()}>Volver a pedir</Button>
+            <Button variant="secondary" disabled={enviando} onClick={() => void cerrar()}>Entendido</Button>
+            <Button loading={enviando} onClick={() => void responderYVolverAPedir()}>Volver a pedir</Button>
+          </>
+        ) : (
+          <>
+            <Button variant="secondary" onClick={() => { setRespondiendo(true); setError(null); }}>Responder y volver a pedir</Button>
             <Button autoFocus onClick={() => void cerrar()}>Entendido</Button>
           </>
+        )
         ) : s === 'EXPIRED' ? (
           <>
-            <Button variant="secondary" disabled={enviando} onClick={() => void queFirmeAqui()}>Que firme aquí</Button>
+            {!sinFirmaAqui && <Button variant="secondary" disabled={enviando} onClick={() => void queFirmeAqui()}>Que firme aquí</Button>}
             <Button autoFocus loading={enviando} onClick={() => void volverAPedir()}>Volver a pedir</Button>
           </>
         ) : (
@@ -301,8 +348,14 @@ export function AutorizacionDialog({ permission, branchId, operacion, titulo, de
         )}>
         <div className="stack">
           {detalle}
-          <Desenlace s={solicitud} firmantes={lista} restan={restan} minutos={minutosSolicitud} minutosFirma={minutosFirma} />
-          {s === 'PENDING' && (
+          <Desenlace s={solicitud} firmantes={lista} restan={restan} minutos={minutosSolicitud} minutosFirma={minutosFirma} onCambio={recibir} />
+          {s === 'REJECTED' && respondiendo && (
+            <CampoMotivo id="au-resp" label={`Tu respuesta para ${solicitud.approverName ?? nombres(lista)}`} autoFocus value={respuesta}
+              onChange={(v) => { setRespuesta(v); setFaltaRespuesta(false); }}
+              error={faltaRespuesta ? 'Escribe tu respuesta: sin ella no se puede volver a pedir.' : null}
+              hint="La lee junto con su «no» antes de decidir. Queda en la bitácora." />
+          )}
+          {s === 'PENDING' && !preguntaAbierta(solicitud) && (
             <p className="small muted">Con «Seguir atendiendo» la espera pasa a una franja arriba del panel y esto sigue solo cuando firme, mientras no salgas de esta pantalla.</p>
           )}
         </div>
@@ -313,10 +366,10 @@ export function AutorizacionDialog({ permission, branchId, operacion, titulo, de
   const alcance = avisoDeAlcance(lista);
   return (
     <Dialog open onClose={onClose} title={titulo}
-      sub="Necesita la segunda firma del dueño: aquí mismo con su contraseña, o desde su teléfono."
+      sub={candado ? 'Necesita la segunda firma del dueño. Por ahora, solo desde su teléfono.' : 'Necesita la segunda firma del dueño: aquí mismo con su contraseña, o desde su teléfono.'}
       footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button>
         {modo === 'distancia'
-          ? <Button icon={<Smartphone />} loading={enviando} disabled={nadie || lista.length === 0} onClick={() => void pedir()}>Pedir autorización</Button>
+          ? <Button icon={<Smartphone />} loading={enviando} disabled={nadie || lista.length === 0 || !!topeHasta} onClick={() => void pedir()}>{rechazoPrevio ? 'Volver a pedir' : 'Pedir autorización'}</Button>
           : <Button icon={<ShieldCheck />} loading={enviando} disabled={nadie || !(firmaDe || email.trim()) || !password} onClick={() => void autorizar()}>Autorizar</Button>}</>}>
       <form className="stack" onSubmit={(e) => { e.preventDefault(); void (modo === 'distancia' ? pedir() : autorizar()); }} autoComplete="off">
         {detalle}
@@ -338,7 +391,21 @@ export function AutorizacionDialog({ permission, branchId, operacion, titulo, de
             Hubo intentos fallidos con su contraseña. Podrá firmar de nuevo a las {hora(pausados.map((a) => a.pausedUntil!).sort().at(-1)!)}, aquí o desde su teléfono.
           </Callout>
         )}
-        {!nadie && lista.length > 0 && (
+        {/* D-03: el «no» sigue pegado a esta operación. Se dice antes de pedir, con su motivo. */}
+        {rechazoPrevio && (
+          <RechazoAnterior r={rechazoPrevio}>
+            <p className="small">
+              Para volver a pedirla, escríbele una respuesta: la verá junto con su «no».
+              {candado && <> Hasta las {hora(candado)} no se firma aquí en el mostrador: solo desde su teléfono.</>}
+            </p>
+          </RechazoAnterior>
+        )}
+        {topeHasta && (
+          <Callout tone="warn" title={`Ya se pidió ${estadoOp!.requestsMax} veces en una hora`}>
+            Habla con {nombres(lista)}. Se puede volver a pedir a su teléfono a las {hora(topeHasta)}.
+          </Callout>
+        )}
+        {!nadie && lista.length > 0 && !candado && (
           <Segmented value={modo} onChange={setModo} options={[
             { value: 'aqui' as const, label: 'Aquí, en este equipo' },
             { value: 'distancia' as const, label: 'Pedir a su teléfono' },
@@ -349,6 +416,12 @@ export function AutorizacionDialog({ permission, branchId, operacion, titulo, de
             <p className="small muted">Le llega a su panel, en Autorizaciones, y la aprueba con su contraseña; aquí la operación sigue sola. Vence en {minutosSolicitud} minutos.</p>
             {/* Antes de pedir: si no tiene cómo enterarse, se dice (29-05). No bloquea. */}
             {alcance && <Callout tone="warn">{alcance}</Callout>}
+            {rechazoPrevio && !topeHasta && (
+              <CampoMotivo id="au-resp" label={`Tu respuesta para ${rechazoPrevio.byName ?? nombres(lista)}`} value={respuesta}
+                onChange={(v) => { setRespuesta(v); setFaltaRespuesta(false); }}
+                error={faltaRespuesta ? 'Escribe tu respuesta: sin ella no se puede volver a pedir.' : null}
+                hint="La lee junto con su «no» antes de decidir. Queda en la bitácora." />
+            )}
           </>
         )}
         {!nadie && modo === 'aqui' && (

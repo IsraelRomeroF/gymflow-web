@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { CircleCheck, DoorOpen, Lock, RotateCw, ShieldAlert, UserPlus, Users, Wallet } from 'lucide-react';
+import { CircleCheck, DoorOpen, FileSignature, Lock, RotateCw, ShieldAlert, ShoppingBag, UserPlus, Users, Wallet } from 'lucide-react';
 import { api } from '@/lib/api';
 import { hora, pesos } from '@/lib/format';
 import { errorText, useSession } from './session';
@@ -10,9 +10,10 @@ import { Button, ButtonLink, Callout, Cambio, Card, PageHeader, Skeleton } from 
 import { AvisosEnTelefono } from './push';
 import { AvisoSolicitudesArco } from './cumplimiento';
 import { GLOSARIO } from '@/lib/glosario';
+import { GlosarioDinero } from './glosario-dinero';
 import { hoyEn } from '@/lib/zonas';
 import { useCarga } from '@/lib/carga';
-import type { Pulse as Pulso, RetentionSummary } from '@gymflow/core/contracts';
+import type { NoticeSignatureRequests, Pulse as Pulso, RetentionSummary, StoreSummary } from '@gymflow/core/contracts';
 
 /** «Ana», «Ana y Luis», «Ana, Luis y Eva». */
 const enFrase = (nombres: string[]) => (nombres.length <= 1 ? nombres[0] ?? '' : `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}`);
@@ -48,6 +49,79 @@ function SociosEnRiesgo() {
           <p className="tiny muted">{c.counts.ONBOARDING_AT_RISK} no arrancaron · {c.counts.SLIPPING} aflojando · {c.counts.DORMANT} dejaron de venir</p>
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * LA TIENDA EN CIFRAS (3.7 · D-25): cuánto vendió hoy y en el mes, qué se
+ * vende más y qué se está acabando. La dueña lo consulta sin operar el punto
+ * de venta ni entrar a Productos. Si no carga, se dice: callar parecería cero.
+ */
+function TiendaDeLaDuena() {
+  const { branchName, branches } = useSession();
+  const carga = useCarga(useCallback(() => api<StoreSummary>('/reports/store'), []));
+  const t = carga.datos;
+  const variasSedes = branches.filter((b) => b.isActive).length > 1;
+  return (
+    <Card title={<span className="row gap-6"><ShoppingBag size={16} aria-hidden />Tu tienda</span>} data-testid="tienda-duena">
+      {carga.error ? (
+        <div className="stack-sm" role="alert">
+          <p className="small text-warn">No se pudieron cargar las ventas y existencias de la tienda. No es que no haya: la cifra no llegó.</p>
+          <div><Button size="sm" variant="secondary" icon={<RotateCw />} onClick={() => void carga.recargar()}>Reintentar</Button></div>
+        </div>
+      ) : !t ? <Skeleton h={72} /> : t.products.active === 0 ? (
+        <p className="small muted">Todavía no hay productos dados de alta en la tienda.</p>
+      ) : (
+        <>
+          <div className="duena-cifra-chica num">{pesos(t.month.totalCents, { decimals: false })} <span className="small muted">este mes</span></div>
+          <p className="small muted">
+            {t.month.sales.toLocaleString('es-MX')} {t.month.sales === 1 ? 'venta' : 'ventas'} en el mes · hoy {pesos(t.today.totalCents, { decimals: false })} en {t.today.sales}
+            {t.month.voided > 0 ? ` · ${t.month.voided} ${t.month.voided === 1 ? 'anulada' : 'anuladas'}` : ''}
+          </p>
+          {t.top.length > 0 && (
+            <>
+              <p className="tiny strong mt-8">Lo más vendido del mes</p>
+              <ul className="duena-renglones small">
+                {t.top.slice(0, 4).map((x) => <li key={x.productId}><span>{x.name} <span className="muted">× {x.quantity}</span></span><span className="num">{pesos(x.totalCents, { decimals: false })}</span></li>)}
+              </ul>
+            </>
+          )}
+          <p className="tiny strong mt-8">Existencias{t.products.outOfStock > 0 ? ` · ${t.products.outOfStock} ${t.products.outOfStock === 1 ? 'producto agotado' : 'productos agotados'}` : ''}</p>
+          {t.stock.length === 0 ? <p className="small muted">Ningún producto lleva inventario.</p> : (
+            <ul className="duena-renglones small">
+              {t.stock.slice(0, 6).map((x) => (
+                <li key={`${x.productId}-${x.branchId}`}>
+                  <span>{x.name}{variasSedes && x.branchId ? <span className="muted"> · {branchName(x.branchId)}</span> : null}</span>
+                  <span className={`num${x.stock === 0 ? ' text-danger' : ''}`}>{x.stock === 0 ? 'Agotado' : x.stock.toLocaleString('es-MX')}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="tiny muted mt-8">Lo que menos queda va primero. Vender, surtir y cambiar precios lo hace la gerencia.</p>
+        </>
+      )}
+    </Card>
+  );
+}
+
+/**
+ * EL AVISO DE PRIVACIDAD ESPERA TU FIRMA (3.7 · D-25): no se publica sin ella.
+ * Lleva a Textos de consentimiento, donde lo lee completo y lo firma.
+ */
+function AvisoPorFirmar() {
+  const carga = useCarga(useCallback(() => api<NoticeSignatureRequests>('/consent-documents/signature-requests'), []));
+  const pendientes = (carga.datos?.requests ?? []).filter((r) => r.status === 'PENDING');
+  if (!carga.datos?.canSign || pendientes.length === 0) return null;
+  const s = pendientes[0]!;
+  return (
+    <div data-testid="aviso-por-firmar">
+      <Callout tone="warn" title="El aviso de privacidad espera tu firma">
+        <p>{s.requestedByName ?? 'La gerencia'} pidió publicar la versión {s.version}: «{s.reason}». No se publica hasta que lo leas y lo firmes.</p>
+        <div className="row gap-8 flex-wrap callout-accion">
+          <ButtonLink href="/consentimientos" size="sm" icon={<FileSignature />}>Leer y firmar</ButtonLink>
+        </div>
+      </Callout>
     </div>
   );
 }
@@ -188,7 +262,7 @@ export function InicioDuena() {
             {/* Sin renta ni nómina registradas, la "ganancia" es solo lo que entró (UX5-D-05). */}
             {/* El día y el mes del gimnasio, no los de la computadora (26-06). */}
             {mes.fixedExpensesCents === '0' && Number(hoyEn(org.timezone).slice(8, 10)) > 3 && (
-              <p className="tiny text-warn mt-6">Todavía no hay renta ni nómina de {MESES[Number(hoyEn(org.timezone).slice(5, 7)) - 1]} registradas: tu ganancia real será menor. {can('expenses:manage') ? <Link href="/movimientos" className="row-link">Regístralas en Movimientos</Link> : 'Las registra la gerencia en Movimientos.'}</p>
+              <p className="tiny text-warn mt-6">Todavía no hay renta ni nómina de {MESES[Number(hoyEn(org.timezone).slice(5, 7)) - 1]} registradas: tu ganancia real será menor. {can('expenses:manage') ? <Link href="/movimientos" className="row-link">Regístralas en Movimientos</Link> : 'Las registran la dueña y la gerencia en Movimientos.'}</p>
             )}
             {avance !== null && (
               <div>
@@ -197,20 +271,17 @@ export function InicioDuena() {
               </div>
             )}
             <div className="row wrap small" style={{ gap: 16, marginTop: 6 }}>
-              <span>Entró <strong className="num">{pesos(mes.incomeCents, { decimals: false })}</strong></span>
-              <span>Gastos <strong className="num">{pesos(-BigInt(mes.expensesCents), { decimals: false })}</strong></span>
+              <span>{GLOSARIO.entro.nombre} <strong className="num">{pesos(mes.incomeCents, { decimals: false })}</strong></span>
+              <span>{GLOSARIO.gastos.nombre} <strong className="num">{pesos(-BigInt(mes.expensesCents), { decimals: false })}</strong></span>
               {/* Gastos incluye los faltantes de caja; un sobrante no los compensa: se dice aparte. */}
               {mes.cashOverageCents && BigInt(mes.cashOverageCents) > 0n && (
                 <span className="muted">Sobró en caja <strong className="num">{pesos(mes.cashOverageCents, { decimals: false })}</strong> por aclarar</span>
               )}
             </div>
-            <details className="explica">
-              <summary className="tiny strong">¿Por qué no es lo mismo que lo que entró?</summary>
-              <p className="tiny muted mt-6">
-                {GLOSARIO.gananciaCaja.explica} <Link href="/movimientos?rango=mes">Ver este mes en Movimientos</Link>.
-                {' '}La <strong>{GLOSARIO.utilidad.nombre.toLowerCase()}</strong> del Tablero es otra cifra: cuenta lo ganado, no lo cobrado.
-              </p>
-            </details>
+            {/* El mismo glosario que el Tablero y Movimientos (D-24). */}
+            <GlosarioDinero titulo="¿Por qué no es lo mismo que lo que entró?" terminos={['gananciaCaja', 'gastos', 'descuadre', 'utilidad', 'retiroDueno']}>
+              <Link href="/movimientos?rango=mes">Ver este mes en Movimientos</Link>.
+            </GlosarioDinero>
           </div>
         </Card>
       </div>
@@ -222,6 +293,8 @@ export function InicioDuena() {
       <div className="duena-col-lado stack">
       {/* La llave es suya: solo quien la tiene (y ve al personal) recibe el aviso. */}
       {can('staff:unlock') && can('staff:read') && <GerenteNuevo />}
+      {/* El aviso de privacidad no se publica sin su firma (D-25). */}
+      {can('approvals:grant') && can('settings:consent:read') && <AvisoPorFirmar />}
       {/* Solicitudes de privacidad con plazo de ley: solo cifras (21-01). */}
       <AvisoSolicitudesArco />
       <Card title="Lo que conviene revisar" className="duena-alertas">
@@ -270,8 +343,21 @@ export function InicioDuena() {
               </p>
             );
           })()}
-          <p className="tiny muted mt-8">El detalle de quién debe lo lleva la gerencia.</p>
+          {/* La deuda por sucursal, en cifras y sin nombres (D-25). */}
+          {p.owed.byBranch.length > 0 && (
+            <ul className="duena-renglones small" data-testid="deuda-por-sucursal">
+              {p.owed.byBranch.map((b) => (
+                <li key={b.branchId ?? 'sin'}>
+                  <span>{b.branchId ? branchName(b.branchId) : 'Sin sucursal'}{b.membersBehind > 0 ? <span className="muted"> · {b.membersBehind} {b.membersBehind === 1 ? 'atrasado' : 'atrasados'}</span> : null}</span>
+                  <span className="num">{pesos(b.outstandingCents, { decimals: false })}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="tiny muted mt-8">Por sucursal donde se hizo el cargo. El detalle de quién debe lo lleva la gerencia.</p>
         </Card>
+        {/* Ventas y existencias de la tienda, en cifras (D-25). */}
+        {activo('pos') && <TiendaDeLaDuena />}
         <Card title="Tus socios">
           <div className="duena-cifra-chica num"><Users size={18} aria-hidden /> {p.members.active.toLocaleString('es-MX')} <span className="small muted">activos</span></div>
           <p className="small muted">Este mes: {mes.newMembers} nuevos · {mes.leftMembers} se dieron de baja</p>

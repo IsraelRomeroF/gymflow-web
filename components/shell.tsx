@@ -16,6 +16,7 @@ import { FIRMAS, SECCIONES, barraInferior, menuAcomodado } from '@/modules/regis
 import { Puerta } from './puerta';
 import { FranjaDeFirmas } from './firma/franja';
 import { Campana } from './campana';
+import { AvisoDeGymflow } from './cuenta-gymflow';
 import { Marca } from '@/components/compartido';
 
 /**
@@ -261,6 +262,8 @@ export function Shell({ children }: { children: ReactNode }) {
         <FranjaDeFirmas />
         <main className="content">
           {cierre.porCerrar && cierre.fin !== null && <AvisoDeCierre fin={cierre.fin} />}
+          {/* Lo que GymFlow le avisa al dueño: factura, vencimiento y suspensión (D-37, bloque 3.11). Solo él lo ve. */}
+          <AvisoDeGymflow />
           <Puerta>{children}</Puerta>
         </main>
       </div>

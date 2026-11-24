@@ -75,3 +75,28 @@
 /* «Mi gimnasio»: la misma distancia entre las pestañas y el título en sus tres pantallas (Módulos no va dentro de una pila) (2.12). */
 :not(.stack) > .gimnasio-nav { margin-bottom: var(--s-5); }
 
+/* ── Fase 3 · bloque 3.6 · Precios y tienda ─────────────────────────────── */
+/* Quiénes conservan su precio (D-19): nombre a la izquierda, lo que pagan y la acción a la derecha. */
+.precio-protegidos { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: var(--r-control); max-height: 260px; overflow-y: auto; }
+.precio-protegidos > li { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); padding: var(--s-2) var(--s-3); border-bottom: 1px solid var(--line); }
+.precio-protegidos > li:last-child { border-bottom: 0; }
+.plan-conservan { display: block; background: none; border: 0; padding: 0; font: inherit; color: inherit; text-align: left; text-decoration: underline; cursor: pointer; }
+/* Punto de venta y Productos (D-21): el precio de socio junto al de público. */
+.pos-precio-socio { font-size: var(--t-xs); color: var(--ok); }
+.pos-precio-antes { text-decoration: line-through; color: var(--muted); font-weight: 400; margin-right: var(--s-1); }
+
+/* ── Fase 3 · bloque 3.7 · Dirección (D-22 a D-25) ──────────────────────── */
+/* El glosario del dinero, igual en Tablero, Movimientos e Inicio (D-24). */
+.glosario-dinero { max-width: 760px; }
+.glosario-lista { display: grid; gap: var(--s-2); margin: var(--s-2) 0 0; }
+.glosario-lista dt, .glosario-lista dd { margin: 0; }
+.glosario-tablero { margin-top: calc(var(--s-3) * -1); margin-bottom: var(--s-6); }
+/* Un gasto anulado o ya corregido con un ajuste: se queda a la vista, apagado. */
+.gasto-apagado { opacity: 0.55; }
+.gasto-tachado { text-decoration: line-through; }
+/* Inicio de la dueña: la deuda y la tienda, renglón por sucursal o producto. */
+.duena-renglones { list-style: none; margin: var(--s-2) 0 0; padding: 0; display: grid; gap: var(--s-1); }
+.duena-renglones > li { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); }
+/* El aviso de privacidad que la dueña lee antes de firmar. */
+.aviso-por-firmar { max-height: 46vh; overflow-y: auto; }
+

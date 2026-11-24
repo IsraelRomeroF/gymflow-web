@@ -21,11 +21,14 @@ await recorrido('cumplimiento', async (r) => {
   r.paso('plazo de supresión');
   await g.goto(`${PANEL}/consentimientos`, { waitUntil: 'networkidle' });
   await g.getByTestId('bandeja-arco').waitFor({ timeout: T.respuesta });
-  await g.getByTestId('plazo-supresion').waitFor();
-  await g.getByTestId('plazo-supresion').getByLabel('Meses tras la baja').fill('24');
-  await g.getByTestId('plazo-supresion').getByRole('button', { name: 'Guardar' }).click();
+  // Bloque 3.9 (D-32): «Plazo de supresión» pasó a «Conservación de datos»; sin plazo propio rigen 24 meses.
+  await g.getByTestId('conservacion').waitFor({ timeout: T.respuesta });
+  await g.getByTestId('conservacion').getByLabel('Meses después de la baja').fill('30');
+  await g.getByTestId('conservacion').getByRole('button', { name: 'Guardar plazo' }).click();
+  await g.getByText(/Plazo guardado: 30 meses/).waitFor({ timeout: T.respuesta });
+  await g.getByTestId('conservacion').getByRole('button', { name: /Volver a 24 meses/ }).click();
   await g.getByText(/Plazo guardado: 24 meses/).waitFor({ timeout: T.respuesta });
-  r.ok(true, 'la gerencia fija el plazo de supresión en meses');
+  r.ok(true, 'la gerencia fija el plazo de conservación en meses y vuelve al de por omisión');
   await r.captura(g, 'cumpl-1-cumplimiento', { full: true });
 
   // 2. En la ficha: solicitud ARCO con plazo, resolverla, y retirar un consentimiento opcional si lo hay.

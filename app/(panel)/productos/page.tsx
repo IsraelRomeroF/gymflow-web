@@ -24,6 +24,11 @@ const MOVIMIENTOS = [
  * PRODUCTOS E INVENTARIO. El precio de aquí es el que cobra el punto de
  * venta —la pantalla de venta no lo puede cambiar— y cada cambio de precio
  * queda en la bitácora. Las existencias son por sucursal.
+ *
+ * Cada producto puede tener, además del precio de público, un precio de
+ * socio (se cobra a socios con membresía vigente) y su costo (D-21, bloque
+ * 3.6). Los dos son opcionales. El costo solo lo recibe quien administra el
+ * catálogo: con él se sabe cuánto deja cada producto.
  */
 export default function ProductosPage() {
   const { branches, inScope, can } = useSession();
@@ -64,7 +69,7 @@ export default function ProductosPage() {
           {({ productos }) => (
           <div className="table-wrap">
             <table className="table table-stack">
-              <thead><tr><th>Producto</th><th>SKU</th><th className="num">Precio</th><th className="num">Existencia</th><th>Estado</th><th /></tr></thead>
+              <thead><tr><th>Producto</th><th>SKU</th><th className="num">Precio</th><th className="num">Socios</th>{conCosto(productos) && <><th className="num">Costo</th><th className="num">Deja</th></>}<th className="num">Existencia</th><th>Estado</th><th /></tr></thead>
               <tbody>
                 {productos.map((p) => {
                   const hay = stock.get(p.id) ?? 0;
@@ -72,7 +77,12 @@ export default function ProductosPage() {
                     <tr key={p.id} style={p.isActive ? undefined : { opacity: .55 }}>
                       <td className="strong">{p.name}</td>
                       <td className="stack-hide"><code>{p.sku}</code></td>
-                      <td className="num">{pesos(p.priceCents)}</td>
+                      <td className="num" data-label="Precio">{pesos(p.priceCents)}</td>
+                      <td className="num" data-label="Socios">{p.memberPriceCents != null ? pesos(p.memberPriceCents) : <span className="muted">El mismo</span>}</td>
+                      {conCosto(productos) && <>
+                        <td className="num" data-label="Costo">{p.costCents != null ? pesos(p.costCents) : <span className="muted">Sin costo</span>}</td>
+                        <td className="num" data-label="Deja">{p.costCents != null ? pesos(BigInt(p.priceCents) - BigInt(p.costCents)) : <span className="muted">—</span>}</td>
+                      </>}
                       <td className="num" data-label="Existencia">{p.tracksInventory ? <span className={hay <= 3 ? 'danger strong' : ''}>{hay}</span> : <span className="muted">No se controla</span>}</td>
                       <td>{p.isActive ? <Badge tone="ok" dot>A la venta</Badge> : <Badge>Retirado</Badge>}</td>
                       <td className="right text-right nowrap">
@@ -167,8 +177,15 @@ function LibroDeInventario({ sede }: { sede: string }) {
   );
 }
 
+/** ¿La lista trae costos? Solo se los manda la API a quien administra el catálogo. */
+const conCosto = (ps: readonly Producto[]) => ps.some((p) => p.costCents !== undefined);
+const enPesos = (c: string | null | undefined) => (c != null ? (Number(c) / 100).toFixed(2) : '');
+
 function ProductoDialog({ producto, onClose, onListo }: { producto: Producto | null; onClose: () => void; onListo: () => void }) {
   const toast = useToast();
+  // Opcionales (D-21): vacío = no tiene.
+  const [socio, setSocio] = useState(enPesos(producto?.memberPriceCents));
+  const [costo, setCosto] = useState(enPesos(producto?.costCents));
   const [sku, setSku] = useState(producto?.sku ?? '');
   const [nombre, setNombre] = useState(producto?.name ?? '');
   const [precio, setPrecio] = useState(producto ? (Number(producto.priceCents) / 100).toFixed(2) : '');
@@ -176,14 +193,22 @@ function ProductoDialog({ producto, onClose, onListo }: { producto: Producto | n
   const [activo, setActivo] = useState(producto?.isActive ?? true);
   const [enviando, setEnviando] = useState(false);
   const cents = aCentavos(precio);
+  const socioCents = socio.trim() ? aCentavos(socio) : null;
+  const costoCents = costo.trim() ? aCentavos(costo) : null;
+  const errorSocio = socio.trim() && socioCents === null ? 'Importe inválido'
+    : socioCents !== null && cents !== null && socioCents > cents ? 'No puede ser mayor que el precio de público' : null;
+  const errorCosto = costo.trim() && costoCents === null ? 'Importe inválido' : null;
+  const deja = cents !== null && costoCents !== null ? cents - costoCents : null;
 
   async function guardar() {
     setEnviando(true);
     try {
+      // `null` quita el precio de socio o el costo; lo ya vendido conserva los suyos.
+      const opcionales = { memberPriceCents: socioCents === null ? null : socioCents.toString(), costCents: costoCents === null ? null : costoCents.toString() };
       if (producto) {
-        await api(`/products/${producto.id}`, { method: 'PATCH', body: JSON.stringify({ name: nombre.trim(), priceCents: cents!.toString(), isActive: activo }) });
+        await api(`/products/${producto.id}`, { method: 'PATCH', body: JSON.stringify({ name: nombre.trim(), priceCents: cents!.toString(), isActive: activo, ...opcionales }) });
       } else {
-        await api('/products', { method: 'POST', body: JSON.stringify({ sku: sku.trim().toUpperCase(), name: nombre.trim(), priceCents: cents!.toString(), tracksInventory: inventario }) });
+        await api('/products', { method: 'POST', body: JSON.stringify({ sku: sku.trim().toUpperCase(), name: nombre.trim(), priceCents: cents!.toString(), tracksInventory: inventario, ...opcionales }) });
       }
       toast('ok', producto ? 'Producto actualizado' : 'Producto dado de alta');
       onListo();
@@ -193,13 +218,22 @@ function ProductoDialog({ producto, onClose, onListo }: { producto: Producto | n
   return (
     <Dialog open onClose={onClose} title={producto ? `Editar ${producto.name}` : 'Nuevo producto'}
       footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button>
-        <Button loading={enviando} disabled={!nombre.trim() || cents === null || (!producto && !sku.trim())} onClick={() => void guardar()}>Guardar</Button></>}>
+        <Button loading={enviando} disabled={!nombre.trim() || cents === null || (!producto && !sku.trim()) || !!errorSocio || !!errorCosto} onClick={() => void guardar()}>Guardar</Button></>}>
       <div className="stack">
         {!producto && <Field label="SKU" htmlFor="pr-sku" hint="Clave corta, sin espacios: AGUA-600, PROT-VAIN."><input id="pr-sku" className="input mono" autoFocus value={sku} onChange={(e) => setSku(e.target.value)} /></Field>}
         <Field label="Nombre" htmlFor="pr-nom"><input id="pr-nom" className="input" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Agua natural 600 ml" /></Field>
-        <Field label="Precio" htmlFor="pr-pre" hint={producto ? 'El cambio queda en la bitácora con el precio anterior.' : undefined}>
+        <Field label="Precio de público" htmlFor="pr-pre" hint={producto ? 'El cambio queda en la bitácora con el precio anterior.' : undefined}>
           <div className="input-money"><span>$</span><input id="pr-pre" className="input" inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value)} placeholder="0.00" /></div>
         </Field>
+        <div className="grid grid-2 gap-12">
+          <Field label="Precio de socio" htmlFor="pr-soc" required={false} error={errorSocio} hint="Opcional. Se cobra a socios con membresía vigente; vacío, todos pagan el de público.">
+            <div className="input-money"><span>$</span><input id="pr-soc" className="input" inputMode="decimal" value={socio} onChange={(e) => setSocio(e.target.value)} placeholder="El mismo" /></div>
+          </Field>
+          <Field label="Costo" htmlFor="pr-cos" required={false} error={errorCosto}
+            hint={deja !== null ? `Deja ${pesos(deja)} por pieza a precio de público.` : 'Opcional. Lo que te cuesta a ti: con él el Tablero resta lo que costó lo vendido.'}>
+            <div className="input-money"><span>$</span><input id="pr-cos" className="input" inputMode="decimal" value={costo} onChange={(e) => setCosto(e.target.value)} placeholder="Sin costo" /></div>
+          </Field>
+        </div>
         {!producto && <Switch checked={inventario} onChange={(v) => setInventario(v)}>Controlar existencias (no se vende si se agota)</Switch>}
         {producto && <Switch checked={activo} onChange={(v) => setActivo(v)}>A la venta</Switch>}
       </div>

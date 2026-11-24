@@ -27,6 +27,8 @@ type Decision = {
   at: string;
   overrideReason: string | null;
   credentialKind: string;
+  /** Reentrada (D-07, bloque 3.3): ya había entrado hoy; no cuenta otra visita. */
+  reentry?: boolean;
 };
 
 /** Cómo entró: es lo que el subtítulo aporta, en vez de repetir "Entró". */
@@ -73,7 +75,8 @@ export default function AccesoPage() {
     return () => { vigente = false; if (t) clearTimeout(t); document.removeEventListener('visibilitychange', alVolver); };
   }, [branchId]);
 
-  const entradas = decisions?.filter((d) => d.outcome === 'GRANTED').length ?? 0;
+  // «Entraron» cuenta personas, no pasos (D-07): la reentrada del mismo día se ve en la lista, pero no suma.
+  const entradas = decisions?.filter((d) => d.outcome === 'GRANTED' && !d.reentry).length ?? 0;
   const rechazos = decisions?.filter((d) => d.outcome === 'DENIED').length ?? 0;
 
   return (
@@ -120,7 +123,7 @@ export default function AccesoPage() {
                       {d.overrideReason && <> · <ShieldCheck size={12} style={{ verticalAlign: -2 }} /> paso concedido por recepción</>}
                     </div>
                   </div>
-                  {negado ? <Badge tone="danger">Rechazado</Badge> : <Badge tone="ok">Entró</Badge>}
+                  {negado ? <Badge tone="danger">Rechazado</Badge> : d.reentry ? <Badge tone="info">Reentrada</Badge> : <Badge tone="ok">Entró</Badge>}
                   <span className="tiny muted num" style={{ minWidth: 44, textAlign: 'right', whiteSpace: 'nowrap' }}>{hora(d.at)}</span>
                   {accionable && <ChevronRight size={16} className="faint" />}
                 </li>

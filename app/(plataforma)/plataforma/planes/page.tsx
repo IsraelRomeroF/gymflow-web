@@ -8,7 +8,10 @@ import { parsePesos } from '@/lib/pesos';
 import { pesos } from '@/lib/format';
 import { useToast, errorText } from '@/components/session';
 import { Badge, Breadcrumb, Button, Callout, Card, Dialog, Empty, ErrorCarga, Field, PageHeader, EsqueletoTabla, Switch } from '@/components/ui';
+import type { PlatformPriceChange, PlatformPriceChangePreview } from '@gymflow/core/contracts';
 import { usePlataforma, type PlanPlataforma } from '../../layout';
+import { periodo } from '../cobro';
+import { AnunciarCambio, CambiosAnunciados } from '../precios/anunciados';
 
 /**
  * PLANES DE LA PLATAFORMA (ADR-039): los paquetes de módulos que GymFlow
@@ -20,6 +23,7 @@ export default function PlanesPage() {
   const [planes, setPlanes] = useState<PlanPlataforma[] | null>(null);
   const [fallo, setFallo] = useState(false);
   const [editar, setEditar] = useState<PlanPlataforma | 'nuevo' | null>(null);
+  const [version, setVersion] = useState(0);
   const cargar = useCallback(() => { setFallo(false); api<{ plans: PlanPlataforma[] }>('/platform/plans').then((r) => setPlanes(r.plans)).catch(() => setFallo(true)); }, []);
   useEffect(cargar, [cargar]);
   const nombre = (k: string) => modules.find((m) => m.key === k)?.name ?? k;
@@ -53,8 +57,9 @@ export default function PlanesPage() {
           </div>
         </Card>
       )}
-      <Callout tone="info">Un plan sin precio se factura módulo por módulo con los <Link href="/plataforma/precios">precios</Link> sueltos. Un plan retirado no se asigna a marcas nuevas, pero las que lo tienen lo conservan.</Callout>
-      {editar && <PlanDialog plan={editar === 'nuevo' ? null : editar} onClose={() => setEditar(null)} onHecho={() => { setEditar(null); cargar(); }} />}
+      <div className="mt-12"><CambiosAnunciados version={version} onCambio={cargar} soloPlanes /></div>
+      <Callout tone="info">Un plan sin precio se factura módulo por módulo con los <Link href="/plataforma/precios">precios</Link> sueltos. Un plan retirado no se asigna a marcas nuevas, pero las que lo tienen lo conservan. Cambiar el precio o los módulos de un plan que alguna marca tiene se anuncia con al menos un mes de aviso: hasta esa fecha cada marca conserva su versión.</Callout>
+      {editar && <PlanDialog plan={editar === 'nuevo' ? null : editar} onClose={() => setEditar(null)} onHecho={() => { setEditar(null); setVersion((v) => v + 1); cargar(); }} />}
     </>
   );
 }
@@ -66,6 +71,8 @@ function PlanDialog({ plan, onClose, onHecho }: { plan: PlanPlataforma | null; o
   const [f, setF] = useState({ name: plan?.name ?? '', description: plan?.description ?? '', precio: plan?.monthlyCents ? (Number(plan.monthlyCents) / 100).toFixed(2) : '', isActive: plan?.isActive ?? true });
   const [incluidos, setIncluidos] = useState<Set<string>>(() => new Set(plan?.modules ?? []));
   const [enviando, setEnviando] = useState(false);
+  /** D-38: el cambio le llega a marcas que ya tienen el plan; se confirma viendo a quién y desde cuándo. */
+  const [previa, setPrevia] = useState<PlatformPriceChangePreview | null>(null);
   const aCentavos = (texto: string): string | null | undefined => {
     if (texto.trim() === '') return null;
     const c = parsePesos(texto);
@@ -74,27 +81,43 @@ function PlanDialog({ plan, onClose, onHecho }: { plan: PlanPlataforma | null; o
   const centavos = aCentavos(f.precio);
   const listo = f.name.trim().length >= 2 && centavos !== undefined;
 
+  const cambianTerminos = !!plan && ((centavos ?? null) !== plan.monthlyCents || [...incluidos].sort().join() !== [...plan.modules].sort().join());
+  async function enviar(effectiveFrom?: string) {
+    const cuerpo = { name: f.name.trim(), description: f.description.trim() || null, modules: [...incluidos], monthlyCents: centavos ?? null, ...(plan ? { isActive: f.isActive } : {}), ...(effectiveFrom ? { effectiveFrom } : {}) };
+    if (plan) {
+      const r = await api<{ scheduled: PlatformPriceChange | null }>(`/platform/plans/${plan.id}`, { method: 'PUT', body: JSON.stringify(cuerpo) });
+      toast('ok', r.scheduled
+        ? `Plan ${f.name.trim()}: el precio y los módulos nuevos aplican desde la factura de ${periodo(r.scheduled.effectiveFrom).toLowerCase()}. Hasta entonces sus marcas conservan lo que tienen.`
+        : `Plan ${f.name.trim()} actualizado.`);
+    } else {
+      await api('/platform/plans', { method: 'POST', body: JSON.stringify(cuerpo) });
+      toast('ok', `Plan ${f.name.trim()} creado.`);
+    }
+    onHecho();
+  }
   async function guardar() {
     setEnviando(true);
     try {
-      const cuerpo = { name: f.name.trim(), description: f.description.trim() || null, modules: [...incluidos], monthlyCents: centavos ?? null, ...(plan ? { isActive: f.isActive } : {}) };
-      if (plan) await api(`/platform/plans/${plan.id}`, { method: 'PUT', body: JSON.stringify(cuerpo) });
-      else await api('/platform/plans', { method: 'POST', body: JSON.stringify(cuerpo) });
-      toast('ok', plan ? `Plan ${f.name.trim()} actualizado.` : `Plan ${f.name.trim()} creado.`);
-      onHecho();
+      // Con marcas que ya lo tienen, primero se ve a quién le cambia y desde qué factura.
+      if (plan && cambianTerminos && (plan.organizations ?? 0) > 0) {
+        const v = await api<PlatformPriceChangePreview>(`/platform/plans/${plan.id}/change-preview`, { method: 'POST', body: JSON.stringify({ modules: [...incluidos], monthlyCents: centavos ?? null }) });
+        if (!v.immediate) { setPrevia(v); return; }
+      }
+      await enviar();
     } catch (e) { toast('error', errorText(e, 'No se pudo guardar el plan')); } finally { setEnviando(false); }
   }
+  if (previa && plan) return <AnunciarCambio previa={previa} titulo={`Cambiar el plan ${plan.name}`} onClose={() => setPrevia(null)} onConfirmar={enviar} />;
 
   return (
     <Dialog open onClose={onClose} title={plan ? `Editar ${plan.name}` : 'Nuevo plan'} size="lg"
       sub="Lo básico (socios, cobros, accesos, reportes) va en todo plan."
       footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button loading={enviando} disabled={!listo} onClick={() => void guardar()}>{plan ? 'Guardar' : 'Crear plan'}</Button></>}>
       <div className="stack">
-        {/* La factura de cada marca lee el plan VIVO (23-03): precio y módulos de hoy, no los de cuando se le asignó. */}
+        {/* Cada marca guarda SU versión del plan (D-38, bloque 3.11; cierra 23-03): un cambio de precio o de módulos le llega en la fecha avisada, no hoy. */}
         {plan && (plan.organizations ?? 0) > 0 && (
           <Callout tone="warn" title={`${plan.organizations} ${plan.organizations === 1 ? 'marca lo tiene' : 'marcas lo tienen'}`}>
-            Lo que cambies aquí les llega en su siguiente factura: el precio nuevo se les cobra. Un módulo que quites lo conservan y se les factura aparte, como agregado.
-            Uno que agregues entra en el precio del plan, pero solo se enciende a quien ya lo tenía contratado o cuando le vuelvas a asignar el plan desde su ficha.
+            Si cambias el precio o los módulos, no les aplica hoy: se anuncia con al menos un mes de aviso y hasta esa fecha conservan lo que tienen. Antes de anunciarlo verás a quién le cambia la mensualidad y en cuánto.
+            Ese día, un módulo que agregues les queda contratado dentro del plan; uno que quites lo conservan y se les factura aparte, como agregado. El nombre, la descripción y si se ofrece cambian en el acto.
           </Callout>
         )}
         <div className="grid grid-2">

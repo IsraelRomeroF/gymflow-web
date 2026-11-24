@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { History, Pencil, Plus, Lock, Eye, Trash2 } from 'lucide-react';
-import type { ConsentDocumentList, ConsentDocumentReview, ConsentDocumentSummary } from '@gymflow/core/contracts';
+import { History, Pencil, Plus, Lock, Eye, Trash2, FileSignature } from 'lucide-react';
+import type { ConsentDocumentList, ConsentDocumentPublishResult, ConsentDocumentReview, ConsentDocumentSummary, NoticeSignatureRequests } from '@gymflow/core/contracts';
 import { TEXTO_SOLO_CON_MODULO, corchetesSinCompletar, modeloDeTexto } from '@gymflow/core/privacidad';
 import { api } from '@/lib/api';
 import { fecha } from '@/lib/format';
@@ -11,7 +11,8 @@ import { useFormulario } from '@/lib/formulario';
 import { useSession, useToast, errorText } from '@/components/session';
 import { Badge, Button, Callout, CampoMotivo, Card, Dialog, ErrorCarga, Field, PageHeader, Skeleton, faltaMotivo, ERROR_MOTIVO } from '@/components/ui';
 import { useCarga } from '@/lib/carga';
-import { BandejaArco, PlazoSupresion } from '@/components/cumplimiento';
+import { BandejaArco, SolicitudesEnCifras } from '@/components/cumplimiento';
+import { Conservacion } from '@/components/privacidad';
 import { hoyEn } from '@/lib/zonas';
 
 type Doc = ConsentDocumentSummary;
@@ -56,6 +57,14 @@ export default function ConsentimientosPage() {
   const [revisar, setRevisar] = useState<Doc | null>(null);
   const [historial, setHistorial] = useState<string | null>(null);
   const gestiona = can('settings:consent:manage');
+  // La dueña (3.7, D-25): lee los textos completos, ve las solicitudes en cifras y firma el aviso de privacidad.
+  const soloLee = !can('members:consent:read');
+  const firma = can('approvals:grant');
+  const [porFirmar, setPorFirmar] = useState<SolicitudDeFirma | null>(null);
+  const cargaFirmas = useCarga(useCallback(() => api<NoticeSignatureRequests>('/consent-documents/signature-requests').then((r) => r.requests), []));
+  const firmas = cargaFirmas.datos ?? [];
+  const firmaDe = (id: string) => firmas.find((x) => x.documentId === id) ?? null;
+  const esperan = firmas.filter((x) => x.status === 'PENDING');
 
   // Sin red no es «Falta publicar» ni «Sin texto» en cada tipo (26-01, 21-23).
   const cargarDocs = useCallback(() => api<ConsentDocumentList>('/consent-documents').then((r) => r.documents), []);
@@ -78,10 +87,25 @@ export default function ConsentimientosPage() {
         sub="Lo que el socio acepta. Un texto publicado no se edita: se reemplaza con otra versión, y cada firma guarda cuál aceptó."
       />
 
+      {/* El aviso de privacidad no se publica sin la firma de la dueña (D-25). */}
+      {firma && esperan.length > 0 && (
+        <div className="mb-20" data-testid="avisos-por-firmar">
+          <Callout tone="warn" title={esperan.length === 1 ? 'El aviso de privacidad espera tu firma' : `${esperan.length} avisos de privacidad esperan tu firma`}>
+            {esperan.map((x) => (
+              <div key={x.documentId} className="row-between gap-12 flex-wrap callout-accion">
+                <span className="small">Versión <code>{x.version}</code> · la pidió {x.requestedByName ?? 'la gerencia'} el {fecha(x.requestedAt)}: «{x.reason}»</span>
+                <Button size="sm" icon={<FileSignature />} onClick={() => setPorFirmar(x)}>Leer y firmar</Button>
+              </div>
+            ))}
+          </Callout>
+        </div>
+      )}
+
       {/* Cumplimiento (PS-07/PS-08): lo que los socios pidieron y a quién ya le toca anonimizar. */}
       <div className="grid grid-2 mb-20">
-        <BandejaArco />
-        <PlazoSupresion />
+        {soloLee ? <SolicitudesEnCifras /> : <BandejaArco />}
+        {/* Bloque 3.9 (D-32): plazos, rostros de exsocios y la lista mensual que firma el dueño. Reemplaza a «Plazo de supresión». */}
+        <Conservacion />
       </div>
 
       {bioViejo && (
@@ -120,6 +144,10 @@ export default function ConsentimientosPage() {
                       : DE_TODA_ALTA.has(t) || modulo ? <Badge tone="warn" dot>Falta publicar</Badge>
                         : <Badge>Sin texto</Badge>}
                   {borrador && <Badge tone="info" dot>Borrador {borrador.version} por revisar</Badge>}
+                  {/* La firma de la dueña en el aviso (D-25): en qué va. */}
+                  {borrador && firmaDe(borrador.id)?.status === 'PENDING' && <Badge tone="warn" dot>Espera la firma de la dueña</Badge>}
+                  {borrador && firmaDe(borrador.id)?.status === 'STALE' && <Badge tone="warn" dot>Cambió después de pedir la firma: vuelve a pedirla</Badge>}
+                  {borrador && firmaDe(borrador.id)?.status === 'REJECTED' && <Badge tone="danger" dot>La dueña no lo firmó: {firmaDe(borrador.id)!.note}</Badge>}
                   <div className="row wrap gap-6">
                     {vigente && <Button variant="ghost" size="sm" icon={<Eye />} onClick={() => void abrir(vigente)}>Leer</Button>}
                     {borrador && <Button variant={gestiona ? 'primary' : 'secondary'} size="sm" icon={<Lock />} onClick={() => setRevisar(borrador)}>{gestiona ? 'Revisar y publicar' : 'Revisar'}</Button>}
@@ -143,7 +171,14 @@ export default function ConsentimientosPage() {
         onDone={async (mensaje) => { setEditor(null); toast('ok', mensaje); await cargar(); }} />}
       {revisar && <RevisarDialog doc={revisar} puedePublicar={gestiona} onClose={() => setRevisar(null)}
         onCorregir={() => { const b = revisar; setRevisar(null); setEditor({ tipo: b.consentType, borrador: b }); }}
-        onDone={async () => { setRevisar(null); toast('ok', 'Texto publicado. Las nuevas firmas usarán esta versión.'); await cargar(); }} />}
+        pideFirma={revisar.consentType === 'PRIVACY_NOTICE' && !firma}
+        onDone={async (r) => {
+          setRevisar(null);
+          toast('ok', r.awaitingSignature ? 'Se pidió la firma de la dueña. El aviso se publica cuando lo firme.' : 'Texto publicado. Las nuevas firmas usarán esta versión.');
+          await Promise.all([cargar(), cargaFirmas.recargar()]);
+        }} />}
+      {porFirmar && <FirmarAvisoDialog solicitud={porFirmar} onClose={() => setPorFirmar(null)}
+        onDone={async (mensaje) => { setPorFirmar(null); toast('ok', mensaje); await Promise.all([cargar(), cargaFirmas.recargar()]); }} />}
       {historial && docs && <HistorialDialog tipo={historial} docs={docs.filter((d) => d.consentType === historial)} puedeRetirar={gestiona && !DE_TODA_ALTA.has(historial)}
         onClose={() => setHistorial(null)} onLeer={(d) => void abrir(d)}
         onRetirado={async () => { setHistorial(null); toast('ok', 'Texto retirado: nadie más lo firma hasta que publiques otro.'); await cargar(); }} />}
@@ -168,7 +203,7 @@ function EditorDialog({ tipo, borrador, onClose, onDone }: { tipo: string; borra
     setBody(d.bodyText);
     return d.bodyText;
   }, [borrador]));
-  const plazo = useCarga(useCallback(() => api<{ monthsAfterArchive: number | null }>('/privacy/settings').then((r) => r.monthsAfterArchive), []));
+  const plazo = useCarga(useCallback(() => api<{ effectiveMonths: number }>('/privacy/settings').then((r) => r.effectiveMonths), []));
   const modelo = modeloDeTexto(tipo, {
     razonSocial: org.legalName, nombreComercial: org.tradeName, sucursales: branches.filter((b) => b.isActive).map((b) => b.name), mesesDeConservacion: plazo.datos ?? null,
   });
@@ -261,7 +296,12 @@ function diferencias(antes: string, despues: string): Array<{ tipo: 'igual' | 'm
  * el vigente), lo que le falta y, en el aviso de privacidad, la lista que la
  * gerencia marca punto por punto. El servidor exige lo mismo: aquí solo se ve antes.
  */
-function RevisarDialog({ doc, puedePublicar, onClose, onCorregir, onDone }: { doc: Doc; puedePublicar: boolean; onClose: () => void; onCorregir: () => void; onDone: () => Promise<void> }) {
+function RevisarDialog({ doc, puedePublicar, pideFirma, onClose, onCorregir, onDone }: {
+  doc: Doc; puedePublicar: boolean;
+  /** Es el aviso de privacidad y quien lo revisa no es quien firma: «publicar» deja la solicitud a la dueña (D-25). */
+  pideFirma: boolean;
+  onClose: () => void; onCorregir: () => void; onDone: (r: ConsentDocumentPublishResult) => Promise<void>;
+}) {
   const toast = useToast();
   const carga = useCarga(useCallback(() => api<ConsentDocumentReview>(`/consent-documents/${doc.id}/review`), [doc.id]));
   const r = carga.datos;
@@ -278,19 +318,19 @@ function RevisarDialog({ doc, puedePublicar, onClose, onCorregir, onDone }: { do
 
   async function publicar() {
     try {
-      await api(`/consent-documents/${doc.id}/publish`, { method: 'POST', body: JSON.stringify({ reason: reason.trim(), ...(r && r.checklist.length > 0 ? { checklist: marcados } : {}) }) });
-      await onDone();
+      const hecho = await api<ConsentDocumentPublishResult>(`/consent-documents/${doc.id}/publish`, { method: 'POST', body: JSON.stringify({ reason: reason.trim(), ...(r && r.checklist.length > 0 ? { checklist: marcados } : {}) }) });
+      await onDone(hecho);
     } catch (e) { toast('error', errorText(e)); }
   }
   const alternar = (k: string) => setMarcados((m) => (m.includes(k) ? m.filter((x) => x !== k) : [...m, k]));
 
   return (
-    <Dialog open onClose={onClose} size="lg" title={`Revisar y publicar · ${CONSENT_TYPE[doc.consentType]} ${doc.version}`}
+    <Dialog open onClose={onClose} size="lg" title={`${pideFirma && puedePublicar ? 'Revisar y pedir la firma' : 'Revisar y publicar'} · ${CONSENT_TYPE[doc.consentType]} ${doc.version}`}
       sub={r?.current ? `Reemplaza a la versión ${r.current.version}, vigente desde el ${fecha(r.current.publishedAt)}.` : 'Es la primera versión de este texto.'}
       footer={<>
         <Button variant="secondary" onClick={onClose} disabled={f.enviando}>Cancelar</Button>
         {puedePublicar && bloqueado && <Button icon={<Pencil />} onClick={onCorregir}>Corregir el borrador</Button>}
-        {puedePublicar && !bloqueado && <Button icon={<Lock />} loading={f.enviando} disabled={!r} onClick={() => void f.enviar(publicar)}>Publicar</Button>}
+        {puedePublicar && !bloqueado && <Button icon={<Lock />} loading={f.enviando} disabled={!r} onClick={() => void f.enviar(publicar)}>{pideFirma ? 'Pedir la firma de la dueña' : 'Publicar'}</Button>}
       </>}>
       {carga.error ? <ErrorCarga titulo="No se pudo cargar el borrador" mensaje={carga.error} onReintentar={() => void carga.recargar()} />
         : !r ? <Skeleton h={320} />
@@ -398,6 +438,63 @@ function HistorialDialog({ tipo, docs, puedeRetirar, onClose, onLeer, onRetirado
           </tbody>
         </table>
       </div>
+    </Dialog>
+  );
+}
+
+type SolicitudDeFirma = NoticeSignatureRequests['requests'][number];
+
+/**
+ * LA DUEÑA LEE Y FIRMA EL AVISO DE PRIVACIDAD (3.7 · D-25). El aviso no se
+ * publica sin su firma: aquí lo lee completo, ve quién lo pidió y por qué, y
+ * lo firma con su contraseña (se publica en ese momento) o dice que no, con
+ * su motivo, y el borrador vuelve a la gerencia.
+ */
+function FirmarAvisoDialog({ solicitud, onClose, onDone }: { solicitud: SolicitudDeFirma; onClose: () => void; onDone: (mensaje: string) => Promise<void> }) {
+  const texto = useCarga(useCallback(() => api<DocFull>(`/consent-documents/${solicitud.documentId}`), [solicitud.documentId]));
+  const [clave, setClave] = useState('');
+  const [noFirma, setNoFirma] = useState(false);
+  const [motivo, setMotivo] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const f = useFormulario({
+    clave: !noFirma && !clave && 'Escribe tu contraseña',
+    motivo: noFirma && faltaMotivo(motivo) && ERROR_MOTIVO,
+  });
+
+  async function enviar() {
+    setError(null);
+    try {
+      if (noFirma) {
+        await api(`/consent-documents/${solicitud.documentId}/sign/reject`, { method: 'POST', body: JSON.stringify({ reason: motivo.trim() }) });
+        await onDone('Quedó sin firmar. La gerencia verá tu motivo.');
+      } else {
+        await api<ConsentDocumentPublishResult>(`/consent-documents/${solicitud.documentId}/sign`, { method: 'POST', body: JSON.stringify({ password: clave }) });
+        await onDone('Aviso de privacidad firmado y publicado. Las nuevas altas firman esta versión.');
+      }
+    } catch (e) { setError(errorText(e, noFirma ? 'No se pudo guardar' : 'No se pudo firmar')); }
+  }
+
+  return (
+    <Dialog open onClose={onClose} size="lg" error={error} title={`Firmar el aviso de privacidad · versión ${solicitud.version}`}
+      sub={`Lo pidió ${solicitud.requestedByName ?? 'la gerencia'} el ${fecha(solicitud.requestedAt)}: «${solicitud.reason}». Al firmarlo queda publicado y no se edita.`}
+      footer={<>
+        <Button variant="secondary" onClick={onClose} disabled={f.enviando}>Cancelar</Button>
+        <Button variant="ghost" onClick={() => { setNoFirma(!noFirma); setError(null); }} disabled={f.enviando}>{noFirma ? 'Volver a firmar' : 'No lo firmo'}</Button>
+        <Button variant={noFirma ? 'danger' : 'primary'} icon={<FileSignature />} loading={f.enviando} disabled={!texto.datos} onClick={() => void f.enviar(enviar)}>{noFirma ? 'Devolver sin firmar' : 'Firmar y publicar'}</Button>
+      </>}>
+      {texto.error ? <ErrorCarga titulo="No se pudo cargar el aviso" mensaje={texto.error} onReintentar={() => void texto.recargar()} />
+        : !texto.datos ? <Skeleton h={320} /> : (
+          <div className="stack" data-testid="firmar-aviso">
+            <div className="doc doc-lectura aviso-por-firmar">{texto.datos.bodyText}</div>
+            {noFirma
+              ? <CampoMotivo id="fa-m" value={motivo} onChange={setMotivo} error={f.error('motivo')} placeholder="Qué hay que corregir antes de publicarlo" />
+              : (
+                <Field label="Tu contraseña" htmlFor="fa-c" hint="Es tu firma: queda en la bitácora quién lo pidió y que lo firmaste tú." error={f.error('clave')}>
+                  <input id="fa-c" className="input" type="password" autoComplete="current-password" value={clave} onChange={(e) => setClave(e.target.value)} />
+                </Field>
+              )}
+          </div>
+        )}
     </Dialog>
   );
 }

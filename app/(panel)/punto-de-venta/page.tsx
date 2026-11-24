@@ -12,7 +12,7 @@ import { Badge, Button, ButtonLink, CampoMotivo, Card, Dialog, Empty, ERROR_MOTI
 import { useFormulario } from '@/lib/formulario';
 import { CambioEfectivo, CobroFields, cobroListo, cuerpoDelCobro, COBRO_INICIAL, type Cobro } from '@/components/cobro';
 import { IconButton } from '@/components/compartido';
-import type { PosSale, Product } from '@gymflow/core/contracts';
+import type { PosSale, Product, ProductList } from '@gymflow/core/contracts';
 
 /** Contratos del núcleo (8-19): antes `Producto` estaba copiado en tres pantallas. */
 type Producto = Product;
@@ -24,6 +24,11 @@ type Venta = PosSale;
  * Entra al MISMO corte de caja que las membresías: por eso cobra con la caja
  * abierta de la sucursal. El precio lo pone el catálogo, no la pantalla, y la
  * venta del día se puede anular (con motivo) mientras el corte siga abierto.
+ *
+ * Precio de socio (D-21, bloque 3.6): si la venta es para un socio con
+ * membresía vigente y el producto tiene precio de socio, se cobra ese. Lo
+ * decide el servidor al cobrar; la pantalla le pregunta si aplica para
+ * mostrar el mismo total.
  */
 /** `useSearchParams` exige un límite de Suspense para el prerender. */
 export default function PuntoDeVentaPage() {
@@ -34,15 +39,16 @@ function PuntoDeVenta() {
   const { branches, inScope, can } = useSession();
   const toast = useToast();
   const sedes = branches.filter((b) => b.isActive && inScope(b.id));
-  // Venta ligada a un socio (desde su ficha): la venta guarda quién compró,
-  // pero todavía no se ve en su ficha ni en su portal (8-01). La pantalla no
-  // promete un historial que no existe.
+  // Venta ligada a un socio (desde su ficha): la venta guarda quién compró y
+  // aparece en su ficha («Compras en la tienda», 8-01, bloque 2.2).
   const params = useSearchParams();
   const socio = params.get('socio');
   const socioNombre = params.get('nombre');
   const sedeInicial = params.get('sede');
   const [sede, setSede] = useState(sedeInicial && sedes.some((b) => b.id === sedeInicial) ? sedeInicial : sedes[0]?.id ?? '');
   const [productos, setProductos] = useState<Producto[] | null>(null);
+  // ¿A este socio le toca el precio de socio? `false` sin socio o si su membresía no está vigente.
+  const [precioDeSocio, setPrecioDeSocio] = useState(false);
   // null = inventario sin confirmar (MC-05): no es lo mismo que cero existencias.
   const [stock, setStock] = useState<Map<string, number> | null>(new Map());
   const [ultima, setUltima] = useState<{ id: string; folio: string | null; totalCents: string; method: string; recibidoCents: bigint | null } | null>(null);
@@ -59,13 +65,14 @@ function PuntoDeVenta() {
   const cargar = useCallback(async () => {
     if (!sede) return;
     const [p, inv, v] = await Promise.all([
-      api<{ products: Producto[] }>('/products'),
+      api<ProductList>(`/products${socio ? `?memberId=${socio}` : ''}`),
       // Si el inventario no responde, se vende igual: existencias desconocidas, no agotadas (MC-05).
       api<{ stock: Array<{ productId: string; quantityOnHand: number }> }>(`/inventory?branchId=${sede}`).catch(() => null),
       api<{ sales: Venta[] }>(`/pos/sales?branchId=${sede}`),
     ]);
-    setProductos(p.products); setStock(inv ? new Map(inv.stock.map((s) => [s.productId, s.quantityOnHand])) : null); setVentas(v.sales);
-  }, [sede]);
+    setProductos(p.products); setPrecioDeSocio(p.memberPricing?.applies === true);
+    setStock(inv ? new Map(inv.stock.map((s) => [s.productId, s.quantityOnHand])) : null); setVentas(v.sales);
+  }, [sede, socio]);
   const [fallo, setFallo] = useState<string | null>(null);
   useEffect(() => { setFallo(null); void cargar().catch((e) => { setFallo(errorText(e, 'No se pudo cargar el punto de venta')); setProductos([]); setVentas([]); }); }, [cargar]);
 
@@ -73,7 +80,10 @@ function PuntoDeVenta() {
   const visibles = (productos ?? []).filter((p) => !q.trim() || `${p.name} ${p.sku}`.toLowerCase().includes(q.trim().toLowerCase()));
   const lineas = [...carrito.entries()].map(([id, n]) => ({ p: porId.get(id)!, n })).filter((l) => l.p);
   const piezas = lineas.reduce((a, l) => a + l.n, 0);
-  const total = lineas.reduce((t, l) => t + BigInt(l.p.priceCents) * BigInt(l.n), 0n);
+  /** Lo que se le cobra por pieza a ESTA venta: el de socio si aplica y el producto lo tiene. */
+  const precioDe = (p: Producto): string => (precioDeSocio && p.memberPriceCents != null ? p.memberPriceCents : p.priceCents);
+  const total = lineas.reduce((t, l) => t + BigInt(precioDe(l.p)) * BigInt(l.n), 0n);
+  const ahorro = lineas.reduce((t, l) => t + (BigInt(l.p.priceCents) - BigInt(precioDe(l.p))) * BigInt(l.n), 0n);
 
   const poner = (id: string, delta: number) => setCarrito((c) => {
     const m = new Map(c);
@@ -102,7 +112,7 @@ function PuntoDeVenta() {
 
   return (
     <div className="stack gap-20">
-      <PageHeader title="Punto de venta" sub={socio ? <>Venta para <Link href={`/socios/${socio}`} className="row-link strong">{socioNombre ?? 'el socio'}</Link>. Se cobra con la caja abierta y entra al mismo corte que las membresías.</> : 'Se cobra con la caja abierta y entra al mismo corte que las membresías.'}
+      <PageHeader title="Punto de venta" sub={socio ? <>Venta para <Link href={`/socios/${socio}`} className="row-link strong">{socioNombre ?? 'el socio'}</Link>{precioDeSocio ? ', a precio de socio' : ''}. Se cobra con la caja abierta y entra al mismo corte que las membresías.</> : 'Se cobra con la caja abierta y entra al mismo corte que las membresías.'}
         actions={sedes.length > 1 ? (
           <select className="select w-auto" aria-label="Sucursal" value={sede} onChange={(e) => { setSede(e.target.value); setCarrito(new Map()); }}>
             {sedes.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -131,7 +141,9 @@ function PuntoDeVenta() {
                     {enCarrito > 0 && <span className="pos-cuenta">{enCarrito}</span>}
                     <span className="strong small">{p.name}</span>
                     <span className="tiny muted">{p.sku}</span>
-                    <span className="pos-precio">{pesos(p.priceCents)}</span>
+                    <span className="pos-precio">{precioDe(p) !== p.priceCents && <span className="pos-precio-antes">{pesos(p.priceCents)}</span>}{pesos(precioDe(p))}</span>
+                    {/* Sin socio en la venta, el precio de socio se ve para poder decirlo; se cobra al venderle desde su ficha. */}
+                    {!precioDeSocio && p.memberPriceCents != null && <span className="pos-precio-socio">Socios {pesos(p.memberPriceCents)}</span>}
                     {hay !== null && <span className={`tiny ${agotado ? 'danger' : 'muted'}`}>{agotado ? 'Agotado' : `${hay} en existencia`}</span>}
                     {sinConfirmar && <span className="tiny muted">Existencias sin confirmar</span>}
                   </button>
@@ -166,13 +178,13 @@ function PuntoDeVenta() {
                   <li key={p.id} className="pos-linea">
                     <div className="small strong pos-linea-nombre">{p.name}</div>
                     <div className="pos-linea-ctrl">
-                      <span className="tiny muted">{pesos(p.priceCents)} c/u</span>
+                      <span className="tiny muted">{pesos(precioDe(p))} c/u{precioDe(p) !== p.priceCents ? ' · precio de socio' : ''}</span>
                       <div className="row" style={{ gap: 4, marginLeft: 'auto' }}>
                         <IconButton label="Uno menos" onClick={() => poner(p.id, -1)}><Minus /></IconButton>
                         <span className="num strong" style={{ width: 22, textAlign: 'center' }}>{n}</span>
                         <IconButton label="Uno más" onClick={() => poner(p.id, 1)}><Plus /></IconButton>
                       </div>
-                      <span className="num strong" style={{ minWidth: 72, textAlign: 'right' }}>{pesos(BigInt(p.priceCents) * BigInt(n))}</span>
+                      <span className="num strong" style={{ minWidth: 72, textAlign: 'right' }}>{pesos(BigInt(precioDe(p)) * BigInt(n))}</span>
                       <IconButton label="Quitar" onClick={() => poner(p.id, -n)}><X /></IconButton>
                     </div>
                   </li>
@@ -181,6 +193,7 @@ function PuntoDeVenta() {
               <div className="row-between" style={{ borderTop: '1px solid var(--line)', paddingTop: 12 }}>
                 <span className="strong">Total</span><span className="num strong" style={{ fontSize: 26 }}>{pesos(total)}</span>
               </div>
+              {ahorro > 0n && <p className="tiny muted" data-testid="pos-ahorro">Con precio de socio: {pesos(ahorro)} menos que al público.</p>}
               <CobroFields branchId={sede} value={cobro} onChange={cambiarCobro} />
               {cobro.method === 'CASH' && <CambioEfectivo totalCents={total} onRecibido={setRecibido} />}
               <Button size="lg" block loading={enviando} disabled={!cobroListo(cobro) || total <= 0n} onClick={() => void cobrar()}>Cobrar {pesos(total)}</Button>

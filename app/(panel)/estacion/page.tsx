@@ -109,7 +109,7 @@ export default function EstacionPage() {
           {resultado && <Resultado r={resultado} onOtraVez={() => setResultado(null)} />}
         </div>
       )}
-      <p className="small muted">Cada paso queda en el historial de accesos del socio. ¿Alguien sin su rostro registrado, o a quien ya no reconoce? Regístralo o actualízalo desde su ficha, en Biometría, o déjalo pasar por excepción desde <Link href="/socios" className="row-link">Socios</Link>.</p>
+      <p className="small muted">Cada paso queda en el historial de accesos del socio. ¿Alguien sin su rostro registrado, o a quien ya no reconoce? Regístralo o actualízalo desde su ficha, en Biometría, o registra su entrada desde <Link href="/socios" className="row-link">Socios</Link>: con rostro entra por excepción con motivo; sin rostro, según la regla del gimnasio, puede necesitar la autorización de la gerencia.</p>
     </div>
   );
 }
@@ -133,7 +133,7 @@ function Resultado({ r, onOtraVez }: { r: Respuesta; onOtraVez: () => void }) {
       <p className="estacion-titulo">{ok ? `Bienvenido, ${r.memberName.split(' ')[0]}` : `${r.memberName.split(' ')[0]}, pasa con recepción`}</p>
       {/* Nunca un importe (5-14): la pantalla la ve la fila. Cuánto debe se dice en el mostrador. */}
       <p className="estacion-detalle">
-        {ok ? (r.consumedVisit ? 'Se descontó una visita de tu paquete.' : r.warning ? (DENIAL_REASON[r.warning] ?? '') : '')
+        {ok ? (r.consumedVisit ? 'Se descontó una visita de tu paquete.' : r.reentry ? 'Ya habías entrado hoy: no cuenta otra visita.' : r.warning ? (DENIAL_REASON[r.warning] ?? '') : '')
           : r.reason ? DENIAL_REASON[r.reason] ?? r.reason : 'No puede pasar'}
       </p>
       {/* El texto biométrico cambió y no lo ha vuelto a firmar: se le avisa; no cambia si entra. */}

@@ -56,7 +56,8 @@ const TABLA: ReadonlyArray<readonly [string, Celda, Celda, Celda, Celda]> = [
   ['/autorizaciones',  'pasa',  'no',    'no',    'no'],
   ['/bitacora',        'pasa',  'llave', 'no',    'no'],
   ['/biometria',       'pasa',  'llave', 'no',    'no'],
-  ['/consentimientos', 'no',    'llave', 'llave', 'no'],
+  // La dueña lee los textos legales y firma el aviso de privacidad (3.7, D-25).
+  ['/consentimientos', 'pasa',  'llave', 'llave', 'no'],
 ];
 
 /** La sesión que arma la API para ese puesto: sus permisos menos lo que la llave cierra. */
@@ -155,7 +156,7 @@ test('recepción, coach y dueña: una lista plana, sin título, en el orden en q
   assert.deepEqual(plano('RECEPTION').map((s) => s.href), ['/panel', '/socios', '/caja', '/punto-de-venta', '/clases', '/altas', '/prospectos', '/mensajes', '/precios', '/estacion', '/acceso']);
   assert.deepEqual(plano('COACH').map((s) => [s.href, s.etiqueta]), [['/panel', 'Inicio'], ['/socios', 'Mis socios'], ['/clases', 'Clases'], ['/rutinas', 'Rutinas'], ['/precios', 'Lista de precios']]);
   // Sus firmas y su dinero, arriba: ya no plegados bajo «Dirección» y «Cumplimiento».
-  assert.deepEqual(plano('OWNER').map((s) => s.href), ['/panel', '/autorizaciones', '/movimientos', '/tablero', '/caja', '/personal', '/bitacora', '/planes', '/precios', '/gimnasio', '/biometria']);
+  assert.deepEqual(plano('OWNER').map((s) => s.href), ['/panel', '/autorizaciones', '/movimientos', '/tablero', '/caja', '/personal', '/bitacora', '/planes', '/precios', '/gimnasio', '/biometria', '/consentimientos']);
   // Lo que el dueño le libere a recepción sale después de lo suyo.
   assert.deepEqual(plano('RECEPTION', todasLasLlaves).slice(11).map((s) => s.href), ['/retencion', '/planes', '/consentimientos']);
 });
