@@ -11,20 +11,25 @@ import { Anular } from './anular';
 import { Emitir } from './emitir';
 import { Pagar } from './pagar';
 import { AvisosDeMarca, Prorroga, RenglonDeCobranza, type Aviso, type Cobranza, type Dueno } from './cobranza';
-import { ESTADO_COBRO, ESTADO_FACTURA, FORMA_DE_PAGO, dias, fraseDeCobro, periodo, type CobroDeMarca, type Factura, type Linea } from './textos';
+import { Descuentos } from './descuentos';
+import { FilaDeLinea, FilasDeDesglose } from './desglose';
+import { ESTADO_COBRO, ESTADO_FACTURA, FORMA_DE_PAGO, dias, etiquetaDeIva, fraseDeCobro, periodo, tasa, type CobroDeMarca, type Desglose, type Emisor, type Factura, type Linea, type Receptor } from './textos';
 
 type Resumen = {
   /** El mes en curso en la Ciudad de México. */
   month: string;
   invoices: Factura[];
-  monthly: { lines: Linea[]; totalCents: string; missingPrices: string[] };
+  /** La mensualidad de un mes completo, hoy: renglones (con el del descuento), subtotal, IVA y total (D-39). */
+  monthly: Desglose & { lines: Linea[]; missingPrices: string[]; listCents: string; discountCents: string; discount: { id: string; label: string; lastMonth: string } | null };
+  /** A nombre de quién sale la factura y quién la emite. */
+  fiscal: { receiver: Receptor; issuer: Emisor | null };
   status: CobroDeMarca;
   /** Los meses que a esta marca se le pueden facturar, del más reciente al de su liberación. */
   billableMonths: Array<{ month: string; invoiced: boolean }>;
   /** Solo a una marca en uso se le emite. */
   canIssue: boolean;
   /** La mensualidad que ya se le anunció para una fecha próxima, si cambia (D-38). */
-  upcoming: { effectiveFrom: string; totalCents: string } | null;
+  upcoming: { effectiveFrom: string; totalCents: string; taxRateBps: number; taxIncluded: boolean } | null;
   /** La escalera de cobranza (D-37): cuándo se suspende sola, sus avisos y a quién van. */
   collections: Cobranza;
   notices: Aviso[];
@@ -55,7 +60,7 @@ export function Cobro({ organizationId, tradeName, onServicio }: { organizationI
   return (
     <>
       <Card title="Cobro" data-testid="cobro"
-        sub="Lo que la marca paga a GymFlow cada mes por lo básico y sus módulos contratados. La factura es un comprobante interno; el CFDI se emite por fuera."
+        sub="Lo que la marca paga a GymFlow cada mes por lo básico y sus módulos contratados. El primer mes y un módulo contratado a medio mes se cobran por días. La factura es un estado de cuenta: no es un CFDI ni se timbra."
         actions={<span className="row gap-6"><ButtonLink href="/plataforma/precios" variant="ghost" size="sm">Precios</ButtonLink>{porQueNo && <span className="tiny muted">{porQueNo}</span>}<Button size="sm" icon={<FilePlus />} disabled={!!porQueNo} onClick={() => setEmitir(true)}>Generar factura</Button></span>}>
         <div className="stack">
           <div className="row-between flex-wrap gap-12">
@@ -68,16 +73,24 @@ export function Cobro({ organizationId, tradeName, onServicio }: { organizationI
           <RenglonDeCobranza cobranza={r.collections} onProrroga={() => setProrroga(true)} />
           {r.upcoming && (
             <Callout tone="info" title={`Desde la factura de ${periodo(r.upcoming.effectiveFrom).toLowerCase()}: ${pesos(r.upcoming.totalCents)} al mes`}>
-              Ya se le anunció. Hasta entonces conserva la mensualidad de hoy; el cambio se ve y se cancela en <Link href="/plataforma/precios">Precios</Link>.
+              Ya se le anunció{r.upcoming.taxRateBps !== r.monthly.taxRateBps ? (r.upcoming.taxRateBps > 0 ? `: desde esa factura lleva IVA (${tasa(r.upcoming.taxRateBps)})` : ': desde esa factura ya no lleva IVA') : ''}. Hasta entonces conserva la mensualidad de hoy; el cambio se ve y se cancela en <Link href="/plataforma/precios">Precios</Link>.
             </Callout>
           )}
           {sinPrecios && <Callout tone="warn">Sin precio: {r.monthly.missingPrices.join(', ')}. <Link href="/plataforma/precios">Fíjalo en Precios</Link> para poder facturar.</Callout>}
           {r.monthly.lines.length > 0 && <div className="table-wrap">
             <table className="table">
               <thead><tr><th>Mensualidad de hoy</th><th className="right">Al mes</th></tr></thead>
-              <tbody>{r.monthly.lines.map((l) => <tr key={l.key}><td className="small">{l.name}</td><td className="right num small">{pesos(l.monthlyCents)}</td></tr>)}</tbody>
+              <tbody>{r.monthly.lines.map((l) => <FilaDeLinea key={l.key} l={l} chica />)}</tbody>
+              {(r.monthly.discount || r.monthly.taxRateBps > 0) && <tfoot data-testid="mensualidad-desglose"><FilasDeDesglose d={r.monthly} total="Paga al mes" /></tfoot>}
             </table>
           </div>}
+          {r.monthly.discount && <p className="small muted" data-testid="descuento-vigente">Con descuento hasta la factura de {periodo(r.monthly.discount.lastMonth).toLowerCase()}; después paga la lista: {pesos(r.monthly.listCents)}{r.monthly.taxRateBps > 0 && !r.monthly.taxIncluded ? ' más IVA' : ''}.</p>}
+          <p className="small" data-testid="datos-fiscales">
+            <span className="muted">Se factura a: </span><span className="strong">{r.fiscal.receiver.legalName}</span>
+            {r.fiscal.receiver.rfc ? <span className="mono"> · RFC {r.fiscal.receiver.rfc}</span> : <span className="muted"> · sin RFC (se captura en «Datos y marca»)</span>}
+            {r.monthly.taxRateBps > 0 ? <span className="muted"> · {etiquetaDeIva(r.monthly)}</span> : <span className="muted"> · sin IVA</span>}
+          </p>
+          <Descuentos organizationId={organizationId} tradeName={tradeName} onCambio={cargar} />
           {r.invoices.length === 0
             ? <Empty icon={<Receipt />} title="Sin facturas" text={sinPrecios ? 'Primero fija los precios.' : r.canIssue ? 'Genera la del mes en curso.' : 'Se le factura desde que se libera el software.'} />
             : (

@@ -8,6 +8,7 @@ import { fecha as fechaLarga, hora, pesos } from '@/lib/format';
 import { errorText, useSession } from './session';
 import { Button, ButtonLink, Callout, Cambio, Card, PageHeader, Skeleton } from './ui';
 import { AvisosEnTelefono } from './push';
+import { AvisosDeLaDuenaTarjeta } from './avisos-duena';
 import { AvisoSolicitudesArco } from './cumplimiento';
 import { GLOSARIO } from '@/lib/glosario';
 import { GlosarioDinero } from './glosario-dinero';
@@ -345,6 +346,8 @@ export function InicioDuena() {
           este mismo orden: primero lo que pide atención. */}
       <div className="duena-columnas">
       <div className="duena-col-lado stack">
+      {/* D-05 (bloque 4.2): lo que el sistema le avisó y su resumen del lunes; lo mismo que suena en su teléfono. */}
+      <AvisosDeLaDuenaTarjeta />
       {/* La llave es suya: solo quien la tiene (y ve al personal) recibe el aviso. */}
       {can('staff:unlock') && can('staff:read') && <GerenteNuevo />}
       {/* El aviso de privacidad no se publica sin su firma (D-25). */}

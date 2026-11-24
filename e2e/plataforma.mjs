@@ -188,7 +188,11 @@ await recorrido('plataforma', async (r) => {
   ok(/^\$[\d,]+\.\d{2}$/.test(mensualidad) && mensualidad !== '$0.00', `la mensualidad de hoy sale de los precios y lo contratado (${mensualidad})`);
   await pl.getByTestId('cobro').getByRole('button', { name: 'Generar factura' }).click();
   const de = pl.getByRole('dialog');
-  ok((await de.getByRole('button', { name: /^Emitir/ }).innerText()).includes(mensualidad), 'el diálogo cobra exactamente la mensualidad de hoy');
+  // Bloque 4.9 (D-39): el primer mes se cobra POR DÍAS desde el día en que se liberó; solo si eso fue el día 1 coincide con la mensualidad.
+  await de.getByTestId('emision-total').waitFor({ timeout: T.respuesta });
+  const cobrado = (await de.getByTestId('emision-total').innerText()).trim();
+  ok(/^\$[\d,]+\.\d{2}$/.test(cobrado) && cobrado !== '$0.00' && (await de.getByRole('button', { name: /^Emitir/ }).innerText()).includes(cobrado), `el diálogo cobra lo que enseña la vista previa (${cobrado})`);
+  ok(cobrado === mensualidad || await de.getByText(/ de \d+ días \(/).count() >= 1, 'el primer mes va por días, salvo que se haya liberado el día 1');
   await de.getByRole('button', { name: /^Emitir/ }).click();
   await pl.getByText(/Factura GF-\d{4}-\d{6} emitida/).waitFor({ timeout: T.respuesta });
   await pl.locator('[data-folio]').first().waitFor({ timeout: T.respuesta });
@@ -208,7 +212,7 @@ await recorrido('plataforma', async (r) => {
   await r.captura(pl, 'plataforma-4c-cobro', { full: true });
   await pl.locator('[data-folio]').getByRole('link', { name: folio }).click();
   await pl.getByRole('heading', { name: `Factura ${folio}` }).waitFor({ timeout: T.respuesta });
-  ok((await pl.getByTestId('factura-total').innerText()).trim() === mensualidad, 'el comprobante guarda el total tal como se cobró');
+  ok((await pl.getByTestId('factura-total').innerText()).trim() === cobrado, 'el comprobante guarda el total tal como se cobró');
   ok(await pl.getByText(/No es un CFDI/).count() === 1, 'y dice claramente que no es un CFDI');
   await r.captura(pl, 'plataforma-4d-factura', { full: true });
   await pl.goto(`${PANEL}/plataforma`, { waitUntil: 'networkidle' });

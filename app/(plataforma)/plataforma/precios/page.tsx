@@ -9,6 +9,7 @@ import { useToast, errorText } from '@/components/session';
 import { Breadcrumb, Button, Callout, Card, ErrorCarga, PageHeader, EsqueletoTabla } from '@/components/ui';
 import { periodo } from '../cobro';
 import { AnunciarCambio, CambiosAnunciados } from './anunciados';
+import { Iva } from './iva';
 
 type Precio = { key: string; name: string; monthlyCents: string | null; /** El cambio ya anunciado de este precio, si lo hay (D-38). */ pending: { id: string; monthlyCents: string | null; effectiveFrom: string } | null };
 /** Lo que responde guardar: cuántos quedaron en el acto y cuáles se anunciaron para una fecha. */
@@ -80,7 +81,7 @@ export default function PreciosPage() {
   return (
     <>
       <Breadcrumb items={[{ label: 'Marcas', href: '/plataforma' }, { label: 'Precios' }]} />
-      <PageHeader title="Precios" sub="Lo que cobra GymFlow al mes por lo básico y por cada módulo. La mensualidad de cada marca se arma con estos precios y lo que tiene contratado; las facturas ya emitidas no cambian. Un cambio que le mueve la mensualidad a alguna marca se anuncia con al menos un mes de aviso: hasta esa fecha cada marca paga lo que pagaba. Todo queda en Seguridad → «Lo que hizo la plataforma»." />
+      <PageHeader title="Precios" sub="Lo que cobra GymFlow al mes por lo básico y por cada módulo, sin IVA. La mensualidad de cada marca se arma con estos precios y lo que tiene contratado; las facturas ya emitidas no cambian. Un cambio que le mueve la mensualidad a alguna marca se anuncia con al menos un mes de aviso: hasta esa fecha cada marca paga lo que pagaba. Todo queda en Seguridad → «Lo que hizo la plataforma»." />
       {fallo && <ErrorCarga mensaje="No se pudieron cargar los precios." onReintentar={cargar} />}
       {!precios && !fallo && <div className="card"><EsqueletoTabla filas={10} /></div>}
       {precios && (
@@ -125,7 +126,9 @@ export default function PreciosPage() {
             </div>
           </Card>
           <CambiosAnunciados version={version} onCambio={cargar} />
-          <Callout tone="info">La factura que emite la plataforma es un comprobante interno de cobro, no un CFDI. El comprobante fiscal se emite por fuera, con la razón social de cada marca.</Callout>
+          {/* D-39 (bloque 4.9): el IVA de las facturas, apagado mientras nadie lo anuncie, y los datos de GymFlow como emisor. */}
+          <Iva />
+          <Callout tone="info">La factura que emite la plataforma es un estado de cuenta: no es un CFDI ni se timbra. El comprobante fiscal se emite por fuera, con la razón social y el RFC de cada marca.</Callout>
         </div>
       )}
       {previa && (

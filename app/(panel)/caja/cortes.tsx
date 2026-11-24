@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { History, Wallet } from 'lucide-react';
@@ -8,7 +8,7 @@ import type { CashAlerts } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
 import { fecha, hora, pesos } from '@/lib/format';
 import { TURNO, type Caja, type Turno } from '@/lib/caja';
-import { useSession } from '@/components/session';
+import { errorText, useSession } from '@/components/session';
 import { Badge, Button, Callout, Card, Empty, ErrorCarga, EsqueletoTabla, PageHeader, Segmented, Skeleton } from '@/components/ui';
 import { Diferencia, EstadoRevision, quienResponde, RevisarDialog, TOLERANCIA } from '@/components/caja';
 import { useCarga } from '@/lib/carga';
@@ -18,6 +18,8 @@ const FILTROS: ReadonlyArray<{ value: Filtro; label: string }> = [
   { value: 'todos', label: 'Todos' }, { value: 'diferencia', label: 'Con diferencia' }, { value: 'revisar', label: 'Por revisar' },
 ];
 const CONSULTA: Record<Filtro, string> = { todos: '', diferencia: '&variance=ANY', revisar: '&variance=PENDING' };
+/** Cortes por página (bloque 4.11); los siguientes, con «Cargar más cortes». */
+const POR_PAGINA = 50;
 const desde = (a: CashAlerts['open'][number]) => (a.stale ? `desde el ${fecha(a.businessDate)}` : `desde las ${hora(a.openedAt)}`);
 
 /**
@@ -67,11 +69,28 @@ export function VistaCortes() {
   const deSede = sede ? `&branchId=${sede}` : '';
   const avisos = useCarga(useCallback(() => api<CashAlerts>(`/cash/alerts${sede ? `?branchId=${sede}` : ''}`), [sede]), { conservar: true });
   const cajas = useCarga(useCallback(() => api<{ registers: Caja[] }>(`/cash-registers${sede ? `?branchId=${sede}` : ''}`), [sede]), { conservar: true });
-  const cortes = useCarga(useCallback(() => api<{ sessions: Turno[] }>(`/cash-sessions?status=CLOSED&limit=200${deSede}${CONSULTA[filtro]}`), [deSede, filtro]), { conservar: true });
+  // Por páginas (bloque 4.11): antes se cortaba en los últimos 200 sin decirlo.
+  const consulta = `/cash-sessions?status=CLOSED&limit=${POR_PAGINA}${deSede}${CONSULTA[filtro]}`;
+  const cortes = useCarga(useCallback(() => api<{ sessions: Turno[]; nextCursor: string | null }>(consulta), [consulta]), { conservar: true });
+  // Lo que se fue pidiendo con «Cargar más». Si la lista se vuelve a pedir (otro filtro, otra sede, una revisión), se empieza de nuevo.
+  const [mas, setMas] = useState<{ items: Turno[]; cursor: string | null } | null>(null);
+  const [pidiendo, setPidiendo] = useState(false);
+  const [errorMas, setErrorMas] = useState<string | null>(null);
+  useEffect(() => { setMas(null); setErrorMas(null); }, [cortes.datos]);
+  const cursor = mas ? mas.cursor : cortes.datos?.nextCursor ?? null;
+  async function cargarMas() {
+    if (!cursor || pidiendo) return;
+    setPidiendo(true); setErrorMas(null);
+    try {
+      const r = await api<{ sessions: Turno[]; nextCursor: string | null }>(`${consulta}&cursor=${encodeURIComponent(cursor)}`);
+      setMas((antes) => ({ items: [...(antes?.items ?? []), ...r.sessions], cursor: r.nextCursor }));
+    } catch (e) { setErrorMas(errorText(e, 'No se pudieron cargar más cortes')); }
+    finally { setPidiendo(false); }
+  }
 
   const nombreCaja = useMemo(() => new Map((cajas.datos?.registers ?? []).map((c) => [c.id, c.name])), [cajas.datos]);
   const nombreSede = useMemo(() => new Map(branches.map((b) => [b.id, b.name])), [branches]);
-  const todos = cortes.datos?.sessions ?? null;
+  const todos = useMemo(() => (cortes.datos ? [...cortes.datos.sessions, ...(mas?.items ?? [])] : null), [cortes.datos, mas]);
   const personas = useMemo(() => {
     const m = new Map<string, string>();
     for (const t of todos ?? []) if (t.responsibleName) m.set(t.responsibleUserId, t.responsibleName);
@@ -111,8 +130,14 @@ export function VistaCortes() {
           )}
       </Card>
 
-      <Card title="Cortes" sub={`Los últimos 200 turnos cerrados. Una diferencia de más de ${TOLERANCIA} queda por revisar hasta que la gerencia la cierra con su nota.`} pad={false}
-        actions={<Segmented etiqueta="Qué cortes ver" value={filtro} onChange={setFiltro} options={FILTROS} />}>
+      <Card title="Cortes" sub={`Los turnos cerrados, del más reciente al más antiguo. Una diferencia de más de ${TOLERANCIA} queda por revisar hasta que la gerencia la cierra con su nota.`} pad={false}
+        actions={<Segmented etiqueta="Qué cortes ver" value={filtro} onChange={setFiltro} options={FILTROS} />}
+        footer={cursor && !cortes.error ? (
+          <div className="stack-sm">
+            {errorMas && <p className="small danger" role="alert">{errorMas}</p>}
+            <Button size="sm" variant="secondary" loading={pidiendo} onClick={() => void cargarMas()} data-testid="cortes-cargar-mas">Cargar más cortes</Button>
+          </div>
+        ) : undefined}>
         {personas.length > 1 && (
           <div className="card-body">
             <select className="select w-auto" aria-label="De quién fue el turno" value={persona} onChange={(e) => setPersona(e.target.value)}>

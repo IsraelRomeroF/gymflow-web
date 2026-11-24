@@ -55,6 +55,8 @@ const TABLA: ReadonlyArray<readonly [string, Celda, Celda, Celda, Celda]> = [
   ['/modulos',         'pasa',  'llave', 'no',    'no'],
   // Lo que el gimnasio le paga a GymFlow: solo de su dueño, sin llave que la libere (D-37; 3.12).
   ['/cuenta-gymflow',  'pasa',  'no',    'no',    'no'],
+  // Lo que el sistema le avisa a la dueña y su resumen del lunes: solo de su puesto, sin llave que lo libere (D-05; 4.2).
+  ['/avisos',          'pasa',  'no',    'no',    'no'],
   ['/autorizaciones',  'pasa',  'no',    'no',    'no'],
   ['/bitacora',        'pasa',  'llave', 'no',    'no'],
   ['/biometria',       'pasa',  'llave', 'no',    'no'],
@@ -158,7 +160,7 @@ test('recepción, coach y dueña: una lista plana, sin título, en el orden en q
   assert.deepEqual(plano('RECEPTION').map((s) => s.href), ['/panel', '/socios', '/caja', '/punto-de-venta', '/clases', '/altas', '/prospectos', '/mensajes', '/precios', '/estacion', '/acceso']);
   assert.deepEqual(plano('COACH').map((s) => [s.href, s.etiqueta]), [['/panel', 'Inicio'], ['/socios', 'Mis socios'], ['/clases', 'Clases'], ['/rutinas', 'Rutinas'], ['/precios', 'Lista de precios']]);
   // Sus firmas y su dinero, arriba: ya no plegados bajo «Dirección» y «Cumplimiento».
-  assert.deepEqual(plano('OWNER').map((s) => s.href), ['/panel', '/autorizaciones', '/movimientos', '/tablero', '/caja', '/personal', '/bitacora', '/planes', '/precios', '/gimnasio', '/biometria', '/consentimientos', '/cuenta-gymflow']);
+  assert.deepEqual(plano('OWNER').map((s) => s.href), ['/panel', '/autorizaciones', '/avisos', '/movimientos', '/tablero', '/caja', '/personal', '/bitacora', '/planes', '/precios', '/gimnasio', '/biometria', '/consentimientos', '/cuenta-gymflow']);
   // Lo que el dueño le libere a recepción sale después de lo suyo.
   assert.deepEqual(plano('RECEPTION', todasLasLlaves).slice(11).map((s) => s.href), ['/retencion', '/planes', '/consentimientos']);
 });

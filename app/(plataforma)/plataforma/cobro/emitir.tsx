@@ -9,7 +9,7 @@ import { fecha, pesos } from '@/lib/format';
 import { errorText, useToast } from '@/components/session';
 import { Button, Dialog, Field, VistaPrevia, sePuedeSeguir, type CifraPrevia } from '@/components/ui';
 import { CampoMes, mesesRecientes } from './mes';
-import { periodo, type Factura, type ResultadoDeEmitirMes, type VistaPreviaDeEmision } from './textos';
+import { etiquetaDeIva, periodo, type Factura, type ResultadoDeEmitirMes, type VistaPreviaDeEmision } from './textos';
 
 const facturas = (n: number): string => `${n} ${n === 1 ? 'factura' : 'facturas'}`;
 const marcas = (n: number): string => `${n} ${n === 1 ? 'marca' : 'marcas'}`;
@@ -66,11 +66,17 @@ export function Emitir({ mesActual, marca, onClose, onHecho }: {
     : !marca && v && v.toIssue.length === 0 ? [`No hay ninguna factura que emitir de ${periodo(mes).toLowerCase()}: todas las marcas en uso ya la tienen o se saltan.`] : [];
   const cifras: CifraPrevia[] = !v ? []
     : marca
-      ? [...(v.toIssue[0]?.lines ?? []).map((l) => ({ etiqueta: l.name, valor: pesos(l.monthlyCents) })), ...(v.toIssue[0] ? [{ etiqueta: <strong>Total</strong>, valor: pesos(v.totalCents), nota: `Vence el ${fecha(v.dueDate)}, 10 días después de emitirse.` }] : [])]
+      ? [
+        ...(v.toIssue[0]?.lines ?? []).map((l) => ({ etiqueta: l.name, valor: pesos(l.monthlyCents) })),
+        // D-39: con IVA, el subtotal y el IVA van antes del total.
+        ...(v.toIssue[0] && v.toIssue[0].taxRateBps > 0 ? [{ etiqueta: v.toIssue[0].taxIncluded ? 'Subtotal sin IVA' : 'Subtotal', valor: pesos(v.toIssue[0].subtotalCents) }, { etiqueta: etiquetaDeIva(v.toIssue[0]), valor: pesos(v.toIssue[0].taxCents) }] : []),
+        ...(v.toIssue[0] ? [{ etiqueta: <strong>Total</strong>, valor: <span data-testid="emision-total">{pesos(v.totalCents)}</span>, nota: `Vence el ${fecha(v.dueDate)}, 10 días después de emitirse.` }] : []),
+      ]
       : v.toIssue.map((x) => ({ etiqueta: x.tradeName, valor: pesos(x.totalCents) }));
   const avisos = !marca && v ? v.skipped.map((s) => <><strong>{s.tradeName}</strong> se salta: {s.reason.charAt(0).toLowerCase() + s.reason.slice(1)}.</>) : [];
   const listo = !!v && sePuedeSeguir(bloqueos) && v.toIssue.length > 0;
-  const total = v?.totalCents ?? marca?.totalCents;
+  // El importe del botón es el de la vista previa (lo que de verdad se emite): el primer mes va por días y puede no ser la mensualidad.
+  const total = v?.totalCents;
 
   if (resultado) {
     return (
@@ -96,7 +102,7 @@ export function Emitir({ mesActual, marca, onClose, onHecho }: {
     <Dialog open onClose={onClose} error={error}
       title={marca ? `Generar factura a ${marca.tradeName}` : `Emitir ${periodo(mes).toLowerCase()}`}
       sub={marca
-        ? 'Se cobra con los precios de hoy y lo contratado hoy. Después de emitida no cambia: si algo se ajusta, se anula y se emite otra.'
+        ? 'Se cobra con los precios de ese mes y lo contratado hoy; el mes en que empezó y un módulo contratado a medio mes van por días. Después de emitida no cambia: si algo se ajusta, se anula y se emite otra.'
         : 'Una factura por cada marca en uso que no la tenga todavía. El día 1 de cada mes esto corre solo; el botón sirve para adelantarse o para una marca liberada a mitad de mes.'}
       footer={<>
         <Button variant="secondary" onClick={onClose} disabled={enviando}>Cancelar</Button>

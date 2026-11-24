@@ -67,7 +67,10 @@ export function Puerta({ children }: { children: ReactNode }) {
         // legales salen ahí (D-24: el Tablero se queda como hoy).
         text={mirada.roles.includes('OWNER')
           ? `La pantalla ${seccion.etiqueta} la lleva tu gerencia. Si necesitas saber algo de aquí, pregúntale a ella.`
-          : `${seccion.etiqueta} es para ${seccion.paraQuien}. Si la necesitas, pídeselo a la gerencia.`}
+          // A la gerencia no se le manda con «la gerencia» (3.13 D4; bloque 4.11): lo que ella no ve es de la dueña.
+          : mirada.roles.includes('MANAGER')
+            ? `${seccion.etiqueta} es para ${seccion.paraQuien}. Si necesitas algo de aquí, pídeselo a ella o a él.`
+            : `${seccion.etiqueta} es para ${seccion.paraQuien}. Si la necesitas, pídeselo a la gerencia.`}
         action={<ButtonLink href="/panel" variant="secondary">Ir a Inicio</ButtonLink>}
       />
     );

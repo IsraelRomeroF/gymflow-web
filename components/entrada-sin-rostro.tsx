@@ -179,7 +179,8 @@ export function useAutorizarSinRostro(rechazo: Rechazo | null, opciones: { onNoP
       </>;
     } else {
       const principal = puedeRegistrar ? 'registrar' : 'autorizar';
-      pie = <>
+      const tres = puedeRegistrar && (puedeAutorizar || puedePedirFirma) && !otraNegativa;
+      const botones = <>
         <Button variant="ghost" onClick={opciones.onNoPasa} disabled={enCurso}>No pasa</Button>
         {(puedeAutorizar || puedePedirFirma) && !otraNegativa && (
           <Button variant={principal === 'autorizar' ? 'primary' : 'secondary'} icon={<ShieldCheck />} disabled={enCurso} onClick={() => setModo('motivo')} data-testid="sin-rostro-autorizar">
@@ -188,6 +189,9 @@ export function useAutorizarSinRostro(rechazo: Rechazo | null, opciones: { onNoP
         )}
         {puedeRegistrar && <ButtonLink href={`/socios/${r.memberId}?tab=biometria&registrar=rostro`} variant="primary" icon={<ScanFace />}>Registrar su rostro</ButtonLink>}
       </>;
+      // Tres botones no caben en un renglón del diálogo y el principal bajaba solo (3.13 D3; bloque 4.11):
+      // el principal a todo lo ancho y los otros dos a la mitad, debajo. Con uno o dos, como siempre.
+      pie = tres ? <div className="pie-tres">{botones}</div> : botones;
     }
   }
 

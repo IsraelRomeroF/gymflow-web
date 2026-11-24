@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, type ReactNode } from 'react';
-import { ArrowRight, CalendarX, CircleCheck, DoorOpen, FileSignature, HeartHandshake, Inbox, ScanFace, Smartphone, Sparkles, Stamp, UserRoundPlus, UserX, Wallet } from 'lucide-react';
+import { ArrowRight, CalendarX, CircleCheck, DoorOpen, FileSignature, HeartHandshake, Inbox, Repeat, ScanFace, Smartphone, Sparkles, Stamp, UserRoundPlus, UserX, Wallet } from 'lucide-react';
 import type { AsuntoDelInicio, MeHome, RenglonDelInicio } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
 import { hora, pesos } from '@/lib/format';
@@ -79,6 +79,12 @@ function textoDe(r: RenglonDelInicio): Texto {
       icono: <Smartphone />, href: '/socios',
       titulo: r.count === 1 ? 'Un socio cambió su celular o su correo desde su teléfono' : `${r.count.toLocaleString('es-MX')} socios cambiaron su celular o su correo desde su teléfono`,
       texto: `${r.detail.join(', ')}${r.count > r.detail.length ? ' y más' : ''}. El cambio ya quedó en su ficha: cuando ${r.count === 1 ? 'venga, confirma con él o ella que fue suyo' : 'vengan, confirma con cada quien que fue suyo'}.`,
+    };
+    // D-26 (4.11): lo que se repite se propone; mientras nadie lo confirma no cuenta en Movimientos ni en el Tablero.
+    case 'expenses': return {
+      icono: <Repeat />, href: '/movimientos',
+      titulo: r.count === 1 ? 'Un gasto que se repite por confirmar' : `${r.count.toLocaleString('es-MX')} gastos que se repiten por confirmar`,
+      texto: `Ya ${r.count === 1 ? 'tocaba' : 'tocaban'} este mes: en Movimientos ${r.count === 1 ? 'confírmalo con su importe o descártalo' : 'confirma cada uno con su importe o descártalo'}. Mientras tanto no ${r.count === 1 ? 'cuenta' : 'cuentan'} en las cifras.`,
     };
     case 'prospects': return {
       icono: <Sparkles />, href: '/prospectos', titulo: `${n(r.count, 'interesado', 'interesados')} por atender`,

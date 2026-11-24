@@ -10,6 +10,7 @@ import { FIRMAS } from '@/modules/registro';
 import { errorText, useSession, useToast } from '@/components/session';
 import { Badge, Button, Callout, Card, Dialog, Empty, IconTile, PageHeader } from '@/components/ui';
 import { AvisosEnTelefono } from '@/components/push';
+import { EnlaceAMisAvisos } from '@/components/avisos-duena';
 import { CambiarClave } from '@/components/shell';
 
 /** Cuántas otras sesiones se ven antes de «Ver todas»: una lista larga empuja todo lo demás (24-05). */
@@ -142,6 +143,8 @@ export default function MisSesionesPage() {
                     )}
                     <DireccionDesdeFuera />
                     {firma && <AvisosEnTelefono />}
+                    {/* D-05 (bloque 4.2): la dueña elige qué avisos suenan; a los demás puestos no les sale. */}
+                    <EnlaceAMisAvisos />
                     <p className="tiny muted">Al salir con «Cerrar sesión», este equipo deja de recibir tus avisos y se borra lo que GymFlow guardó en el navegador.</p>
                     <div className="row flex-wrap">
                       <Button variant="secondary" size="sm" icon={<KeyRound />} onClick={() => setClave(true)}>Cambiar contraseña</Button>

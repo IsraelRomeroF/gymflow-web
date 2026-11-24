@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Inbox, DoorOpen, ChartColumnBig, ArrowLeftRight, ScanFace, FileSignature, Tags, CalendarDays, Wallet, ShoppingCart, Sparkles, HeartHandshake, Package, UserCog, Building2, History, Stamp, Blocks, FileUp, type LucideIcon, ListChecks, MessageCircle, CircleDollarSign, Receipt } from 'lucide-react';
+import { LayoutDashboard, Users, Inbox, DoorOpen, ChartColumnBig, ArrowLeftRight, ScanFace, FileSignature, Tags, CalendarDays, Wallet, ShoppingCart, Sparkles, HeartHandshake, Package, UserCog, Building2, History, Stamp, Blocks, FileUp, type LucideIcon, ListChecks, MessageCircle, CircleDollarSign, Receipt, BellRing } from 'lucide-react';
 import { OPEN_BY_ROLE_SECTIONS, SECTION_GROUP_NAMES } from '@gymflow/core/secciones';
 
 /**
@@ -38,7 +38,7 @@ export type Seccion = {
   /** Otras rutas de la misma sección que no tienen entrada propia en el menú. */
   rutas?: readonly string[];
   /** Qué número pendiente lleva en el menú. */
-  contador?: 'altas' | 'firmas';
+  contador?: 'altas' | 'firmas' | 'avisos';
   /** Con qué otras palabras se encuentra en el buscador. */
   palabras?: readonly string[];
   /** Acceso rápido en el inicio de quien opera. */
@@ -158,6 +158,12 @@ export const SECCIONES: readonly Seccion[] = [
   {
     modulo: 'core', href: '/cuenta-gymflow', etiqueta: 'Cuenta con GymFlow', icono: Receipt, grupo: 'direccion', soloRoles: ['OWNER'],
     paraQuien: 'la Dueña o el Dueño', palabras: ['mensualidad de gymflow', 'factura', 'pago del sistema', 'suspensión', 'avisos de gymflow'],
+  },
+  // Lo que el sistema le avisa a la dueña y su resumen del lunes (D-05, bloque 4.2): lo mismo que suena en su
+  // teléfono, dentro del panel. Solo de su puesto, como la API. El número del menú son los avisos que no ha visto.
+  {
+    modulo: 'core', href: '/avisos', etiqueta: 'Mis avisos', icono: BellRing, grupo: 'direccion', soloRoles: ['OWNER'], contador: 'avisos',
+    paraQuien: 'la Dueña o el Dueño', palabras: ['alertas', 'notificaciones', 'resumen del lunes', 'resumen semanal', 'teléfono', 'apagar avisos'],
   },
 
   // ── Cumplimiento ──────────────────────────────────────────────────────────
@@ -286,7 +292,8 @@ export const MENU_POR_TAREA: ReadonlyArray<{ titulo: string; rutas: readonly str
   { titulo: 'Dinero', rutas: ['/tablero', '/movimientos', '/precios', '/planes', '/productos'] },
   // «Cuenta con GymFlow» es solo de la dueña (lista plana); aquí tiene lugar por si un gerente es además dueño.
   { titulo: 'Gimnasio', rutas: ['/personal', '/sucursales', '/modulos', '/importar', '/consentimientos', '/cuenta-gymflow'] },
-  { titulo: 'Control', rutas: ['/autorizaciones', '/bitacora', '/biometria'] },
+  // «Mis avisos» es solo de la dueña (lista plana); aquí tiene lugar por si un gerente es además dueño (D-05, 4.2).
+  { titulo: 'Control', rutas: ['/autorizaciones', '/bitacora', '/biometria', '/avisos'] },
 ];
 
 /** El orden de la lista plana de cada puesto; lo que no esté aquí va después, en el orden del registro. */
@@ -294,7 +301,7 @@ export const MENU_PLANO: Readonly<Record<string, readonly string[]>> = {
   RECEPTION: ['/panel', '/socios', '/caja', '/punto-de-venta', '/clases', '/altas', '/prospectos', '/mensajes', '/precios', '/estacion', '/acceso'],
   COACH: ['/panel', '/socios', '/clases', '/rutinas', '/precios'],
   // Lo que la dueña abre a diario, primero: sus firmas y su dinero (UX5-D-09).
-  OWNER: ['/panel', '/autorizaciones', '/movimientos', '/tablero', '/caja', '/personal', '/bitacora', '/planes', '/precios', '/sucursales', '/modulos', '/biometria', '/consentimientos', '/cuenta-gymflow'],
+  OWNER: ['/panel', '/autorizaciones', '/avisos', '/movimientos', '/tablero', '/caja', '/personal', '/bitacora', '/planes', '/precios', '/sucursales', '/modulos', '/biometria', '/consentimientos', '/cuenta-gymflow'],
 };
 
 /** Cómo se llama una sección en el menú de un puesto, cuando no es su nombre de siempre. */

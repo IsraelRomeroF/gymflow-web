@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { BellRing, BellOff, Send } from 'lucide-react';
 import { api } from '@/lib/api';
-import { useToast, errorText } from '@/components/session';
+import { useSession, useToast, errorText } from '@/components/session';
 import { Button } from '@/components/ui';
 
 /** El navegador quiere la llave en bytes, el servidor la da en base64url. */
@@ -46,9 +46,14 @@ const direccionProvisional = () => /(^|\.)trycloudflare\.com$/.test(window.locat
  * y no llegaba nada), una suscripción hecha con otras llaves se descarta,
  * «Probar» manda un aviso de verdad, y en iPhone se dice que primero hay que
  * agregar GymFlow a la pantalla de inicio.
+ *
+ * D-05 (fase 4, bloque 4.2): este botón enciende o apaga TODOS los avisos de
+ * este equipo. Qué tipos suenan (caja sin cortar, corte con diferencia, el
+ * resumen del lunes…) lo elige la dueña en «Mis avisos» (`/avisos`).
  */
 export function AvisosEnTelefono({ size = 'sm' }: { size?: 'sm' | 'md' }) {
   const toast = useToast();
+  const esDuena = useSession().mirada.roles.includes('OWNER');
   const [estado, setEstado] = useState<'cargando' | 'no-disponible' | 'instalar' | 'apagado' | 'encendido'>('cargando');
   const [llave, setLlave] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
@@ -96,7 +101,8 @@ export function AvisosEnTelefono({ size = 'sm' }: { size?: 'sm' | 'md' }) {
       const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: aBytes(llave) });
       await api('/me/push-subscriptions', { method: 'POST', body: JSON.stringify(sub.toJSON()) });
       setEstado('encendido');
-      toast('ok', 'Listo: las solicitudes de firma te llegan a este teléfono');
+      // D-05 (bloque 4.2): a la dueña le llegan además sus alertas y el resumen del lunes; cuáles, lo elige en «Mis avisos».
+      toast('ok', esDuena ? 'Listo: las solicitudes de firma, tus alertas y el resumen del lunes llegan a este teléfono' : 'Listo: las solicitudes de firma te llegan a este teléfono');
     } catch (e) { toast('error', errorText(e, 'No se pudieron activar los avisos')); } finally { setOcupado(false); }
   }
   async function apagar() {

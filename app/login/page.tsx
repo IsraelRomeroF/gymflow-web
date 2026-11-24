@@ -67,7 +67,11 @@ export default function LoginPage() {
     setVolver(q.get('volver'));
     const motivo = q.get('motivo');
     const salida = leerSalida();
-    if (esMotivoDeSalida(motivo)) setAviso(AVISO_DE_SALIDA[motivo]);
+    // «Cambiar de usuario» del mostrador (24-09; bloque 4.11): la sesión anterior ya se cerró y el correo queda listo para quien sigue.
+    if (q.get('relevo') === '1') {
+      setAviso({ tono: 'ok', titulo: 'Sesión cerrada. Entra con tu cuenta', texto: 'Lo que hagas queda a tu nombre. Si hay una caja abierta, sigue abierta a nombre de quien la abrió.' });
+      document.getElementById('email')?.focus();
+    } else if (esMotivoDeSalida(motivo)) setAviso(AVISO_DE_SALIDA[motivo]);
     else if (salida) setAviso({ tono: 'ok', titulo: 'Saliste de GymFlow en este equipo', ...(salida.avisos ? { texto: 'Este equipo ya no recibe tus avisos.' } : {}) });
   }, []);
   const [busy, setBusy] = useState(false);

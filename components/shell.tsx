@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Search, LogOut, Menu, KeyRound, ShieldCheck, ChevronDown, ChevronsUpDown, PanelLeft, MonitorSmartphone } from 'lucide-react';
+import { ArrowLeftRight, Search, LogOut, Menu, KeyRound, ShieldCheck, ChevronDown, ChevronsUpDown, PanelLeft, MonitorSmartphone } from 'lucide-react';
 import { useSession, useToast, errorText } from './session';
 import { BotonTema, CLAVE_LATERAL } from './tema';
 import { Avatar, Button, Callout, Dialog, Field, Skeleton, EsqueletoPagina } from './ui';
@@ -17,6 +17,7 @@ import { Puerta } from './puerta';
 import { FranjaDeFirmas } from './firma/franja';
 import { Campana } from './campana';
 import { AvisoDeGymflow } from './cuenta-gymflow';
+import { useAvisosNuevos } from './avisos-duena';
 import { AvisoDeSolicitudes } from './solicitudes-gymflow';
 import { Marca } from '@/components/compartido';
 
@@ -146,7 +147,9 @@ export function Shell({ children }: { children: ReactNode }) {
       .catch(() => undefined);
   }, [can, activo, pathname]);
 
-  const contador = { altas, firmas: porFirmar };
+  // D-05 (bloque 4.2): los avisos que la dueña no ha visto, en su menú. Para los demás puestos es cero y no pide nada.
+  const avisosNuevos = useAvisosNuevos();
+  const contador = { altas, firmas: porFirmar, avisos: avisosNuevos };
   const visibles = menuAcomodado(mirada).map((g) => ({
     title: g.titulo,
     items: g.secciones.map((sec) => {
@@ -227,6 +230,11 @@ export function Shell({ children }: { children: ReactNode }) {
               <button type="button" role="menuitem" onClick={() => { setMenuUsuario(false); setClave(true); }}><KeyRound size={17} /><span>Cambiar contraseña</span></button>
               {/* Dónde está abierta la cuenta y cerrar las demás (24-14). */}
               <button type="button" role="menuitem" onClick={() => { setMenuUsuario(false); router.push('/seguridad'); }}><MonitorSmartphone size={17} /><span>Mis sesiones</span></button>
+              {/* 24-09 (bloque 4.11): en el mostrador el turno siguiente no opera con el nombre de quien se fue. Cierra esta
+                  sesión y deja la entrada lista para la otra persona; la caja abierta sigue abierta a nombre de quien la abrió. */}
+              {(me.roleKeys ?? []).includes('RECEPTIONIST') && (
+                <button type="button" role="menuitem" onClick={() => void logout('/login?relevo=1')}><ArrowLeftRight size={17} /><span>Cambiar de usuario</span></button>
+              )}
               <button type="button" role="menuitem" onClick={() => void logout()}><LogOut size={17} /><span>Cerrar sesión</span></button>
             </div>
           )}

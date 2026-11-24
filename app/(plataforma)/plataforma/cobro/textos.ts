@@ -13,7 +13,17 @@ export const ZONA_DE_COBRO = 'America/Mexico_City';
 export const hoyDeCobro = (): string => hoyEn(ZONA_DE_COBRO);
 export const mesDeCobro = (): string => hoyDeCobro().slice(0, 7);
 
-export type Linea = { key: string; name: string; monthlyCents: string };
+/**
+ * Un renglón. Desde D-39 (bloque 4.9) puede venir cobrado por días (`PRORATED`:
+ * primer mes o módulo contratado a medio mes), ser los días de un mes anterior
+ * (`CATCH_UP`) o el descuento del mes, en negativo (`DISCOUNT`).
+ */
+export type Linea = { key: string; name: string; monthlyCents: string; kind?: 'CHARGE' | 'PRORATED' | 'CATCH_UP' | 'DISCOUNT'; listCents?: string; days?: number; ofDays?: number };
+/** Subtotal, IVA y total (D-39). `totalCents` es lo que se paga; sin IVA, `taxRateBps` es 0 y el subtotal es el total. */
+export type Desglose = { subtotalCents: string; taxCents: string; taxRateBps: number; taxIncluded: boolean; totalCents: string };
+/** Los datos fiscales que salen en la factura: los del gimnasio (su ficha) y los de GymFlow (configuración del servidor). */
+export type Receptor = { legalName: string; rfc: string | null; tradeName?: string };
+export type Emisor = { legalName: string; rfc: string | null; address: string | null; payment: string | null; contact: string | null };
 export type EstadoDeFactura = 'PENDIENTE' | 'PAGADA_EN_PARTE' | 'VENCIDA' | 'PAGADA' | 'ANULADA';
 export type Factura = {
   id: string; organizationId: string; folio: string; periodStart: string; periodEnd: string; lines: Linea[];
@@ -22,6 +32,10 @@ export type Factura = {
   /** EL estado de la factura, calculado por el servidor con el día de la Ciudad de México. */
   state: EstadoDeFactura; overdueDays: number;
   totalCents: string; paidCents: string; balanceCents: string;
+  /** D-39. `itemized` falso = emitida antes del desglose: un total, sin IVA aparte. */
+  itemized: boolean; subtotalCents: string; taxCents: string; taxRateBps: number; taxIncluded: boolean; discountCents: string;
+  /** Como estaban al emitir; `null` en las anteriores a D-39. */
+  receiver: Receptor | null; issuer: Emisor | null;
   issuedAt: string; issuedOn: string; dueDate: string;
   /** El día del último pago vivo, sin hora (nadie la captura). */
   paidOn: string | null; paymentMethod: string | null; paymentRef: string | null;
@@ -49,7 +63,7 @@ export type CobroDeMarca = { code: EstadoDeCobro; overdueDays: number; pendingCe
 /** Lo que saldría al emitir un mes: es el mismo cálculo que la emisión. */
 export type VistaPreviaDeEmision = {
   month: string; dueDate: string; totalCents: string;
-  toIssue: Array<{ organizationId: string; tradeName: string; totalCents: string; lines: Linea[] }>;
+  toIssue: Array<Desglose & { organizationId: string; tradeName: string; lines: Linea[]; discountCents: string }>;
   skipped: Array<{ organizationId: string; tradeName: string; reason: string; code: string }>;
 };
 export type ResultadoDeEmitirMes = {
@@ -84,6 +98,19 @@ export function periodo(f: { periodStart: string } | string): string {
   return capital(nombreMes(typeof f === 'string' ? f : f.periodStart));
 }
 export const dias = (n: number): string => `${n} ${n === 1 ? 'día' : 'días'}`;
+/** `1600` → «16 %». */
+export const tasa = (bps: number): string => `${(bps / 100).toString()} %`;
+/** Cómo se llama el renglón del IVA en una factura o en la mensualidad. */
+export const etiquetaDeIva = (d: Pick<Desglose, 'taxRateBps' | 'taxIncluded'>): string => (d.taxIncluded ? `IVA (${tasa(d.taxRateBps)}), incluido en los precios` : `IVA (${tasa(d.taxRateBps)})`);
+/** Un descuento o precio especial de una marca (D-39). */
+export type Ajuste = {
+  id: string; organizationId: string; kind: 'PERCENT' | 'AMOUNT' | 'SPECIAL_PRICE'; percentBps: number | null; amountCents: string | null;
+  fromMonth: string; lastMonth: string; months: number; reason: string; label: string;
+  status: 'SCHEDULED' | 'ACTIVE' | 'ENDED' | 'CANCELED'; createdAt: string; cancelReason: string | null;
+};
+export const ESTADO_AJUSTE: Record<Ajuste['status'], { label: string; tone: Tono }> = {
+  SCHEDULED: { label: 'Programado', tone: 'warn' }, ACTIVE: { label: 'Vigente', tone: 'ok' }, ENDED: { label: 'Terminó', tone: 'neutral' }, CANCELED: { label: 'Cancelado', tone: 'neutral' },
+};
 
 /** La frase junto a la insignia de cobro de una marca: cuánto debe o qué le falta. */
 export function fraseDeCobro(c: CobroDeMarca, pesos: (c: string) => string): string {

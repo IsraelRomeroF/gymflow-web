@@ -20,7 +20,8 @@ await recorrido('cuenta-gymflow', async (r) => {
   const mensualidad = duena.getByTestId('mensualidad-gymflow');
   await mensualidad.waitFor({ timeout: T.respuesta });
   await asentado(duena);
-  const total = (await mensualidad.locator('tr').filter({ hasText: 'Total' }).innerText()).replace(/\s+/g, ' ').trim();
+  // Bloque 4.9 (D-39): con IVA la tabla trae además «Antes de IVA» e «IVA»; el total tiene su propio testid.
+  const total = (await mensualidad.getByTestId('mensualidad-total').innerText()).replace(/\s+/g, ' ').trim();
   // En gymflow_pruebas el gimnasio sembrado no tiene precios de plataforma: el total es $0.00 y no hay conceptos. Se comprueba la tabla, no la cifra.
   r.ok(/^Total \$[\d,]+\.\d{2}$/.test(total), `«Tu mensualidad» trae su total («${total}», ${await mensualidad.locator('tbody tr').count() - 1} conceptos)`);
   const facturas = duena.getByTestId('facturas-gymflow');

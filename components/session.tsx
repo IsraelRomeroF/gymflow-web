@@ -68,7 +68,8 @@ type Session = {
   sedesSin: (modulo: string) => string[];
   /** Vuelve a pedir la sesión: tras encender o apagar un módulo, el menú cambia. */
   recargar: () => Promise<void>;
-  logout: () => Promise<void>;
+  /** `destino`: a dónde ir al salir (por omisión `/login`; «Cambiar de usuario» manda `/login?relevo=1`, bloque 4.11). */
+  logout: (destino?: string) => Promise<void>;
 };
 
 const Ctx = createContext<Session | null>(null);
@@ -105,10 +106,10 @@ export function SessionProvider({ children, fallback }: { children: ReactNode; f
 
   useEffect(() => { void cargar(); }, [cargar]);
 
-  const logout = useCallback(async () => {
+  const logout = useCallback(async (destino?: string) => {
     // Apaga los avisos de este equipo y borra lo guardado en el navegador (24-15).
     await salirDeEsteEquipo();
-    router.replace('/login');
+    router.replace(typeof destino === 'string' ? destino : '/login');
   }, [router]);
 
   const value = useMemo<Session | null>(() => {

@@ -227,7 +227,8 @@ export function EntradaDialog({ memberId, memberName, onClose, onDone }: {
   else {
     pie = <>
       {resolver.resuelto?.paymentId && <a className="btn btn-secondary" href={`/recibo/${resolver.resuelto.paymentId}`} target="_blank" rel="noreferrer"><Printer />Comprobante</a>}
-      <Button autoFocus onClick={cerrar}>{verde ? 'Listo · Enter' : 'Listo'}</Button>
+      {/* «· Enter» solo donde hay teclado (3.14; bloque 4.11): en un teléfono no hay tecla Enter. */}
+      <Button autoFocus onClick={cerrar}>Listo{verde && <span className="solo-teclado"> · Enter</span>}</Button>
     </>;
   }
 

@@ -51,11 +51,11 @@ export default function CobranzaPage() {
   return (
     <>
       <Breadcrumb items={[{ href: '/plataforma', label: 'Marcas' }, { label: 'Cobranza' }]} />
-      <PageHeader title="Cobranza" sub="Lo que GymFlow cobra a las marcas. Una factura por marca y mes; el día 1 se emiten solas y aquí se registra cuándo llegó el dinero. Al dueño se le avisa al emitir y al vencer; a los 15 días de atraso avisado, el servicio se suspende solo."
+      <PageHeader title="Cobranza" sub="Lo que GymFlow cobra a las marcas. Los importes son lo que se paga: ya con descuento y con IVA, si lo llevan. Una factura por marca y mes; el día 1 se emiten solas y aquí se registra cuándo llegó el dinero. Al dueño se le avisa al emitir y al vencer; a los 15 días de atraso avisado, el servicio se suspende solo."
         actions={<>
           <Exportar nombre={`cobranza-${vista}-${mes}`} disabled={filas.length === 0}
-            filas={() => [['Folio', 'Marca', 'Periodo', 'Importe', 'Pagado', 'Resta', 'Estado', 'Emitida', 'Vence', 'Último pago', 'Forma de pago', 'Referencia'],
-              ...filas.map((f) => [f.folio, f.tradeName, periodo(f), enPesos(f.totalCents), enPesos(f.paidCents), enPesos(f.balanceCents), ESTADO_FACTURA[f.state].label,
+            filas={() => [['Folio', 'Marca', 'Periodo', 'Subtotal', 'IVA', 'Importe', 'Pagado', 'Resta', 'Estado', 'Emitida', 'Vence', 'Último pago', 'Forma de pago', 'Referencia'],
+              ...filas.map((f) => [f.folio, f.tradeName, periodo(f), enPesos(f.subtotalCents), enPesos(f.taxCents), enPesos(f.totalCents), enPesos(f.paidCents), enPesos(f.balanceCents), ESTADO_FACTURA[f.state].label,
                 f.issuedOn, f.dueDate, f.paidOn ?? '', f.paymentMethod ? FORMA_DE_PAGO[f.paymentMethod] ?? f.paymentMethod : '', f.paymentRef ?? ''])]} />
           {/* Encendido (principal) solo si hay marcas sin la factura del mes (2.12). Con todas emitidas queda como secundario:
               sigue abriendo el diálogo, que explica que no hay nada que emitir y deja elegir otro mes. */}
@@ -69,7 +69,7 @@ export default function CobranzaPage() {
         <>
           <div className="grid grid-3 mb-20">
             <Stat label="Ingreso mensual" value={pesos(r.monthlyIncome.totalCents, { decimals: false })}
-              note={`${r.monthlyIncome.organizations} ${r.monthlyIncome.organizations === 1 ? 'marca en uso' : 'marcas en uso'}${r.monthlyIncome.missingPrices.length ? ` · ${r.monthlyIncome.missingPrices.length} sin precio completo` : ''}`} />
+              note={`${r.monthlyIncome.organizations} ${r.monthlyIncome.organizations === 1 ? 'marca en uso' : 'marcas en uso'}${r.monthlyIncome.missingPrices.length ? ` · ${r.monthlyIncome.missingPrices.length} sin precio completo` : ''} · sin IVA, ya con descuentos`} />
             <Stat label="Por cobrar" value={pesos(pendientes.reduce((a, f) => a + BigInt(f.balanceCents), 0n), { decimals: false })} danger={vencidas.length > 0}
               note={vencidas.length ? `${vencidas.length} ${vencidas.length === 1 ? 'vencida' : 'vencidas'}` : `${pendientes.length} ${pendientes.length === 1 ? 'factura pendiente' : 'facturas pendientes'}`} />
             <Stat label={`Sin factura de ${periodo(mes).split(' ')[0]!.toLowerCase()}`} value={sinMes} note={sinMes > 0 ? 'Marcas en uso sin emitir este mes' : 'Todas las marcas en uso ya tienen la del mes'} />
@@ -139,7 +139,9 @@ export default function CobranzaPage() {
                           <td><Link className="row-link mono" href={`/plataforma/factura/${f.id}`}>{f.folio}</Link></td>
                           <td><Link className="row-link" href={`/plataforma/${f.organizationId}`}>{f.tradeName}</Link></td>
                           <td className="small">{periodo(f)}</td>
-                          <td className="right num strong" data-label="Importe">{pesos(f.totalCents)}{f.status === 'PENDING' && f.paidCents !== '0' && <div className="tiny muted">resta {pesos(f.balanceCents)}</div>}</td>
+                          <td className="right num strong" data-label="Importe">{pesos(f.totalCents)}{f.status === 'PENDING' && f.paidCents !== '0' && <div className="tiny muted">resta {pesos(f.balanceCents)}</div>}
+                            {f.taxCents !== '0' && <div className="tiny muted" data-iva={f.taxRateBps}>{f.taxIncluded ? 'incluye' : 'con'} IVA {pesos(f.taxCents)}</div>}
+                            {f.discountCents !== '0' && <div className="tiny muted">con descuento de {pesos(f.discountCents)}</div>}</td>
                           <td data-label="Estado">
                             <Badge tone={e.tone} dot={f.state !== 'ANULADA'}>
                               {e.label}{f.state === 'VENCIDA' ? ` · ${dias(f.overdueDays)}` : f.state === 'PAGADA' && f.paidOn ? ` · ${fecha(f.paidOn)}` : ''}

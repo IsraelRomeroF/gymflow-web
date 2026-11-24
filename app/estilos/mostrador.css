@@ -104,3 +104,11 @@ li:last-child > button.puerta-fila { border-bottom: 0; }
 /* Una lista sin viñetas ni sangría (avisos dentro de una tarjeta). */
 .lista-limpia { list-style: none; padding: 0; margin: 0; }
 
+/* ── Fase 4 · bloque 4.11 · cabos sueltos ─────────────────────────────────────
+   · `.pie-tres`: el pie de un diálogo con tres acciones («Entrada · falta su rostro»): la principal a todo
+     lo ancho arriba y las otras dos a la mitad, en vez de partirse donde caiga.
+   · `.solo-teclado`: texto que solo tiene sentido con teclado («· Enter»); no se pinta en pantallas táctiles. */
+.pie-tres { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+.pie-tres > .btn { justify-content: center; }
+.pie-tres > .btn-primary { grid-column: 1 / -1; grid-row: 1; }
+@media (hover: none), (pointer: coarse) { .solo-teclado { display: none; } }

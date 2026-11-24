@@ -15,7 +15,7 @@ export const GLOSARIO = {
   ganado: { nombre: 'Ganado', explica: 'La parte del servicio que ya diste en el periodo: de una anualidad, un mes.' },
   porPrestar: { nombre: 'Por prestar', explica: 'Lo que ya cobraste y todavía debes en servicio: paquetes y periodos pagados por adelantado.' },
   // D-18 (bloque 4.4): lo cobrable. La deuda dada por perdida se informa aparte en el Tablero.
-  porCobrar: { nombre: 'Por cobrar', explica: 'Lo que tus socios deben hoy, vencido o no. No incluye la deuda que ya se dio por perdida (la de membresías que llevaron suspendidas el plazo del gimnasio): esa sigue en el estado de cuenta de cada socio y se puede cobrar.' },
+  porCobrar: { nombre: 'Por cobrar', explica: 'Lo que tus socios deben hoy, vencido o no; también lo que quedó debiendo quien ya se dio de baja, hasta que se cobre o se perdone. No incluye la deuda que ya se dio por perdida (la de membresías que llevaron suspendidas el plazo del gimnasio): esa sigue en el estado de cuenta de cada socio y se puede cobrar.' },
   // Fase 3 · bloque 3.7 (D-21, D-22, D-23).
   costoVendido: { nombre: 'Costo de lo vendido', explica: 'Lo que le costó al gimnasio lo que vendió en la tienda, con el costo que cada producto tenía el día de la venta. La utilidad contable ya lo resta.' },
   retiroDueno: { nombre: 'Retiro del dueño', explica: 'Lo que el dueño se lleva del negocio. Se anota y se ve, pero no es un gasto: no resta de la ganancia ni de la utilidad.' },
