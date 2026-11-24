@@ -14,7 +14,7 @@ const SONDEO_MS = 3000;
 
 const minutosDe = (s: ApprovalRequestState) => Math.max(1, Math.round((Date.parse(s.expiresAt) - Date.parse(s.createdAt)) / 60_000));
 /** Sin la lista de firmantes a la mano, el desenlace se dice con el nombre que se guardó al pedir. */
-const firmantesDe = (e: Espera): Firmante[] => (e.quienes ? [{ userId: e.id, fullName: e.quienes, pausedUntil: null, reach: 'none' }] : []);
+const firmantesDe = (e: Espera): Firmante[] => (e.quienes ? [{ userId: e.id, fullName: e.quienes, pausedUntil: null, reach: 'none', proxyOf: null }] : []);
 
 function tono(e: Espera): '' | 'franja-firma-danger' | 'franja-firma-warn' | 'franja-firma-ok' {
   switch (e.estado) {

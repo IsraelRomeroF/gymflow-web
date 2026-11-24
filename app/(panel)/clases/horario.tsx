@@ -15,11 +15,13 @@ import { PausasCard, ReglasCard } from './reglas';
  * Un bloque del horario se abre para editarlo (11-06): hora, días, cupo,
  * salón, coach y hasta cuándo, sin cancelar las reservas que ya existen.
  */
-export function Horario({ sede, tipos, plantillas, weekdayHoy, gestiona, onNuevaClase, onEditarTipo, onRetirarTipo, onReactivar, onNuevoBloque, onEditarHorario, alCambiar }: {
+export function Horario({ sede, tipos, plantillas, weekdayHoy, gestiona, cancela, onNuevaClase, onEditarTipo, onRetirarTipo, onReactivar, onNuevoBloque, onEditarHorario, alCambiar }: {
   sede: string; tipos: Tipo[]; plantillas: Plantilla[] | null;
   /** Qué día de la semana es hoy en la sucursal (0 = domingo). */
   weekdayHoy: number;
   gestiona: boolean;
+  /** Dejar de dar una clase cancela sus sesiones: solo la gerencia (D-28). */
+  cancela: boolean;
   onNuevaClase: () => void; onEditarTipo: (t: Tipo) => void; onRetirarTipo: (t: Tipo) => void; onReactivar: (t: Tipo) => void;
   onNuevoBloque: (weekday: number) => void; onEditarHorario: (p: Plantilla) => void;
   /** Una pausa puesta o quitada cambia las sesiones: la página las vuelve a pedir. */
@@ -110,7 +112,7 @@ export function Horario({ sede, tipos, plantillas, weekdayHoy, gestiona, onNueva
                       <Button variant="ghost" size="sm" icon={<Pencil />} onClick={() => onEditarTipo(t)}>Editar</Button>
                       <span className="flex-1" />
                       {/* Lo destructivo no pesa igual que Editar (UX7 Clases 8): va en "Más". */}
-                      <MenuMas items={[{ label: `Dejar de dar ${t.name}`, icon: <Trash2 />, peligro: true, onClick: () => onRetirarTipo(t) }]} />
+                      {cancela && <MenuMas items={[{ label: `Dejar de dar ${t.name}`, icon: <Trash2 />, peligro: true, onClick: () => onRetirarTipo(t) }]} />}
                     </div>
                   )}
                 </Card>

@@ -39,3 +39,6 @@
   .coach-buscar { width: 100%; }
 }
 
+/* ── Coach (3.8): «Hacerme su coach» ── */
+/* El código que dicta el socio: seis cifras grandes y separadas, para teclearlo sin equivocarse. */
+.codigo-coach { max-width: 220px; font-size: var(--t-h2); letter-spacing: .3em; text-align: center; }

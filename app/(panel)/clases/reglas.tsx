@@ -131,6 +131,8 @@ export function PausasCard({ sede, alCambiar }: { sede: string; alCambiar: () =>
   const toast = useToast();
   const { can, canOrg, branches, org } = useSession();
   const gestiona = can('classes:manage');
+  // Una pausa cancela las sesiones de esas fechas: ponerla es de la gerencia (D-28). Quitarla, de quien arma el horario.
+  const pausa = can('classes:session:cancel');
   const carga = useCarga<ClassPauses>(useCallback(() => api<ClassPauses>(`/classes/pauses?branchId=${sede}`), [sede]), { conservar: true });
   const [nueva, setNueva] = useState(false);
   const [quitando, setQuitando] = useState<string | null>(null);
@@ -153,7 +155,7 @@ export function PausasCard({ sede, alCambiar }: { sede: string; alCambiar: () =>
   return (
     <>
       <Card title="Pausas por fechas" sub="Vacaciones, mantenimiento o un día festivo: esos días no hay clases." pad={false} data-testid="pausas-de-clases"
-        actions={gestiona && <Button size="sm" variant="secondary" icon={<CalendarOff />} onClick={() => setNueva(true)}>Pausar por fechas</Button>}>
+        actions={pausa && <Button size="sm" variant="secondary" icon={<CalendarOff />} onClick={() => setNueva(true)}>Pausar por fechas</Button>}>
         {carga.error ? <div className="card-body"><ErrorCarga mensaje={carga.error} onReintentar={() => void carga.recargar()} /></div>
           : !carga.datos ? <div className="card-body"><Skeleton h={40} /></div>
             : pausas.length === 0 ? <p className="card-body small muted">No hay pausas programadas en {nombreSede}.</p>
@@ -171,7 +173,7 @@ export function PausasCard({ sede, alCambiar }: { sede: string; alCambiar: () =>
                 </ul>
               )}
       </Card>
-      {nueva && <PausaDialog sede={sede} nombreSede={nombreSede} hoy={hoyEn(zonaDe(branches.find((b) => b.id === sede), org))} puedeTodas={canOrg('classes:manage') && branches.filter((b) => b.isActive).length > 1}
+      {nueva && <PausaDialog sede={sede} nombreSede={nombreSede} hoy={hoyEn(zonaDe(branches.find((b) => b.id === sede), org))} puedeTodas={canOrg('classes:session:cancel') && branches.filter((b) => b.isActive).length > 1}
         onClose={() => setNueva(false)} onDone={async () => { setNueva(false); await carga.recargar(); alCambiar(); }} />}
     </>
   );

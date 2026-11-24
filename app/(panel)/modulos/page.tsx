@@ -40,7 +40,8 @@ const POR_QUE_BLOQUEA: Readonly<Record<string, string>> = {
  *
  * El interruptor nunca cambia nada por sí solo: abre un diálogo que dice qué
  * hay, qué se conserva y cómo se vuelve. Apagar oculta y deja de generar;
- * nunca borra.
+ * no borra, con UNA excepción que se avisa antes: los rostros de Biometría se
+ * borran a los 30 días de apagarla si no se vuelve a encender (D-32; 3.12).
  */
 export default function ModulosPage() {
   const { recargar, mirada } = useSession();
@@ -73,8 +74,8 @@ export default function ModulosPage() {
     setPedido(null);
   }, [data, pedido]);
 
-  async function aplicar(m: Modulo, enabled: boolean, motivo?: string) {
-    const r = await cambiarModulo(m.key, enabled, motivo);
+  async function aplicar(m: Modulo, enabled: boolean, motivo?: string, avisado?: number) {
+    const r = await cambiarModulo(m.key, enabled, motivo, avisado);
     setData(r);
     setAbierto(null);
     toast('ok', enabled ? `${m.name} se encendió.` : `${m.name} se apagó. El personal lo verá la próxima vez que abra el panel.`);
@@ -82,8 +83,8 @@ export default function ModulosPage() {
     await recargar();
   }
 
-  async function aplicarEnSede(m: Modulo, sede: Modulo['branches'][number], enabled: boolean, motivo?: string) {
-    const r = await cambiarModuloEnSede(m.key, sede.branchId, enabled, motivo);
+  async function aplicarEnSede(m: Modulo, sede: Modulo['branches'][number], enabled: boolean, motivo?: string, avisado?: number) {
+    const r = await cambiarModuloEnSede(m.key, sede.branchId, enabled, motivo, avisado);
     setData(r);
     setEnSede(null);
     toast('ok', enabled ? `${m.name} vuelve a usarse en ${sede.name}.` : `${m.name} dejó de usarse en ${sede.name}.`);
@@ -103,7 +104,7 @@ export default function ModulosPage() {
       <PestanasGimnasio actual="modulos" />
       <PageHeader
         title="Módulos"
-        sub="Enciende solo lo que tu gimnasio usa. Lo apagado desaparece del menú de todo el personal y del teléfono del socio. Nada se borra: al encenderlo vuelve como estaba."
+        sub="Enciende solo lo que tu gimnasio usa. Lo apagado desaparece del menú de todo el personal y del teléfono del socio. Nada se borra al apagar: al encenderlo vuelve como estaba. La única excepción son los rostros de Biometría, y se avisa antes."
       />
 
       {fallo && <ErrorCarga mensaje="No se pudieron cargar los módulos." onReintentar={cargar} />}
@@ -170,6 +171,12 @@ export default function ModulosPage() {
                             ))}
                           </div>
                         )}
+                        {/* Una sucursal que dejó de usar Biometría con rostros guardados: se dice hasta el día del borrado (3.12). */}
+                        {m.enabled && m.branches.filter((b) => b.erasure?.pending && b.erasure.count > 0).map((b) => (
+                          <p key={b.branchId} className="small text-warn mt-4" data-testid="borrado-pendiente-sede">
+                            En {b.name}: {rostrosEnPalabras(b.erasure!.count)} {b.erasure!.count === 1 ? 'se borra' : 'se borran'} el {fecha(b.erasure!.on)} si no se vuelve a usar ahí.
+                          </p>
+                        ))}
                       </div>
                       {data.canManage && (
                         <button
@@ -224,23 +231,56 @@ function Detalle({ m }: { m: Modulo }) {
     <p className="small muted mt-4">
       {c && !c.enabled ? <>Apagado por {c.byName ?? 'la gerencia'} el {fecha(c.at)}{c.reason ? <> · «{c.reason}»</> : null}</> : 'Apagado: este gimnasio no lo ha usado.'}
       {hay.length > 0 && <> · Se conserva: {hay.join(' · ')}</>}
+      {/* Apagada con el aviso confirmado: se dice hasta el último día (3.12). */}
+      {m.erasure?.pending && m.erasure.count > 0 && (
+        <span className="text-warn" data-testid="borrado-pendiente"> · {rostrosEnPalabras(m.erasure.count)} {m.erasure.count === 1 ? 'se borra' : 'se borran'} el {fecha(m.erasure.on)} si no se vuelve a encender</span>
+      )}
     </p>
+  );
+}
+
+const rostrosEnPalabras = (n: number) => (n === 1 ? '1 rostro guardado' : `${n.toLocaleString('es-MX')} rostros guardados`);
+
+/**
+ * EL AVISO ANTES DE APAGAR BIOMETRÍA (D-32, «igual si se apaga Biometría, con
+ * aviso»; 3.12). Dice cuántos rostros hay, qué les pasa hoy y qué día se
+ * borran, y pide confirmarlo: sin la casilla marcada el botón no apaga, y el
+ * servidor tampoco apaga si el número ya no es el que aquí se leyó.
+ */
+function AvisoDeBorrado({ borrado, donde, confirmado, onConfirmar }: {
+  borrado: NonNullable<Modulo['erasure']>; donde: string; confirmado: boolean; onConfirmar: (v: boolean) => void;
+}) {
+  const uno = borrado.count === 1;
+  return (
+    <div data-testid="aviso-borrado-rostros" data-rostros={borrado.count}>
+      <Callout tone="danger" title={`${uno ? 'Se borrará' : 'Se borrarán'} ${rostrosEnPalabras(borrado.count)}${donde}`}>
+        <p>Desde hoy {uno ? 'deja de reconocerse' : 'dejan de reconocerse'} en la entrada. Si Biometría no se vuelve a encender, <strong>{uno ? 'se borra' : 'se borran'} el {fecha(borrado.on)}</strong> y no se {uno ? 'puede' : 'pueden'} recuperar: para volver a usarla habrá que pedir otra vez el permiso de cada socio y registrar su rostro de nuevo.</p>
+        <p className="small">Si la enciendes antes de ese día, no se borra nada.</p>
+        <label className="row gap-8 mt-8">
+          <input type="checkbox" checked={confirmado} onChange={(e) => onConfirmar(e.target.checked)} data-testid="confirmar-borrado-rostros" />
+          <span>Entiendo que {uno ? 'ese rostro se borra' : `esos ${borrado.count.toLocaleString('es-MX')} rostros se borran`} el {fecha(borrado.on)}</span>
+        </label>
+      </Callout>
+    </div>
   );
 }
 
 function Cambio({ m, onClose, onAplicar, onError }: {
   m: Modulo; onClose: () => void;
-  onAplicar: (m: Modulo, enabled: boolean, motivo?: string) => Promise<void>;
+  onAplicar: (m: Modulo, enabled: boolean, motivo?: string, avisado?: number) => Promise<void>;
   onError: (e: unknown) => void;
 }) {
   const [motivo, setMotivo] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const [confirmado, setConfirmado] = useState(false);
   const pantalla = SECCIONES.find((s) => s.modulo === m.key);
   const bloqueos = m.usage?.blockers ?? [];
+  // Lo que apagarlo borraría (hoy solo Biometría: sus rostros).
+  const borrado = m.enabled && m.erasure && !m.erasure.pending && m.erasure.count > 0 ? m.erasure : null;
 
   async function enviar(enabled: boolean) {
     setEnviando(true);
-    try { await onAplicar(m, enabled, enabled ? undefined : motivo.trim()); } catch (e) { onError(e); } finally { setEnviando(false); }
+    try { await onAplicar(m, enabled, enabled ? undefined : motivo.trim(), enabled ? undefined : borrado?.count); } catch (e) { onError(e); } finally { setEnviando(false); }
   }
 
   // Encender: sin motivo. Todo vuelve como estaba.
@@ -251,6 +291,7 @@ function Cambio({ m, onClose, onAplicar, onError }: {
         footer={<><Button variant="secondary" onClick={onClose}>Volver</Button><Button loading={enviando} onClick={() => void enviar(true)}>Encender {m.name}</Button></>}>
         <div className="stack-sm">
           <p>{m.name} vuelve al menú de quien lo usa ({m.usedBy.toLowerCase()}).</p>
+          {m.erasure?.pending && m.erasure.count > 0 && <Callout tone="info">Al encenderla se cancela el borrado del {fecha(m.erasure.on)}: {rostrosEnPalabras(m.erasure.count)} {m.erasure.count === 1 ? 'vuelve' : 'vuelven'} a reconocerse sin registrarlos otra vez.</Callout>}
           <p className="small muted">
             {(m.usage?.inUse.length ?? 0) > 0 ? `Regresa lo que había: ${frase(m.usage!.inUse)}.` : 'Si ya se había usado, regresa lo que había.'}
             {requisitos.length > 0 && ` También se enciende ${frase(requisitos)}, que lo necesita.`}
@@ -285,11 +326,12 @@ function Cambio({ m, onClose, onAplicar, onError }: {
   const enUso = m.usage?.inUse ?? [];
   return (
     <Dialog open onClose={onClose} title={`Apagar ${m.name}`}
-      footer={<><Button variant="secondary" onClick={onClose}>Volver</Button><Button variant="danger" loading={enviando} disabled={motivo.trim().length < 3} onClick={() => void enviar(false)}>Apagar {m.name}</Button></>}>
+      footer={<><Button variant="secondary" onClick={onClose}>Volver</Button><Button variant="danger" loading={enviando} disabled={motivo.trim().length < 3 || (!!borrado && !confirmado)} onClick={() => void enviar(false)}>Apagar {m.name}</Button></>}>
       <div className="stack">
         <p>
-          Desaparece del menú de todo el personal{EN_EL_PORTAL.has(m.key) ? ' y del teléfono del socio' : ''}. No se borra nada: si lo enciendes otra vez, vuelve como estaba.
+          Desaparece del menú de todo el personal{EN_EL_PORTAL.has(m.key) ? ' y del teléfono del socio' : ''}. {borrado ? 'Lo demás se conserva.' : 'No se borra nada: si lo enciendes otra vez, vuelve como estaba.'}
         </p>
+        {borrado && <AvisoDeBorrado borrado={borrado} donde="" confirmado={confirmado} onConfirmar={setConfirmado} />}
         {enUso.length > 0 && <Callout tone="info" title="Se conserva">{frase(enUso)}. Mientras esté apagado nadie podrá verlo ni cambiarlo desde aquí.</Callout>}
         <Field label="Motivo" htmlFor="mod-motivo" hint="Queda en la bitácora con tu nombre, y lo lee quien llegue a la sección y la encuentre apagada.">
           <input id="mod-motivo" className="input" autoFocus maxLength={300} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
@@ -312,12 +354,15 @@ function CambioEnSede({ m, sede, modulos, onCambiar, onClose, onAplicar, onError
   m: Modulo; sede: Modulo['branches'][number]; modulos: readonly Modulo[];
   onCambiar: (m: Modulo, sede: Modulo['branches'][number]) => void;
   onClose: () => void;
-  onAplicar: (m: Modulo, sede: Modulo['branches'][number], enabled: boolean, motivo?: string) => Promise<void>;
+  onAplicar: (m: Modulo, sede: Modulo['branches'][number], enabled: boolean, motivo?: string, avisado?: number) => Promise<void>;
   onError: (e: unknown) => void;
 }) {
   const [motivo, setMotivo] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const [confirmado, setConfirmado] = useState(false);
   const [bloqueo, setBloqueo] = useState<string | null>(null);
+  // Los rostros tomados en esta sucursal, que dejar de usar Biometría aquí borraría.
+  const borrado = sede.enabled && sede.erasure && !sede.erasure.pending && sede.erasure.count > 0 ? sede.erasure : null;
   const otras = m.branches.filter((b) => b.branchId !== sede.branchId && b.enabled).map((b) => b.name);
   const pantalla = SECCIONES.find((s) => s.modulo === m.key);
   // Lo que en ESTA sede lo necesita encendido.
@@ -329,7 +374,7 @@ function CambioEnSede({ m, sede, modulos, onCambiar, onClose, onAplicar, onError
   async function enviar(enabled: boolean) {
     setEnviando(true);
     setBloqueo(null);
-    try { await onAplicar(m, sede, enabled, enabled ? undefined : motivo.trim()); } catch (e) {
+    try { await onAplicar(m, sede, enabled, enabled ? undefined : motivo.trim(), enabled ? undefined : borrado?.count); } catch (e) {
       // Lo que hay vivo en la sede se dice aquí, no en un aviso que se va.
       if (e instanceof ApiError && e.status === 409) setBloqueo(e.message); else onError(e);
     } finally { setEnviando(false); }
@@ -341,6 +386,7 @@ function CambioEnSede({ m, sede, modulos, onCambiar, onClose, onAplicar, onError
         footer={<><Button variant="secondary" onClick={onClose}>Volver</Button><Button loading={enviando} onClick={() => void enviar(true)}>Usar en {sede.name}</Button></>}>
         <div className="stack-sm">
           <p>{m.name} vuelve al menú de quien trabaja en {sede.name}. Lo que había ahí regresa como estaba.</p>
+          {sede.erasure?.pending && sede.erasure.count > 0 && <Callout tone="info">Se cancela el borrado del {fecha(sede.erasure.on)}: {rostrosEnPalabras(sede.erasure.count)} de {sede.name} {sede.erasure.count === 1 ? 'vuelve' : 'vuelven'} a reconocerse.</Callout>}
           {bloqueo && <Callout tone="danger">{bloqueo}</Callout>}
         </div>
       </Dialog>
@@ -358,10 +404,10 @@ function CambioEnSede({ m, sede, modulos, onCambiar, onClose, onAplicar, onError
   }
   return (
     <Dialog open onClose={onClose} title={`Dejar de usar ${m.name} en ${sede.name}`}
-      footer={<><Button variant="secondary" onClick={onClose}>Volver</Button><Button variant="danger" loading={enviando} disabled={motivo.trim().length < 3 || !!bloqueo} onClick={() => void enviar(false)}>Dejar de usar en {sede.name}</Button></>}>
+      footer={<><Button variant="secondary" onClick={onClose}>Volver</Button><Button variant="danger" loading={enviando} disabled={motivo.trim().length < 3 || !!bloqueo || (!!borrado && !confirmado)} onClick={() => void enviar(false)}>Dejar de usar en {sede.name}</Button></>}>
       <div className="stack">
         <p>
-          {otras.length > 0 ? `${m.name} sigue en ${frase(otras)}. ` : ''}En {sede.name} desaparece del menú de quien trabaja ahí y no se puede crear nada nuevo ahí. No se borra nada.
+          {otras.length > 0 ? `${m.name} sigue en ${frase(otras)}. ` : ''}En {sede.name} desaparece del menú de quien trabaja ahí y no se puede crear nada nuevo ahí.{borrado ? '' : ' No se borra nada.'}
           {m.key === 'cash' ? ' Ahí se sigue cobrando, sin turno ni corte.' : ''}
         </p>
         {bloqueo && (
@@ -370,6 +416,7 @@ function CambioEnSede({ m, sede, modulos, onCambiar, onClose, onAplicar, onError
             {pantalla && <div className="callout-accion"><ButtonLink href={pantalla.href} size="sm">Ir a {pantalla.etiqueta}</ButtonLink></div>}
           </Callout>
         )}
+        {!bloqueo && borrado && <AvisoDeBorrado borrado={borrado} donde={` de ${sede.name}`} confirmado={confirmado} onConfirmar={setConfirmado} />}
         {!bloqueo && <>
           <Field label="Motivo" htmlFor="mod-motivo-sede" hint="Queda en la bitácora con tu nombre.">
             <input id="mod-motivo-sede" className="input" autoFocus maxLength={300} value={motivo} onChange={(e) => setMotivo(e.target.value)} />

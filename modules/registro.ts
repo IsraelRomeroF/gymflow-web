@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Inbox, DoorOpen, ChartColumnBig, ArrowLeftRight, ScanFace, FileSignature, Tags, CalendarDays, Wallet, ShoppingCart, Sparkles, HeartHandshake, Package, UserCog, Building2, History, Stamp, Blocks, FileUp, type LucideIcon, ListChecks, MessageCircle, CircleDollarSign } from 'lucide-react';
+import { LayoutDashboard, Users, Inbox, DoorOpen, ChartColumnBig, ArrowLeftRight, ScanFace, FileSignature, Tags, CalendarDays, Wallet, ShoppingCart, Sparkles, HeartHandshake, Package, UserCog, Building2, History, Stamp, Blocks, FileUp, type LucideIcon, ListChecks, MessageCircle, CircleDollarSign, Receipt } from 'lucide-react';
 import { OPEN_BY_ROLE_SECTIONS, SECTION_GROUP_NAMES } from '@gymflow/core/secciones';
 
 /**
@@ -27,6 +27,12 @@ export type Seccion = {
   permisos?: readonly string[];
   /** También la ve quien tenga este rol, aunque no tenga el permiso. */
   roles?: readonly string[];
+  /**
+   * La sección es de un PUESTO, no de un permiso: solo la ve quien tenga
+   * alguno de estos roles (3.12). Para lo que la API decide por puesto, como
+   * la cuenta del gimnasio con GymFlow, que es solo de su dueño.
+   */
+  soloRoles?: readonly string[];
   /** De quién es la pantalla, para decírselo a quien llega y no la ve. */
   paraQuien: string;
   /** Otras rutas de la misma sección que no tienen entrada propia en el menú. */
@@ -52,8 +58,8 @@ export type Seccion = {
   puestos?: readonly string[];
 };
 
-/** Quien da la segunda firma ve la bandeja de Autorizaciones: el dueño (2026-10-05). */
-export const FIRMAS = ['approvals:grant'] as const;
+/** Quien da la segunda firma ve la bandeja de Autorizaciones: el dueño (2026-10-05) y, mientras dure su nombramiento, su apoderado temporal (D-02, bloque 3.1). */
+export const FIRMAS = ['approvals:grant', 'approvals:proxy'] as const;
 
 export const SECCIONES: readonly Seccion[] = [
   // ── Operación ─────────────────────────────────────────────────────────────
@@ -147,6 +153,12 @@ export const SECCIONES: readonly Seccion[] = [
     modulo: 'core', href: '/modulos', llave: 'modulos', puestos: ['OWNER', 'MANAGER'], etiqueta: 'Módulos', icono: Blocks, grupo: 'direccion', permisos: ['settings:org', 'settings:branch'], roles: ['OWNER'],
     paraQuien: 'la Dueña y Gerencia', palabras: ['configuración', 'encender', 'apagar', 'secciones', 'mi gimnasio'],
   },
+  // Lo que el gimnasio le paga a GymFlow (D-37, 3.11): solo consulta y solo de su dueño. Con todo
+  // al corriente no hay aviso arriba del panel, así que sin este renglón no había por dónde llegar (3.12).
+  {
+    modulo: 'core', href: '/cuenta-gymflow', etiqueta: 'Cuenta con GymFlow', icono: Receipt, grupo: 'direccion', soloRoles: ['OWNER'],
+    paraQuien: 'la Dueña o el Dueño', palabras: ['mensualidad de gymflow', 'factura', 'pago del sistema', 'suspensión', 'avisos de gymflow'],
+  },
 
   // ── Cumplimiento ──────────────────────────────────────────────────────────
   {
@@ -194,6 +206,7 @@ export function bajoLlave(s: Seccion, m: Mirada): boolean {
 
 /** ¿La sesión trae alguno de sus permisos (o su rol la ve)? */
 function porPermiso(s: Seccion, m: Mirada): boolean {
+  if (s.soloRoles) return s.soloRoles.some((r) => m.roles.includes(r));
   if (!s.permisos || s.permisos.length === 0) return true;
   return s.permisos.some((p) => m.can(p)) || (s.roles ?? []).some((r) => m.roles.includes(r));
 }
@@ -271,7 +284,8 @@ export const MENU_POR_TAREA: ReadonlyArray<{ titulo: string; rutas: readonly str
   { titulo: 'Mostrador', rutas: ['/socios', '/caja', '/punto-de-venta', '/altas', '/estacion', '/acceso'] },
   { titulo: 'Clases y crecimiento', rutas: ['/clases', '/rutinas', '/prospectos', '/retencion', '/mensajes'] },
   { titulo: 'Dinero', rutas: ['/tablero', '/movimientos', '/precios', '/planes', '/productos'] },
-  { titulo: 'Gimnasio', rutas: ['/personal', '/sucursales', '/modulos', '/importar', '/consentimientos'] },
+  // «Cuenta con GymFlow» es solo de la dueña (lista plana); aquí tiene lugar por si un gerente es además dueño.
+  { titulo: 'Gimnasio', rutas: ['/personal', '/sucursales', '/modulos', '/importar', '/consentimientos', '/cuenta-gymflow'] },
   { titulo: 'Control', rutas: ['/autorizaciones', '/bitacora', '/biometria'] },
 ];
 
@@ -280,7 +294,7 @@ export const MENU_PLANO: Readonly<Record<string, readonly string[]>> = {
   RECEPTION: ['/panel', '/socios', '/caja', '/punto-de-venta', '/clases', '/altas', '/prospectos', '/mensajes', '/precios', '/estacion', '/acceso'],
   COACH: ['/panel', '/socios', '/clases', '/rutinas', '/precios'],
   // Lo que la dueña abre a diario, primero: sus firmas y su dinero (UX5-D-09).
-  OWNER: ['/panel', '/autorizaciones', '/movimientos', '/tablero', '/caja', '/personal', '/bitacora', '/planes', '/precios', '/sucursales', '/modulos', '/biometria', '/consentimientos'],
+  OWNER: ['/panel', '/autorizaciones', '/movimientos', '/tablero', '/caja', '/personal', '/bitacora', '/planes', '/precios', '/sucursales', '/modulos', '/biometria', '/consentimientos', '/cuenta-gymflow'],
 };
 
 /** Cómo se llama una sección en el menú de un puesto, cuando no es su nombre de siempre. */

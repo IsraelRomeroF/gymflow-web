@@ -9,6 +9,7 @@ import { concepto, fecha, fechaHora, pesos } from '@/lib/format';
 import { useToast, errorText } from './session';
 import { Badge, Button, Card, Empty, IconTile, Skeleton } from './ui';
 import { CargoAcciones, PagoAcciones } from './correcciones';
+import { DevolverSaldoAFavor } from './ficha/saldo-a-favor';
 
 /**
  * EL ESTADO DE CUENTA EN LA FICHA (bloque 1.6 · 3-04, 3-05, 3-06, 4-15; bloque
@@ -55,8 +56,10 @@ type Renglon =
 
 const debe = (c: StatementCharge) => BigInt(c.balanceCents) > 0n && !['VOID', 'WRITTEN_OFF'].includes(c.status);
 
-export function EstadoDeCuenta({ memberId, st, onCambio }: {
+export function EstadoDeCuenta({ memberId, st, onCambio, branchId = null }: {
   memberId: string;
+  /** La sede de casa del socio: de su caja sale el efectivo al devolverle saldo a favor (D-13). */
+  branchId?: string | null;
   /** `null` mientras carga. */
   st: MemberStatement | null;
   /** Tras corregir un cargo o devolver un pago: la ficha vuelve a pedir todo. */
@@ -114,7 +117,9 @@ export function EstadoDeCuenta({ memberId, st, onCambio }: {
       {st && (
         <dl className="cuenta-totales" data-testid="cuenta-totales">
           <div><dt>Debe</dt><dd className={`num${saldo > 0n ? ' danger' : ''}`}>{pesos(saldo)}</dd></div>
-          <div><dt>A favor</dt><dd className="num">{pesos(credito)}</dd></div>
+          <div><dt>A favor</dt><dd className="num">{pesos(credito)}
+            {/* D-13 (bloque 3.5): lo que tiene a favor se le devuelve en dinero solo si lo pide, y con autorización. */}
+            <DevolverSaldoAFavor memberId={memberId} branchId={branchId} creditCents={credito.toString()} onDone={onCambio} /></dd></div>
           <div><dt>Último pago</dt><dd className="num">{ultimoPago ? <>{pesos(ultimoPago.amountCents)} <span className="tiny muted">· {fecha(ultimoPago.receivedAt)}</span></> : <span className="muted">Sin pagos</span>}</dd></div>
         </dl>
       )}

@@ -3,11 +3,12 @@
 import { use, useEffect, useState } from 'react';
 import { Printer } from 'lucide-react';
 import { api } from '@/lib/api';
-import { fechaHora, pesos } from '@/lib/format';
+import { fecha, fechaHora, pesos } from '@/lib/format';
 import { METODO } from '@/lib/caja';
 import { useSession, errorText } from '@/components/session';
 import { Button, Callout, Skeleton } from '@/components/ui';
 import type { PosSale, Product } from '@gymflow/core/contracts';
+import { CorregirVenta } from '@/components/cobro/corregir-venta';
 
 /** Contratos del núcleo (8-19). */
 type Venta = PosSale;
@@ -38,6 +39,8 @@ export default function ReciboVentaPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="stack items-center">
       <div className="no-print"><Button icon={<Printer />} onClick={() => window.print()}>Imprimir</Button></div>
+      {/* D-13 (bloque 3.5): por corregir, anular el mismo día o registrar su devolución. No se imprime. */}
+      <CorregirVenta venta={v} onCambio={setV} />
       <article className="recibo">
         <header>
           <p className="recibo-org">{org.tradeName}</p>
@@ -46,6 +49,7 @@ export default function ReciboVentaPage({ params }: { params: Promise<{ id: stri
           {v.folio && <p className="recibo-folio">Folio {v.folio}</p>}
         </header>
         {v.status === 'VOIDED' && <p className="recibo-aviso">VENTA ANULADA{v.voidReason ? ` · ${v.voidReason}` : ''}</p>}
+        {v.correction?.returned && <p className="recibo-aviso">VENTA DEVUELTA EL {fecha(v.correction.returned.businessDate).toUpperCase()}</p>}
         <table>
           <tbody>
             {v.lines.map((l, i) => (

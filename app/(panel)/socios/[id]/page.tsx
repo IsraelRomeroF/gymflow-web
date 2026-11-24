@@ -439,6 +439,14 @@ export default function SocioPage() {
                 {/* Lo pagado, aparte del periodo: pueden no coincidir (3-01). */}
                 {vigente.paidThrough !== undefined && <><dt>Pagado hasta</dt><dd>{vigente.paidThrough ? fecha(vigente.paidThrough) : 'Sin pagos'}</dd></>}
                 <dt>Renovación</dt><dd>{renovacion(vigente)}</dd>
+                {/* Lo que paga por periodo y la marca «conserva su precio» (D-19; bloque 3.5, edición puntual). */}
+                {vigente.periodPriceCents !== undefined && (
+                  <><dt>Paga por periodo</dt>
+                    <dd data-testid="paga-por-periodo">{pesos(vigente.periodPriceCents)}
+                      {vigente.priceProtected && <> · <Badge tone="info">Conserva su precio</Badge>
+                        {vigente.priceProtectedReason && <span className="tiny muted"> {vigente.priceProtectedReason}</span>}</>}
+                    </dd></>
+                )}
                 {vigente.status === 'FROZEN' && vigente.frozenUntil && <><dt>Congelada hasta</dt><dd>{fecha(vigente.frozenUntil)}</dd></>}
               </dl>
             )}
@@ -546,7 +554,7 @@ export default function SocioPage() {
           )}
           {cuentaCarga.error && <ErrorCarga titulo="No se pudo cargar su estado de cuenta" mensaje={cuentaCarga.error} onReintentar={() => void cuentaCarga.recargar()} />}
           {/* Por páginas, con quién cobró, qué cubrió y cómo quedó saldado cada cargo (bloque 1.6). */}
-          {!cuentaCarga.error && <EstadoDeCuenta memberId={m.id} st={st} onCambio={() => void recargarCuenta()} />}
+          {!cuentaCarga.error && <EstadoDeCuenta memberId={m.id} st={st} branchId={m.homeBranchId} onCambio={() => void recargarCuenta()} />}
           {/* Lo que compró en la tienda (8-01): el punto de venta dice «queda en su ficha», y es aquí. */}
           {activo('pos') && <ComprasSocio memberId={m.id} />}
         </div>

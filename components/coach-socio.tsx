@@ -8,23 +8,35 @@ import { useCarga } from '@/lib/carga';
 type Coach = { id: string; fullName: string; branchIds: string[] };
 
 /**
- * El coach del socio (2026-10-09). Quien inscribe (gerencia y recepción) lo
- * elige aquí; el coach solo ve a los socios que tiene asignados. Sin coach
- * asignado, cuenta quien le asignó su rutina vigente.
+ * El coach del socio (2026-10-09; D-29, fase 3). Recepción lo elige AL ALTA;
+ * aquí, en la ficha, lo pone o lo cambia solo la gerencia
+ * (`members:coach:assign`). Recepción ve quién es, sin poder cambiarlo. El
+ * coach solo ve a los socios que tiene asignados; sin coach asignado, cuenta
+ * quien le asignó su rutina vigente.
  */
 export function CoachDelSocio({ memberId, coachUserId, homeBranchId, onCambio }: {
   memberId: string; coachUserId: string | null; homeBranchId: string | null; onCambio: (id: string | null) => void;
 }) {
   const { me, can } = useSession();
   const toast = useToast();
-  const elige = can('members:create');
+  const elige = can('members:coach:assign');
+  // Quien inscribe ve la lista de coaches (la usa al alta): aquí le sirve para decir el nombre.
+  const veNombres = elige || can('members:create');
   const [guardando, setGuardando] = useState(false);
   // Sin red no es «El gimnasio aún no tiene coaches» (26-01).
   const cargar = useCallback(() => api<{ coaches: Coach[] }>('/members/coaches').then((r) => r.coaches), []);
-  const carga = useCarga(elige ? cargar : null);
+  const carga = useCarga(veNombres ? cargar : null);
   const coaches = carga.datos ?? null;
 
-  if (!elige) return <span className="small">{coachUserId === me.userId ? 'Tú' : coachUserId ? 'Asignado' : <span className="muted">Sin coach asignado</span>}</span>;
+  if (!elige) {
+    const nombre = coachUserId ? coaches?.find((c) => c.id === coachUserId)?.fullName ?? null : null;
+    return (
+      <span className="small" data-testid="coach-socio-lectura">
+        {coachUserId === me.userId ? 'Tú' : coachUserId ? nombre ?? 'Asignado' : <span className="muted">Sin coach asignado</span>}
+        {veNombres && <span className="tiny muted"> · lo cambia la gerencia</span>}
+      </span>
+    );
+  }
   if (carga.error) return <span className="small muted">No se pudo cargar la lista de coaches. <button type="button" className="row-link" onClick={() => void carga.recargar()}>Reintentar</button></span>;
   if (coaches === null) return <span className="small muted">…</span>;
   if (coaches.length === 0) return <span className="small muted">El gimnasio aún no tiene coaches</span>;

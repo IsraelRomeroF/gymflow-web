@@ -7,11 +7,12 @@ import { dia as diaDe, hora, hoyEn } from '@/lib/format';
 import { zonaDe } from '@/lib/zonas';
 import { useSession, useToast, errorText } from '@/components/session';
 import { Badge, Button, Callout, Dialog, Empty, EsqueletoLista } from '@/components/ui';
-import { CobrarClaseDialog } from '@/components/cobro-clase';
+import { ApartarPagandoDialog, CobrarClaseDialog, textoDelApartado, type ApartadoCotizado } from '@/components/cobro-clase';
 import type { MemberClassBookings } from '@gymflow/core/contracts';
 import type { Sesion } from '@/lib/clases';
 
-type Cotizacion = { canBook: boolean; reason: string | null; requiresPayment: boolean; priceCents: string; priceLabel: string | null; dropInOnly?: boolean };
+// `payNow` y `holdUntil`: D-16 (bloque 3.5, edición puntual).
+type Cotizacion = { canBook: boolean; reason: string | null; requiresPayment: boolean; priceCents: string; priceLabel: string | null; dropInOnly?: boolean } & ApartadoCotizado;
 
 /**
  * INSCRIBIR A UNA CLASE desde el mostrador: con el socio delante, recepción
@@ -33,6 +34,7 @@ export function InscribirClaseDialog({ memberId, nombre, homeBranchId, onClose }
   const [ocupado, setOcupado] = useState<string | null>(null);
   const [inscrito, setInscrito] = useState<Set<string>>(new Set());
   const [cobrarClase, setCobrarClase] = useState<{ s: Sesion; chargeId: string; priceCents: string } | null>(null);
+  const [pagarAlApartar, setPagarAlApartar] = useState<{ s: Sesion; priceCents: string; porQue: 'OWES_MEMBERSHIP' | 'HOLD_CLOSED' } | null>(null);
   const puedeCobrar = useSession().can('payments:record');
   // Dónde ya tiene lugar se sabe AL ABRIR (11-04), no al cotizar cada clase.
   useEffect(() => {
@@ -75,6 +77,13 @@ export function InscribirClaseDialog({ memberId, nombre, homeBranchId, onClose }
   }
 
   async function inscribir(s: Sesion) {
+    // D-16: quien debe su mensualidad, o con menos de una hora, solo la aparta pagándola en el momento.
+    const q = propuesta?.s.id === s.id ? propuesta.q : null;
+    if (q?.requiresPayment && q.payNow) {
+      if (!puedeCobrar) { toast('error', `${textoDelApartado(q)} Pídeselo a quien cobra en recepción.`); return; }
+      setPagarAlApartar({ s, priceCents: q.priceCents, porQue: q.payNow });
+      return;
+    }
     setOcupado(s.id);
     try {
       const r = await api<{ chargeId: string | null; priceCents: string }>(`/classes/schedules/${s.id}/bookings`, { method: 'POST', body: JSON.stringify({ memberId }) });
@@ -132,7 +141,7 @@ export function InscribirClaseDialog({ memberId, nombre, homeBranchId, onClose }
                           <li className="list-item cotizacion-fila" data-testid="cotizacion" data-tono={!q.canBook ? 'danger' : q.requiresPayment ? 'warn' : 'ok'}>
                             <span className="small flex-1 min-w-0">{
                               !q.canBook ? `No se puede inscribir: ${q.reason}`
-                                : q.requiresPayment ? `${q.dropInOnly ? 'No tiene plan vigente para esa fecha: la toma como clase suelta y, pagada, entra solo a esa clase.' : 'No va incluida en su plan.'} Clase suelta ${q.priceLabel}: ${puedeCobrar ? 'se cobra ahora' : 'se carga a su cuenta'}.`
+                                : q.requiresPayment ? `${q.dropInOnly ? 'No tiene plan vigente para esa fecha: la toma como clase suelta y, pagada, entra solo a esa clase.' : 'No va incluida en su plan.'} Clase suelta ${q.priceLabel}: ${puedeCobrar ? 'se cobra ahora' : 'se carga a su cuenta'}. ${textoDelApartado(q, zona)}`
                                   : 'Incluida en su plan · sin costo'}</span>
                             <div className="row gap-8">
                               <Button size="sm" variant="ghost" onClick={() => setPropuesta(null)}>{q.canBook ? 'Cancelar' : 'Cerrar'}</Button>
@@ -152,6 +161,16 @@ export function InscribirClaseDialog({ memberId, nombre, homeBranchId, onClose }
               ))}
       </div>
     </Dialog>
+      {pagarAlApartar && sede && (
+        <ApartarPagandoDialog memberId={memberId} nombre={nombre} scheduleId={pagarAlApartar.s.id} priceCents={pagarAlApartar.priceCents} porQue={pagarAlApartar.porQue}
+          branchId={sede} clase={pagarAlApartar.s.className ?? 'la clase'} onClose={() => setPagarAlApartar(null)}
+          onListo={() => {
+            const s = pagarAlApartar.s;
+            setInscrito((x) => new Set(x).add(s.id));
+            setSesiones((xs) => xs?.map((x) => (x.id === s.id ? { ...x, bookedCount: x.bookedCount + 1 } : x)) ?? null);
+            setPropuesta(null); setPagarAlApartar(null);
+          }} />
+      )}
       {cobrarClase && sede && (
         <CobrarClaseDialog memberId={memberId} nombre={nombre} chargeId={cobrarClase.chargeId} priceCents={cobrarClase.priceCents}
           branchId={sede} clase={cobrarClase.s.className ?? 'la clase'} onClose={() => setCobrarClase(null)} />

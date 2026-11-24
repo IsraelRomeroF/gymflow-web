@@ -13,6 +13,7 @@ import {
 } from '@gymflow/core/privacidad';
 import { Badge, Button, Callout, Card, CampoMotivo, Dialog, ErrorCarga, Field, IconTile, Skeleton, faltaMotivo } from './ui';
 import { AutorizacionDialog, textoDeErrorDeFirma } from './autorizacion';
+import { AdeudoAlCerrar } from './ficha/adeudo';
 
 type Socio = { id: string; memberCode: string; firstName: string; status: string; homeBranchId: string | null; anonymizedAt?: string | null };
 type Accion = 'exportar' | 'baja' | 'anonimizar';
@@ -114,13 +115,8 @@ function AccionDialog({ socio, accion, onClose, onListo }: { socio: Socio; accio
             onClick={() => (accion === 'anonimizar' ? setAutorizando(true) : void ejecutar())}>{t.boton}</Button></>}>
         <div className="stack">
           {accion === 'anonimizar' && <Callout tone="warn">Los cargos, pagos y asistencias se quedan con su código de socio, que ya no dirá quién es.</Callout>}
-          {/* Lo que hace la baja con su deuda (3-02): al cancelarse sus membresías esa noche, el gancho de billing anula las cuotas sin ningún pago. */}
-          {accion === 'baja' && (
-            <Callout tone="warn" title="Su deuda sin pagar se anula">
-              Al cancelarse sus membresías, las cuotas que no tienen ningún pago se anulan y ya no se le cobran; lo que pagó en parte queda como adeudo.
-              Si debe algo, cóbralo antes de darlo de baja.
-            </Callout>
-          )}
+          {/* Lo que hace la baja con su deuda (D-12, bloque 3.5; edición puntual): ya no se anula nada. Se ve, y se cobra, se deja o se perdona con monto. */}
+          {accion === 'baja' && <AdeudoAlCerrar memberId={socio.id} branchId={socio.homeBranchId} al="darlo de baja" />}
           <CampoMotivo id="arco-mot" autoFocus value={motivo} onChange={setMotivo} placeholder={accion === 'exportar' ? undefined : t.placeholder}
             motivos={accion === 'exportar' ? MOTIVOS_DE_PRIVACIDAD.descargarDatos : undefined} />
         </div>

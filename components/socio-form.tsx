@@ -13,6 +13,7 @@ import type { MemberSummary } from '@gymflow/core/contracts';
 import { hoyEn } from '@/lib/zonas';
 import { Coincidencias, useIdentidad } from './captacion/identidad';
 import { ElegirResponsable, responsableElegido, SIN_ELEGIR, type Eleccion } from './altas/responsable';
+import { CoachAlAlta } from './altas/coach-al-alta';
 
 type Doc = { id: string; consentType: string; version: string; status: string; title: string };
 type Texto = Doc & { bodyText: string };
@@ -197,6 +198,7 @@ export function NuevoSocioDialog({ nombreInicial, contactoInicial: contactoSuelt
   const [tutor, setTutor] = useState({ nombre: '', telefono: '' });
   // D-11: el rostro, ahora o después. Solo se ofrece donde Biometría está encendida.
   const [rostro, setRostro] = useState<'despues' | 'ahora'>('despues');
+  const [coach, setCoach] = useState('');
   const [duplicados, setDuplicados] = useState<Array<Candidato & { socio: Resumen | null }> | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [reactivando, setReactivando] = useState<string | null>(null);
@@ -248,7 +250,8 @@ export function NuevoSocioDialog({ nombreInicial, contactoInicial: contactoSuelt
           force,
           ...(responsableListo ? { responsible: responsableListo } : {}),
           ...(esMenor && tutor.nombre.trim().length >= 3 ? { guardian: { name: tutor.nombre.trim(), ...(tutor.telefono.trim() ? { phoneE164: tutor.telefono.trim() } : {}) } } : {}),
-          // (D-29, bloque 3.8: aquí viajará el coach que recepción elija al alta.)
+          // D-29: el coach que se elige al alta (después solo lo cambia la gerencia).
+          ...(coach ? { coachUserId: coach } : {}),
         }),
       });
       toast('ok', `Socio dado de alta: ${r.memberCode}`);
@@ -394,7 +397,8 @@ export function NuevoSocioDialog({ nombreInicial, contactoInicial: contactoSuelt
           </Switch>
         )}
 
-        {/* (D-29, bloque 3.8: aquí va «¿Con qué coach?», el coach que recepción elige al alta.) */}
+        {/* D-29: «Su coach» se elige al alta; si el gimnasio no tiene coaches, no se pregunta. */}
+        <CoachAlAlta id="sf-coach" value={coach} onChange={setCoach} branchId={sede} />
         {conRostro && (
           <div data-testid="rostro-al-alta">
             <p className="section-label mt-8">Su rostro para entrar</p>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { KeyRound, LogOut, Monitor, ShieldCheck, Smartphone, TabletSmartphone } from 'lucide-react';
 import { api } from '@/lib/api';
 import { EstadoCarga, useCarga } from '@/lib/carga';
@@ -14,6 +14,35 @@ import { CambiarClave } from '@/components/shell';
 
 /** Cuántas otras sesiones se ven antes de «Ver todas»: una lista larga empuja todo lo demás (24-05). */
 const A_LA_VISTA = 5;
+
+/** Las direcciones públicas de esta instalación, como las manda `GET /public/config` (D-01). */
+type Direcciones = { portalUrl: string | null; panelUrl: string | null; address?: 'local' | 'provisional' | 'fixed' };
+
+/**
+ * POR DÓNDE SE ENTRA DESDE FUERA (D-01, bloque 3.1). Con la dirección fija, la
+ * misma siempre: la app instalada, los QR y los avisos siguen sirviendo. Con
+ * la provisional se dice que va a cambiar. Sin ninguna, no sale nada.
+ */
+function DireccionDesdeFuera() {
+  const [d, setD] = useState<Direcciones | null>(null);
+  useEffect(() => { void api<Direcciones>('/public/config').then(setD).catch(() => undefined); }, []);
+  if (!d || !d.address || d.address === 'local') return null;
+  const sinProtocolo = (u: string | null) => (u ?? '').replace(/^https?:\/\//, '');
+  return d.address === 'fixed' ? (
+    <Callout tone="info" title="Desde fuera del gimnasio se entra siempre por la misma dirección">
+      <p data-testid="direccion-fija">
+        {d.panelUrl ? <>Panel: <span className="strong">{sinProtocolo(d.panelUrl)}</span></> : null}
+        {d.panelUrl && d.portalUrl ? ' · ' : ''}
+        {d.portalUrl ? <>Portal del socio: <span className="strong">{sinProtocolo(d.portalUrl)}</span></> : null}
+        . Instala GymFlow en tu teléfono desde esa dirección para recibir los avisos.
+      </p>
+    </Callout>
+  ) : (
+    <Callout tone="warn" title="La dirección para entrar desde fuera es provisional">
+      <p data-testid="direccion-provisional">Cambia cada vez que GymFlow arranca: la app instalada, los QR impresos y los avisos al teléfono dejan de servir con cada cambio.</p>
+    </Callout>
+  );
+}
 
 /** Una sesión viva de la cuenta, como la manda `GET /auth/sessions`. */
 type Sesion = { id: string; current: boolean; device: string | null; ip: string | null; createdAt: string; lastSeenAt: string; endsAt: string };
@@ -93,6 +122,7 @@ export default function MisSesionesPage() {
                         <p>{horas ? `Cada sesión dura ${horas} horas desde que entras` : 'Cada sesión dura un tiempo fijo desde que entras'}, aunque la sigas usando. Después vuelves a entrar con tu contraseña.</p>
                       </Callout>
                     )}
+                    <DireccionDesdeFuera />
                     {firma && <AvisosEnTelefono />}
                     <p className="tiny muted">Al salir con «Cerrar sesión», este equipo deja de recibir tus avisos y se borra lo que GymFlow guardó en el navegador.</p>
                     <div className="row flex-wrap">

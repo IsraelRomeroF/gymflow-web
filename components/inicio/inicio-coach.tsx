@@ -12,6 +12,7 @@ import { useCarga } from '@/lib/carga';
 import { NIVELES, OBJETIVOS } from '@/lib/rutinas';
 import { useSession } from '@/components/session';
 import { Badge, ButtonLink, Card, Empty, ErrorCarga, PageHeader, Skeleton } from '@/components/ui';
+import { HacermeSuCoach } from '@/components/hacerme-su-coach';
 
 type Sesion = {
   id: string; branchId: string; className: string | null; coachUserId: string | null;
@@ -107,14 +108,18 @@ export function InicioCoach() {
 
         <Card title={<span className="row gap-8"><Users size={18} />Tus socios</span>}
           sub="Los que tienes asignados. Toca una cifra para ver quiénes son."
-          actions={<form role="search" className="row gap-8" data-testid="buscar-inicio"
-            onSubmit={(e) => { e.preventDefault(); router.push(q.trim() ? `/socios?q=${encodeURIComponent(q.trim())}` : '/socios'); }}>
-            <div className="input-icon coach-buscar"><Search /><input className="input" aria-label="Buscar en mis socios" placeholder="Nombre o código" value={q} onChange={(e) => setQ(e.target.value)} /></div>
-          </form>}>
+          actions={<div className="row gap-8 flex-wrap">
+            <form role="search" className="row gap-8" data-testid="buscar-inicio"
+              onSubmit={(e) => { e.preventDefault(); router.push(q.trim() ? `/socios?q=${encodeURIComponent(q.trim())}` : '/socios'); }}>
+              <div className="input-icon coach-buscar"><Search /><input className="input" aria-label="Buscar en mis socios" placeholder="Nombre o código" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+            </form>
+            {/* D-29: se suma a un socio sin coach con el código que el socio le dicta. */}
+            <HacermeSuCoach alLigar={() => void dia.recargar()} />
+          </div>}>
           {dia.error ? <ErrorCarga titulo="No se pudieron cargar tus socios" mensaje={dia.error} onReintentar={() => void dia.recargar()} />
             : !d ? <div className="grid grid-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} h={84} r={12} />)}</div>
               : d.members.total === 0 ? (
-                <Empty icon={<Users />} title="Aún no tienes socios asignados" text="Recepción o la gerencia te los asignan desde la ficha de cada socio; en cuanto tengas uno, aquí lo ves." />
+                <Empty icon={<Users />} title="Aún no tienes socios asignados" text="Recepción elige el coach al dar de alta a cada socio y la gerencia lo cambia después. Si un socio sin coach está contigo, usa «Hacerme su coach» con el código que genera en su teléfono." />
               ) : (
                 <div className="stack">
                   <div className={`grid ${conRutinas ? 'grid-4' : 'grid-2'}`}>

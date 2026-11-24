@@ -10,11 +10,12 @@ import { hora, pesos } from '@/lib/format';
 import { errorText } from './session';
 import { Button, Callout, CampoMotivo, Dialog, ErrorCarga, faltaMotivo, Field, Segmented } from './ui';
 import { useCarga } from '@/lib/carga';
-import { Desenlace, RechazoAnterior, avisoDeAlcance, nombres, preguntaAbierta, type Firmante, type Solicitud } from './firma/desenlace';
+import { Desenlace, RechazoAnterior, avisoDeAlcance, nombreDeFirmante, nombres, preguntaAbierta, type Firmante, type Solicitud } from './firma/desenlace';
 import { atenderEspera, esperaParaRetomar, ponerEspera, quitarEspera, soltarEspera } from './firma/espera';
 
 /** De qué registro se trata lo que se firma (29-01). Mismos valores que `APPROVAL_RESOURCE_TYPES` del núcleo. */
-export type TipoDeRegistro = 'CashSession' | 'Payment' | 'Charge' | 'Membership' | 'Member' | 'VisitPack' | 'MonthlyClose';
+// 'PosSale' y 'CashLimits': bloque 3.5 (D-13 y D-15), edición puntual.
+export type TipoDeRegistro = 'CashSession' | 'Payment' | 'Charge' | 'Membership' | 'Member' | 'VisitPack' | 'MonthlyClose' | 'PosSale' | 'CashLimits';
 
 /**
  * Lo que se autoriza: la firma solo vale para esto y hasta este importe.
@@ -30,6 +31,7 @@ const TIPO_POR_PERMISO: Record<string, TipoDeRegistro> = {
   'cash:withdraw': 'CashSession', 'payments:reverse': 'Payment', 'payments:refund': 'Payment',
   'billing:charge:void': 'Charge', 'billing:discount:apply': 'Charge', 'members:anonymize': 'Member',
   'members:balance:adjust': 'Member', 'memberships:visitpack:adjust': 'VisitPack', 'reports:month:close': 'MonthlyClose',
+  'pos:sale:return': 'PosSale', 'cash:limits:set': 'CashLimits',
 };
 
 /**
@@ -382,7 +384,7 @@ export function AutorizacionDialog({ permission, branchId, operacion, titulo, de
           </Callout>
         ) : firmantes && (
           <p className="small muted">
-            Pueden autorizar: <strong>{lista.map((a) => (pausaVigente(a) ? `${a.fullName} (firmas en pausa hasta las ${hora(a.pausedUntil!)})` : a.fullName)).join(', ')}</strong>
+            Pueden autorizar: <strong>{lista.map((a) => (pausaVigente(a) ? `${a.fullName} (firmas en pausa hasta las ${hora(a.pausedUntil!)})` : nombreDeFirmante(a))).join(', ')}</strong>
             {monto ? <> · hasta {pesos(monto)}, solo para esta operación.</> : ' · solo para esta operación.'}
           </p>
         )}

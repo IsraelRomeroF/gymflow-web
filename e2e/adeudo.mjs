@@ -51,14 +51,20 @@ await recorrido('adeudo', async (r) => {
   await d.getByText('Olvidar el adeudo').click();
   await d.getByLabel('Motivo').fill('Estuvo incapacitado por una lesión');
   await r.captura(ger, 'ad-2-olvidar');
-  await d.getByRole('button', { name: 'Pedir autorización' }).click();
-  d = ger.getByRole('dialog').last();
-  // 2.10 (20-14): con una sola persona que firma, ya está elegida; no se teclea su correo.
-  await d.getByText(/^Firma: /).waitFor();
-  await d.getByLabel('Su contraseña').fill(CLAVE_PRUEBAS);
-  const olvidar = decision(ger);
-  await d.getByRole('button', { name: 'Autorizar' }).click();
-  const resp2 = await olvidar;
+  // Fase 3 · bloque 3.5 (D-12): olvidar hasta una mensualidad del socio ya no pide firma; arriba de eso, sí.
+  // El botón dice «Olvidar adeudo» u «Olvidar y cobrar $…». La primera respuesta puede ser 428 (pide firma).
+  const primera = decision(ger);
+  await d.getByRole('button', { name: /^Olvidar (adeudo|y cobrar)/ }).click();
+  let resp2 = await primera;
+  if (resp2.status() === 428) {
+    d = ger.getByRole('dialog').last();
+    // 2.10 (20-14): con una sola persona que firma, ya está elegida; no se teclea su correo.
+    await d.getByText(/^Firma: /).waitFor();
+    await d.getByLabel('Su contraseña').fill(CLAVE_PRUEBAS);
+    const olvidar = decision(ger);
+    await d.getByRole('button', { name: 'Autorizar' }).click();
+    resp2 = await olvidar;
+  }
   if (resp2.status() >= 400) r.nota(`la API respondió ${resp2.status()} a «Olvidar el adeudo»: ${(await resp2.text()).slice(0, 160)}`);
   r.ok(await aparece(ger.getByText(/Adeudo olvidado: .* ya puede entrar/), T.ui), 'olvidar condona, arranca hoy y cobra solo el periodo nuevo');
   await ger.getByRole('tab', { name: /Estado de cuenta/ }).click();

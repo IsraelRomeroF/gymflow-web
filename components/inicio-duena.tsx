@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { CircleCheck, DoorOpen, FileSignature, Lock, RotateCw, ShieldAlert, ShoppingBag, UserPlus, Users, Wallet } from 'lucide-react';
+import { CircleCheck, DoorOpen, FileSignature, Lock, Receipt, RotateCw, ShieldAlert, ShoppingBag, UserPlus, Users, Wallet } from 'lucide-react';
 import { api } from '@/lib/api';
-import { hora, pesos } from '@/lib/format';
+import { fecha as fechaLarga, hora, pesos } from '@/lib/format';
 import { errorText, useSession } from './session';
 import { Button, ButtonLink, Callout, Cambio, Card, PageHeader, Skeleton } from './ui';
 import { AvisosEnTelefono } from './push';
@@ -13,7 +13,8 @@ import { GLOSARIO } from '@/lib/glosario';
 import { GlosarioDinero } from './glosario-dinero';
 import { hoyEn } from '@/lib/zonas';
 import { useCarga } from '@/lib/carga';
-import type { NoticeSignatureRequests, Pulse as Pulso, RetentionSummary, StoreSummary } from '@gymflow/core/contracts';
+import { useCuentaConGymflow } from './cuenta-gymflow';
+import type { NoticeSignatureRequests, PrivacyConservation, Pulse as Pulso, RetentionSummary, StoreSummary } from '@gymflow/core/contracts';
 
 /** «Ana», «Ana y Luis», «Ana, Luis y Eva». */
 const enFrase = (nombres: string[]) => (nombres.length <= 1 ? nombres[0] ?? '' : `${nombres.slice(0, -1).join(', ')} y ${nombres[nombres.length - 1]}`);
@@ -123,6 +124,59 @@ function AvisoPorFirmar() {
         </div>
       </Callout>
     </div>
+  );
+}
+
+/**
+ * LA LISTA DE EXSOCIOS ESPERA TU FIRMA (3.9 · D-32; renglón de 3.12): una vez
+ * al mes se arma la lista de quienes cumplieron el plazo de baja y nada se
+ * anonimiza sin su firma. Hasta hoy solo se enteraba al abrir Autorizaciones.
+ * Si la consulta falla no se dice nada: la lista sigue en Autorizaciones.
+ */
+function ListaDeExsociosPorFirmar() {
+  const carga = useCarga(useCallback(() => api<PrivacyConservation>('/privacy/conservation'), []));
+  const c = carga.datos;
+  const n = c?.batch?.counts.listed ?? 0;
+  if (!c?.canSign || !c.batch || n === 0) return null;
+  return (
+    <div data-testid="exsocios-por-firmar">
+      <Callout tone="warn" title={n === 1 ? 'Tienes una lista por firmar: un exsocio' : `Tienes una lista por firmar: ${n.toLocaleString('es-MX')} exsocios`}>
+        <p>{n === 1 ? 'Lleva' : 'Llevan'} {c.batch.monthsAfterArchive} meses de baja. Con tu firma sus datos personales se borran y quedan solo las cuentas; sin ella no se toca nada.</p>
+        <div className="row gap-8 flex-wrap callout-accion">
+          <ButtonLink href="/autorizaciones" size="sm" icon={<FileSignature />}>Ver la lista y firmar</ButtonLink>
+        </div>
+      </Callout>
+    </div>
+  );
+}
+
+/**
+ * TU CUENTA CON GYMFLOW (3.11 · D-37; tarjeta de 3.12): lo que el gimnasio le
+ * paga a GymFlow, en dos renglones y siempre a la vista, también cuando está al
+ * corriente (el aviso de arriba del panel solo sale si hay algo que avisar).
+ * Solo consulta. Si no carga no estorba: la pantalla completa está en el menú.
+ */
+function CuentaConGymflowTarjeta() {
+  const { cuenta } = useCuentaConGymflow();
+  if (!cuenta?.visible) return null;
+  const porPagar = cuenta.invoices.filter((f) => f.state === 'PENDIENTE' || f.state === 'PAGADA_EN_PARTE' || f.state === 'VENCIDA');
+  const proxima = [...porPagar].sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
+  const vencida = cuenta.status.code === 'VENCIDA';
+  const suspendida = cuenta.serviceStatus === 'SUSPENDED';
+  return (
+    <Card title={<span className="row gap-6"><Receipt size={16} aria-hidden />Tu cuenta con GymFlow</span>} data-testid="cuenta-gymflow-duena" data-cobro={cuenta.status.code}>
+      <div className="duena-cifra-chica num">{pesos(cuenta.monthly.totalCents, { decimals: false })} <span className="small muted">al mes</span></div>
+      {suspendida ? <p className="small text-danger">El servicio está suspendido hasta que GymFlow registre el pago.</p>
+        : vencida ? (
+          <p className="small text-danger">
+            Debes {pesos(cuenta.status.pendingCents)} · {cuenta.status.overdueDays} {cuenta.status.overdueDays === 1 ? 'día' : 'días'} de atraso
+            {cuenta.suspendsOn ? ` · el servicio se suspende el ${fechaLarga(cuenta.suspendsOn)}` : ''}
+          </p>
+        ) : proxima ? <p className="small muted">Por pagar {pesos(proxima.balanceCents)} · vence el {fechaLarga(proxima.dueDate)}</p>
+          : <p className="small muted">Al corriente: no hay facturas por pagar.</p>}
+      {cuenta.upcoming && <p className="tiny muted">Desde el {fechaLarga(cuenta.upcoming.effectiveFrom)} la mensualidad será de {pesos(cuenta.upcoming.totalCents, { decimals: false })}.</p>}
+      <p className="tiny muted mt-8"><Link href="/cuenta-gymflow">Ver facturas y avisos</Link>. El pago lo registra GymFlow cuando llega.</p>
+    </Card>
   );
 }
 
@@ -295,6 +349,8 @@ export function InicioDuena() {
       {can('staff:unlock') && can('staff:read') && <GerenteNuevo />}
       {/* El aviso de privacidad no se publica sin su firma (D-25). */}
       {can('approvals:grant') && can('settings:consent:read') && <AvisoPorFirmar />}
+      {/* La lista mensual de exsocios no se anonimiza sin su firma (D-32). */}
+      {can('approvals:grant') && <ListaDeExsociosPorFirmar />}
       {/* Solicitudes de privacidad con plazo de ley: solo cifras (21-01). */}
       <AvisoSolicitudesArco />
       <Card title="Lo que conviene revisar" className="duena-alertas">
@@ -327,6 +383,8 @@ export function InicioDuena() {
           </ul>
         )}
         {a.sensitiveToday > 0 && <p className="tiny muted mt-8">{a.sensitiveToday} operaciones para revisar hoy en la <Link href="/bitacora">bitácora</Link>.</p>}
+        {/* D-06: cuántas veces se dejó entrar a alguien sin su rostro; el detalle, en la bitácora (3.12). */}
+        {a.entriesWithoutFace7d > 0 && <p className="tiny muted mt-8" data-testid="sin-rostro-7d">{a.entriesWithoutFace7d === 1 ? 'Una entrada autorizada' : `${a.entriesWithoutFace7d} entradas autorizadas`} sin rostro en los últimos 7 días: quién y por qué, en la <Link href="/bitacora">bitácora</Link>.</p>}
       </Card>
 
         <Card title="Lo que te deben">
@@ -360,11 +418,13 @@ export function InicioDuena() {
         {activo('pos') && <TiendaDeLaDuena />}
         <Card title="Tus socios">
           <div className="duena-cifra-chica num"><Users size={18} aria-hidden /> {p.members.active.toLocaleString('es-MX')} <span className="small muted">activos</span></div>
-          <p className="small muted">Este mes: {mes.newMembers} nuevos · {mes.leftMembers} se dieron de baja</p>
+          <p className="small muted">Este mes: {mes.newMembers} nuevos · {mes.leftMembers} se dieron de baja{mes.trialPasses > 0 ? <span data-testid="pases-de-prueba-mes"> · {mes.trialPasses} {mes.trialPasses === 1 ? 'pase de prueba' : 'pases de prueba'}</span> : null}</p>
           {/* La cifra sin nombres; la lista con nombres es de la operación (ADR-039). */}
           {activo('retention') && <SociosEnRiesgo />}
           {activo('retention') && <p className="tiny muted mt-8">A quién llamar antes de que deje de venir está en Retención: la ve la gerencia y a quien tú se la liberes en Personal.</p>}
         </Card>
+        {/* Lo que el gimnasio le paga a GymFlow (D-37): siempre a la vista, también al corriente. */}
+        <CuentaConGymflowTarjeta />
       </div>
       <div className="duena-col-principal stack">
 

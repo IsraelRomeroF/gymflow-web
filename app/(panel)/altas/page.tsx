@@ -13,6 +13,7 @@ import { EstadoCarga, useCarga } from '@/lib/carga';
 import { useFormulario } from '@/lib/formulario';
 import { EnlaceAltaDialog } from '@/components/alta-enlace';
 import { ElegirResponsable, responsableElegido, SIN_ELEGIR, type Eleccion } from '@/components/altas/responsable';
+import { CoachAlAlta } from '@/components/altas/coach-al-alta';
 import { PasosDelAlta, accionDelPaso, useOnboarding } from '@/components/altas/pasos-del-alta';
 import { useSession } from '@/components/session';
 import type { IntakeCorrectionsSaved, IntakeDetail, IntakeList, IntakeResolved, IntakeSummary } from '@gymflow/core/contracts';
@@ -104,12 +105,15 @@ export default function AltasPage() {
   // Bloque 3.4. D-09: quién responde por el celular que comparte. D-10: el tutor que firma aquí por un menor.
   const [responsable, setResponsable] = useState<Eleccion>(SIN_ELEGIR);
   const [tutor, setTutor] = useState({ nombre: '', telefono: '', acepta: false, salud: false, nota: '' });
+  // Bloque 3.8, D-29: el coach que elige quien aprueba el alta.
+  const [coach, setCoach] = useState('');
   const altaAbierta = detalle?.intake.id ?? null;
   const tutorEscrito = detalle?.intake.guardianName ?? '';
   const celularDelTutor = detalle?.intake.guardianPhoneE164 ?? '';
   useEffect(() => {
     // Otra alta: nada de lo elegido para la anterior vale. El tutor que el menor escribió se propone; firmar es aparte.
     setResponsable(SIN_ELEGIR);
+    setCoach('');
     setTutor({ nombre: tutorEscrito, telefono: celularDelTutor.replace(/^\+52/, ''), acepta: false, salud: false, nota: '' });
   }, [altaAbierta, tutorEscrito, celularDelTutor]);
 
@@ -264,7 +268,7 @@ export default function AltasPage() {
     setOcupado(true); setFalloAccion(null);
     const corrections = enPantalla();
     try {
-      const r = await api<IntakeResolved>(`/intakes/${id}/approve`, { method: 'POST', body: JSON.stringify({ force, ...(corrections ? { corrections } : {}), ...decision() }) });
+      const r = await api<IntakeResolved>(`/intakes/${id}/approve`, { method: 'POST', body: JSON.stringify({ force, ...(corrections ? { corrections } : {}), ...decision(), ...(coach ? { coachUserId: coach } : {}) }) });
       // No se salta a la siguiente: el socio está delante y lo que sigue es
       // venderle su plan. La pantalla lo ofrece en vez de dejarlo a la memoria.
       setAprobada({
@@ -461,6 +465,7 @@ export default function AltasPage() {
                 {comparten.length > 0 && (revisa
                   ? <ElegirResponsable comparten={comparten} valor={responsable} onChange={setResponsable} quien={`${detalle.intake.firstName} (esta persona)`} />
                   : <Callout tone="warn" title={`Comparte celular con ${comparten.map((c) => c.fullName).join(' y ')}`}>Al aprobar se anota quién responde por ese número.</Callout>)}
+                {revisa && !editando && <CoachAlAlta id="al-coach" value={coach} onChange={setCoach} branchId={detalle.intake.branchId} />}
                 {!editando && faltan.length > 0 && (
                   <Callout tone="warn" title={faltan.length === 1 ? 'Falta un dato' : `Faltan ${faltan.length} datos`}>
                     <span data-testid="faltan-datos">{faltan.map((k) => FALTA[k]).join(' y ')}. </span>

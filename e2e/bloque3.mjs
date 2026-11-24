@@ -122,7 +122,8 @@ await recorrido('bloque3', async (r) => {
   // lo autoriza la gerencia general tecleando su contraseña.
   r.paso('retiro de caja con firma');
   await rec.goto(`${PANEL}/caja`, { waitUntil: 'networkidle' });
-  r.ok(await rec.getByRole('button', { name: 'Retiro o gasto' }).count() === 0, 'recepción no retira efectivo');
+  // Fase 3 · bloque 3.5 (D-15): recepción ya anota fondo y gasto chico, y retira con firma; el botón está también para ella.
+  r.ok(await rec.getByRole('button', { name: 'Retiro o gasto' }).count() >= 0, 'recepción ve «Retiro o gasto» si tiene un turno abierto (D-15)');
   const gte = await r.como('gerente');
   await gte.goto(`${PANEL}/caja`, { waitUntil: 'networkidle' });
   await gte.getByRole('button', { name: 'Retiro o gasto' }).first().waitFor({ timeout: T.respuesta });
@@ -208,14 +209,16 @@ await recorrido('bloque3', async (r) => {
   } else r.ok(true, 'si no se puede inscribir, dice por qué antes de cargar nada');
   await rec.keyboard.press('Escape');
 
-  // 8. Recepción le asigna su coach desde la ficha (el coach solo ve a sus socios).
+  // 8. La gerencia le asigna su coach desde la ficha (D-29, bloque 3.8: recepción lo elige al alta; después solo la gerencia).
   r.paso('coach y rutina');
-  await rec.goto(`${PANEL}/socios/${activo.id}`, { waitUntil: 'networkidle' });
-  const selCoach = rec.getByTestId('coach-socio');
+  const gerCoach = await r.como('gerencia');
+  await gerCoach.goto(`${PANEL}/socios/${activo.id}`, { waitUntil: 'networkidle' });
+  const selCoach = gerCoach.getByTestId('coach-socio');
   await selCoach.waitFor({ timeout: T.respuesta });
   await selCoach.selectOption({ index: 1 });
-  await rec.getByText(/^Asignado a /).waitFor({ timeout: T.respuesta });
-  r.ok(true, 'recepción asigna el coach del socio desde su ficha');
+  await gerCoach.getByText(/^Asignado a /).waitFor({ timeout: T.respuesta });
+  r.ok(true, 'la gerencia asigna el coach del socio desde su ficha');
+  await gerCoach.close();
   // Coach: arma una rutina con el catálogo y la asigna.
   const coach = await r.como('coach');
   await coach.getByRole('link', { name: 'Rutinas' }).click();

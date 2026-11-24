@@ -11,6 +11,13 @@ import { Button, CampoMotivo, faltaMotivo } from '../ui';
 export type Solicitud = ApprovalRequestState;
 export type Firmante = ApprovalApprover;
 
+/** Quién la contestó; si lo hizo con un nombramiento (D-02), de quién es apoderado. */
+export const quienContesto = (s: Pick<ApprovalRequestState, 'approverName' | 'approverProxyOf'>) =>
+  `${s.approverName ?? 'Quien autoriza'}${s.approverProxyOf ? ` (como apoderado de ${s.approverProxyOf})` : ''}`;
+
+/** Un firmante de «Pueden autorizar», con de quién es apoderado si firma por un nombramiento (D-02). */
+export const nombreDeFirmante = (f: Pick<Firmante, 'fullName' | 'proxyOf'>) => (f.proxyOf ? `${f.fullName} (apoderado de ${f.proxyOf})` : f.fullName);
+
 export const reloj = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 /** A quién se le pidió, por nombre: «Mariana Villaseñor» o «quien puede autorizar». */
@@ -160,13 +167,13 @@ export function Desenlace({ s, firmantes, restan, minutos, minutosFirma, onCambi
       // Con la firma en mano la operación ya siguió sola: aquí solo se llega sin ella.
       return (
         <div role="status">
-          <Callout tone="warn" title={`${s.approverName ?? 'Quien autoriza'} la autorizó${cuando}`}>{textoDeEntrega(s.delivery, minutosFirma)}</Callout>
+          <Callout tone="warn" title={`${quienContesto(s)} la autorizó${cuando}`}>{textoDeEntrega(s.delivery, minutosFirma)}</Callout>
         </div>
       );
     case 'REJECTED':
       // D-03: el «no» queda pegado a la operación. Quien pide lo lee aquí; el pie ofrece «Responder y volver a pedir».
       return (
-        <Callout tone="danger" title={`${s.approverName ?? 'Quien autoriza'} no la autorizó${cuando}`}>
+        <Callout tone="danger" title={`${quienContesto(s)} no la autorizó${cuando}`}>
           {s.rejectReason && <p className="firma-cita">«{s.rejectReason}»</p>}
           <p className="small">
             No se registró nada. Habla con {s.approverName ?? 'quien autoriza'} o corrige la operación. Si la vuelves a pedir, verá que ya la rechazó y tendrás que contestarle.

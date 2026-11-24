@@ -14,6 +14,7 @@ import { ListaPorFirmar } from '@/components/privacidad';
 import { textoDeErrorDeFirma } from '@/components/autorizacion';
 import { ResumenAlFirmar } from '@/components/resumen-al-firmar';
 import { FIRMAS } from '@/modules/registro';
+import { AvisoDeApoderado, TarjetaDeApoderado, useApoderado } from '@/components/firma/apoderado';
 
 type Solicitud = ApprovalInboxItem;
 
@@ -41,11 +42,19 @@ const QUE: Record<string, string> = {
  * vez · ya la rechazaste a las 15:26») con la respuesta que quien pide tuvo
  * que escribir; y además de autorizar o no, se puede «Preguntar»: la
  * solicitud sigue viva y la respuesta llega a esta misma tarjeta.
+ *
+ * D-02 (bloque 3.1): aquí la dueña nombra, cambia y revoca a su apoderado
+ * temporal; y el apoderado ve con qué autoridad firma y hasta cuándo. Lo que
+ * es solo de la dueña (la lista de conservación) no le sale al apoderado.
  */
 export default function AutorizacionesPage() {
   const { branchName, can } = useSession();
   const toast = useToast();
   const firma = FIRMAS.some((p) => can(p));
+  // Por su puesto (la dueña) o por un nombramiento vigente (su apoderado, D-02).
+  const duena = can('approvals:grant');
+  const apoderado = useApoderado(firma);
+  const comoApoderadoDe = apoderado.estado?.mine ? apoderado.estado.current?.grantedByName ?? 'quien te nombró' : null;
   const [pestana, setPestana] = useState<'pendientes' | 'resueltas'>(firma ? 'pendientes' : 'resueltas');
   const [lista, setLista] = useState<Solicitud[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +85,8 @@ export default function AutorizacionesPage() {
         sub={firma ? 'Lo que el mostrador te pide autorizar. Apruébalo aquí con tu contraseña; allá la operación sigue sola.' : 'Lo que pediste autorizar hoy y en qué quedó.'}
         actions={firma ? <AvisosEnTelefono /> : undefined} />
       {/* Bloque 3.9 (D-32): la lista mensual de exsocios por anonimizar, solo si hay una en espera de firma. */}
-      {firma && <ListaPorFirmar />}
+      {duena && <ListaPorFirmar />}
+      <AvisoDeApoderado estado={apoderado.estado} />
       {firma && (
         <Tabs value={pestana} onChange={setPestana} tabs={[
           { value: 'pendientes', label: 'Pendientes', icon: <ShieldCheck size={16} />, count: lista?.length ?? 0 },
@@ -118,7 +128,8 @@ export default function AutorizacionesPage() {
           )}
         </>
       )}
-      {aprobar && <Aprobar s={aprobar} onClose={() => setAprobar(null)} onListo={() => { setAprobar(null); toast('ok', 'Autorizado. La operación se completa en cuanto la pantalla que la pidió la reciba (tiene 5 minutos). Queda en «Resueltas hoy».'); cargar(); }} />}
+      {duena && <TarjetaDeApoderado estado={apoderado.estado} onCambio={apoderado.recargar} />}
+      {aprobar && <Aprobar s={aprobar} comoApoderadoDe={comoApoderadoDe} onClose={() => setAprobar(null)} onListo={() => { setAprobar(null); toast('ok', 'Autorizado. La operación se completa en cuanto la pantalla que la pidió la reciba (tiene 5 minutos). Queda en «Resueltas hoy».'); cargar(); }} />}
       {rechazar && <Rechazar s={rechazar} onClose={() => setRechazar(null)} onListo={() => { setRechazar(null); toast('ok', 'No autorizada. Quien la pidió lo ve en su pantalla si sigue abierta, y queda en «Resueltas hoy». Si te la vuelven a pedir verás tu «no» y su respuesta; durante 30 minutos nadie la firma en el mostrador.'); cargar(); }} />}
       {preguntar && <Preguntar s={preguntar} onClose={() => setPreguntar(null)} onListo={() => { setPreguntar(null); toast('ok', 'Pregunta enviada. La solicitud sigue viva y su respuesta llega a esta tarjeta.'); cargar(); }} />}
     </>
@@ -170,7 +181,8 @@ const DESENLACE: Record<ApprovalHistoryItem['status'], { texto: string; tono: To
 /** En qué quedó, en una frase: quién, a qué hora y qué pasó después. */
 function enQueQuedo(s: ApprovalHistoryItem): string {
   const a = hora(s.resolvedAt);
-  const quien = s.approverName ?? 'Quien autoriza';
+  // D-02: «Ana Ruiz, como apoderada de …» no se puede decir sin saber su género; se dice «como apoderado de».
+  const quien = `${s.approverName ?? 'Quien autoriza'}${s.approverProxyOf ? ` (como apoderado de ${s.approverProxyOf})` : ''}`;
   switch (s.status) {
     case 'APPROVED': {
       const firma = s.delivery === 'used' ? ' La operación se registró con esa firma.'
@@ -241,7 +253,7 @@ function Resueltas() {
   );
 }
 
-function Aprobar({ s, onClose, onListo }: { s: Solicitud; onClose: () => void; onListo: () => void }) {
+function Aprobar({ s, comoApoderadoDe, onClose, onListo }: { s: Solicitud; comoApoderadoDe: string | null; onClose: () => void; onListo: () => void }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -259,7 +271,9 @@ function Aprobar({ s, onClose, onListo }: { s: Solicitud; onClose: () => void; o
     <Dialog open onClose={onClose} title={`Autorizar: ${QUE[s.permission] ?? s.permission}`} sub={`${s.summary}${s.amountCents ? ` · ${pesos(s.amountCents)}` : ''}`}
       footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button icon={<ShieldCheck />} loading={enviando} disabled={!password} onClick={() => void enviar()}>Autorizar</Button></>}>
       <form className="stack" autoComplete="off" onSubmit={(e) => { e.preventDefault(); void enviar(); }}>
-        <p className="small muted">Confirma que eres tú: la firma queda en la bitácora con tu nombre, solo para esta operación y este importe.</p>
+        <p className="small muted">
+          Confirma que eres tú: la firma queda en la bitácora con tu nombre{comoApoderadoDe ? `, como apoderado de ${comoApoderadoDe}` : ''}, solo para esta operación y este importe.
+        </p>
         <Field label="Tu contraseña" htmlFor="ap-pw">
           <input id="ap-pw" className="input" type="password" autoFocus autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
         </Field>

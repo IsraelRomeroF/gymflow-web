@@ -1,7 +1,10 @@
 // Portal del socio de punta a punta: la gerencia genera el código en el panel
-// y el socio activa su teléfono, ve cómo entra, reserva y cancela una clase
-// (y conserva su lugar), paga todo lo pendiente «solo esta vez», ve su
+// y el socio activa su teléfono, ve cómo entra, paga todo lo pendiente «solo
+// esta vez», reserva y cancela una clase (y conserva su lugar), ve su
 // asistencia y el formulario de alta.
+// Reserva DESPUÉS de pagar (fase 3, bloque 3.5, D-16): quien debe su
+// mensualidad no aparta una clase suelta desde el teléfono, y antes de pagar
+// el portal se lo dice en vez de ofrecerle el botón.
 //   node e2e/portal.mjs dark    con el esquema oscuro (capturas)
 // Elige por estado al socio que DEBE SU CUOTA y tiene biometría (la biometría
 // no se puede sembrar desde un recorrido): pagar le devuelve la entrada. Las
@@ -63,24 +66,15 @@ await recorrido('portal', async (r) => {
   r.ok(await page.getByText('Cómo entras').count() > 0, 'inicio muestra cómo entra');
   r.ok(await page.getByText(/Con tu (rostro|huella)/).count() > 0, 'muestra su biometría real');
 
-  r.paso('reservar y conservar el lugar');
+  r.paso('con adeudo, la clase suelta no se ofrece');
   await page.getByRole('navigation', { name: 'Secciones' }).getByRole('link', { name: 'Clases' }).click();
   await page.waitForLoadState('networkidle');
   await asentado(page);
   await shot('3-clases');
-  const reservar = page.getByRole('button', { name: /^Reservar/ }).first();
-  if (await reservar.count()) {
-    await accion(page, () => reservar.click(), /\/api\/portal\/classes\/[^/]+\/book$/, { metodo: 'POST', que: 'la reserva' });
-    await asentado(page);
-    await shot('3b-clases-reservada');
-    r.ok(await page.getByText('Tu lugar').count() > 0, 'reservar marca la clase como suya');
-    // Cancelar se confirma diciendo qué pasa (auditoría 8, 11-10); aquí se conserva el lugar.
-    await page.getByRole('button', { name: 'Cancelar reserva' }).first().click();
-    const confirma = page.getByTestId('confirmar-cancelar');
-    r.ok(await aparece(confirma, T.ui) && /lugar queda libre|cuenta como falta/.test(await confirma.innerText()), 'cancelar la reserva pide confirmar y dice qué pasa con su lugar');
-    await confirma.getByRole('button', { name: 'No, conservar mi lugar' }).click();
-    await confirma.waitFor({ state: 'hidden', timeout: T.ui });
-    r.ok(await page.getByText('Tu lugar').count() > 0, '«No, conservar mi lugar» lo deja como estaba');
+  if (debeCuota) {
+    const avisos = await page.getByTestId('solo-pagando').allInnerTexts();
+    r.ok(await page.getByRole('button', { name: 'Reservar · se paga en recepción' }).count() === 0 && avisos.every((t) => /Debes tu mensualidad/.test(t)),
+      `debiendo su mensualidad no se le ofrece apartar una clase suelta sin pagar (${avisos.length} del día dicen por qué)`);
   }
 
   r.paso('pagar todo lo pendiente');
@@ -92,8 +86,8 @@ await recorrido('portal', async (r) => {
   // Ya no se ofrece domiciliar (auditoría 8, 25-02 y D25-01): nadie cobra solo el
   // día de corte todavía. Sin tarjeta guardada se paga «solo esta vez».
   r.ok(await page.getByRole('button', { name: /domicili/i }).count() === 0 && await page.getByTestId('mandato').count() === 0, 'Pagos ya no ofrece domiciliar la mensualidad (25-02)');
-  // Se paga TODO lo pendiente: la cuota del periodo y, si reservó una clase
-  // con costo, también esa. Cada vuelta espera la respuesta de SU pago.
+  // Se paga TODO lo pendiente: la cuota del periodo y lo demás que deba.
+  // Cada vuelta espera la respuesta de SU pago.
   const pagar = page.getByRole('button', { name: 'Pagar', exact: true });
   const hoja = page.getByTestId('hoja-pago');
   let hojaVista = false;
@@ -133,6 +127,36 @@ await recorrido('portal', async (r) => {
     r.ok(await aparece(page.locator('.member-card').getByText('Hoy entras').first(), T.respuesta), 'tras pagar la membresía la tarjeta dice "Hoy entras"');
   } else r.ok(true, 'este socio no debía su cuota: pagar no cambia su entrada (no se afirma "Hoy entras")');
   await shot('4c-inicio-reactivado');
+
+  // Ya al corriente, reserva: una incluida en su plan o una suelta con más de una hora de margen
+  // (la que empieza antes ya no trae botón). Se prefiere el segundo día: ahí ninguna empieza en minutos.
+  r.paso('reservar y conservar el lugar');
+  await page.getByRole('navigation', { name: 'Secciones' }).getByRole('link', { name: 'Clases' }).click();
+  await page.waitForLoadState('networkidle');
+  await asentado(page);
+  const reservar = page.getByRole('button', { name: /^Reservar/ }).first();
+  const fichas = page.getByRole('group', { name: 'Día' }).getByRole('button');
+  if (await fichas.count() > 1) {
+    await fichas.nth(1).click();
+    if (await reservar.count() === 0) await fichas.nth(0).click();
+  }
+  r.ok(await reservar.count() > 0, 'al corriente, el portal le ofrece reservar una clase');
+  if (await reservar.count()) {
+    await accion(page, () => reservar.click(), /\/api\/portal\/classes\/[^/]+\/book$/, { metodo: 'POST', que: 'la reserva' });
+    await asentado(page);
+    await shot('3b-clases-reservada');
+    r.ok(await page.getByText('Tu lugar').count() > 0, 'reservar marca la clase como suya');
+    // Cancelar se confirma diciendo qué pasa (auditoría 8, 11-10); aquí se conserva el lugar.
+    await page.getByRole('button', { name: 'Cancelar reserva' }).first().click();
+    const confirma = page.getByTestId('confirmar-cancelar');
+    r.ok(await aparece(confirma, T.ui) && /lugar queda libre|cuenta como falta/.test(await confirma.innerText()), 'cancelar la reserva pide confirmar y dice qué pasa con su lugar');
+    await confirma.getByRole('button', { name: 'No, conservar mi lugar' }).click();
+    await confirma.waitFor({ state: 'hidden', timeout: T.ui });
+    r.ok(await page.getByText('Tu lugar').count() > 0, '«No, conservar mi lugar» lo deja como estaba');
+  }
+  await page.getByRole('navigation', { name: 'Secciones' }).getByRole('link', { name: 'Inicio' }).click();
+  await page.waitForLoadState('networkidle');
+  await asentado(page);
 
   r.paso('asistencia y alta');
   // Asistencia dejó de ser pestaña (fase 2, bloque 2.8): se llega desde «Este mes» de Inicio.

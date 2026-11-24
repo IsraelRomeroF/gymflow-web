@@ -74,7 +74,7 @@ export default function GimnasioPage() {
                 <dt>Mostrador</dt>
                 <dd>{p.rules.managerAttendsFrontDesk ? 'Lo atiende la gerencia: no hace falta una cuenta de recepción' : 'Lo atiende recepción con su propia cuenta'}</dd>
                 <dt>Datos de quien se da de baja</dt>
-                <dd>{p.rules.monthsAfterArchive ? `Se propone anonimizarlos a los ${p.rules.monthsAfterArchive} meses de la baja` : 'Sin plazo fijado para anonimizarlos'}</dd>
+                <dd>{p.rules.monthsAfterArchive ? `A los ${p.rules.monthsAfterArchive} meses de la baja entran a la lista mensual para anonimizarlos; nada se borra sin la firma de la dueña` : 'Sin plazo fijado para anonimizarlos'}</dd>
               </dl>
             </Card>
           </div>

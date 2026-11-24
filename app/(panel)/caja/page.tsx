@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Wallet, LockOpen, Calculator, Printer, CircleCheck, TriangleAlert, Clock, User, Banknote, History, ArrowDownUp } from 'lucide-react';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { fecha, hora, pesos } from '@/lib/format';
 import { aCentavos, DENOMINACIONES, METODO, MOVIMIENTO, TURNO, type Caja, type Corte, type Turno } from '@/lib/caja';
 import { AutorizacionDialog } from '@/components/autorizacion';
@@ -14,6 +14,9 @@ import { useFormulario } from '@/lib/formulario';
 import { AbrirDialog, Diferencia } from '@/components/caja';
 import { useCarga } from '@/lib/carga';
 import { Mostrador } from '@/components/mostrador/mostrador';
+import type { CashLimits } from '@gymflow/core/contracts';
+import { VentasPorCorregir } from '@/components/cobro/corregir-venta';
+import { TopesDelCajon } from '@/components/caja';
 
 
 /**
@@ -25,7 +28,7 @@ import { Mostrador } from '@/components/mostrador/mostrador';
  * se teclearía esa cifra y el corte dejaría de medir nada.
  */
 export default function CajaPage() {
-  const { branches, inScope, can, me } = useSession();
+  const { branches, inScope, can, me, activoEn } = useSession();
   const sedes = branches.filter((b) => b.isActive && inScope(b.id));
   const [sede, setSede] = useState(sedes[0]?.id ?? '');
   const [cajas, setCajas] = useState<Caja[] | null>(null);
@@ -96,7 +99,7 @@ export default function CajaPage() {
             return t
               ? <TurnoAbierto key={c.id} titulo={tituloCaja(c)} turno={t}
                 // El turno lo corta quien lo abrió, o quien aprueba descuadres (UX5-M-06).
-                puedeCerrar={can('cash:session:close') && (t.openedByUserId === me.userId || can('cash:variance:approve'))} puedeMover={can('cash:withdraw')}
+                puedeCerrar={can('cash:session:close') && (t.openedByUserId === me.userId || can('cash:variance:approve'))} puedeMover={can('cash:withdraw') || can('cash:petty:record')}
                   onCorte={() => setCortar({ turno: t, caja: c })} onMovimiento={() => setMover({ turno: t, caja: c })} />
               : <CajaCerrada key={c.id} titulo={tituloCaja(c)} puedeAbrir={can('cash:session:open')} onAbrir={() => setAbrir(c)} />;
           })}
@@ -114,6 +117,11 @@ export default function CajaPage() {
             sedeDeCobro={sede} onCambio={() => void cargar()} testid="resultados-caja" />
         </section>
       )}
+
+      {/* D-13 (bloque 3.5): lo que recepción marcó en la tienda y falta anular o devolver. */}
+      {sede && can('pos:sale:void') && activoEn('pos', sede) && <VentasPorCorregir branchId={sede} />}
+      {/* D-15 (bloque 3.5): los topes del cajón del gimnasio. */}
+      {can('cash:limits:set') && <TopesDelCajon />}
 
       <Card title="Cortes anteriores" sub={todos ? 'Los últimos 30 turnos cerrados de esta sucursal.' : 'Los últimos 7 días. Los que no cuadraron van marcados.'} pad={false}>
         {historial === null ? <EsqueletoTabla filas={4} columnas={5} /> : historial.length === 0 ? (
@@ -340,21 +348,34 @@ function Cifras({ esperado, contado }: { esperado: bigint | null; contado: bigin
   );
 }
 
+/**
+ * D-15 (bloque 3.5). `chico`: fondo y gasto, que se anotan con motivo y sin
+ * autorización hasta el tope del gimnasio por turno (arriba la piden);
+ * los demás SIEMPRE piden autorización.
+ */
 const TIPOS = [
-  { value: 'WITHDRAWAL', label: 'Retiro a caja fuerte', aprobacion: true, ayuda: 'Sacar efectivo del cajón para guardarlo.' },
-  { value: 'EXPENSE', label: 'Gasto de caja chica', aprobacion: true, ayuda: 'Se pagó algo con dinero del cajón (garrafón, limpieza…).' },
-  { value: 'DEPOSIT', label: 'Depósito al banco', aprobacion: true, ayuda: 'El efectivo sale para depositarse.' },
-  { value: 'FLOAT_IN', label: 'Entrada de fondo', aprobacion: false, ayuda: 'Se agrega cambio al cajón a mitad del turno.' },
+  // El orden de siempre (el retiro primero): los recorridos de firmas abren el diálogo y piden autorización sin elegir tipo.
+  { value: 'WITHDRAWAL', label: 'Retiro a caja fuerte', chico: false, permiso: 'cash:withdraw', ayuda: 'Sacar efectivo del cajón para guardarlo. Siempre pide autorización.' },
+  { value: 'EXPENSE', label: 'Gasto de caja chica', chico: true, permiso: 'cash:petty:record', ayuda: 'Se pagó algo con dinero del cajón (garrafón, limpieza…).' },
+  { value: 'DEPOSIT', label: 'Depósito al banco', chico: false, permiso: 'cash:withdraw', ayuda: 'El efectivo sale para depositarse. Siempre pide autorización.' },
+  { value: 'FLOAT_IN', label: 'Entrada de fondo', chico: true, permiso: 'cash:petty:record', ayuda: 'Se agrega cambio al cajón a mitad del turno.' },
 ] as const;
 
 /**
- * Movimiento de efectivo que NO es un cobro. Los que SACAN dinero del cajón
- * exigen la autorización de otra persona, que la teclea en este mismo equipo:
+ * Movimiento de efectivo que NO es un cobro (D-15). El gasto chico y la
+ * entrada de fondo se anotan con motivo y sin autorización hasta el tope del
+ * gimnasio por turno; retirar y depositar siempre piden la autorización de
+ * otra persona, que la teclea en este mismo equipo o la da desde su teléfono:
  * es la operación con la que más fácil se pierde dinero sin que se note.
  */
 function MovimientoDialog({ turno, caja, onClose, onListo }: { turno: Turno; caja: Caja; onClose: () => void; onListo: () => void }) {
   const toast = useToast();
-  const [tipo, setTipo] = useState<(typeof TIPOS)[number]['value']>('WITHDRAWAL');
+  const { can } = useSession();
+  const tipos = TIPOS.filter((t) => can(t.permiso));
+  const [tipo, setTipo] = useState<(typeof TIPOS)[number]['value']>(tipos[0]?.value ?? 'EXPENSE');
+  // Los topes del gimnasio, para decir hasta cuánto se anota sin autorización.
+  const [topes, setTopes] = useState<CashLimits | null>(null);
+  useEffect(() => { api<CashLimits>('/cash/limits').then(setTopes).catch(() => undefined); }, []);
   const [monto, setMonto] = useState('');
   const [motivo, setMotivo] = useState('');
   const [autorizando, setAutorizando] = useState(false);
@@ -367,13 +388,18 @@ function MovimientoDialog({ turno, caja, onClose, onListo }: { turno: Turno; caj
   async function registrar(approvalToken?: string) {
     setEnviando(true);
     try {
-      await api(`/cash-sessions/${turno.id}/movements`, {
+      // Fondo y gasto chico tienen su ruta y su permiso (D-15); retirar y depositar, la de siempre.
+      await api(def.chico ? `/cash-sessions/${turno.id}/petty-movements` : `/cash-sessions/${turno.id}/movements`, {
         method: 'POST',
         body: JSON.stringify({ movementType: tipo, amountCents: cents!.toString(), reason: motivo.trim(), ...(approvalToken ? { approvalToken } : {}) }),
       });
       toast('ok', `${def.label}: ${pesos(cents!)}`);
       onListo();
-    } catch (e) { toast('error', errorText(e, 'No se pudo registrar')); } finally { setEnviando(false); }
+    } catch (e) {
+      // Pasó del tope chico del turno: la API pide la autorización (428) y se pide aquí mismo.
+      if (e instanceof ApiError && e.status === 428 && !approvalToken) setAutorizando(true);
+      else toast('error', errorText(e, 'No se pudo registrar'));
+    } finally { setEnviando(false); }
   }
 
   if (autorizando) {
@@ -388,13 +414,15 @@ function MovimientoDialog({ turno, caja, onClose, onListo }: { turno: Turno; caj
   return (
     <Dialog open onClose={onClose} title={`Movimiento de efectivo · ${caja.name}`} sub="Queda en el corte del turno, con tu nombre."
       footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button>
-        <Button loading={enviando} onClick={() => void fm.enviar(() => (def.aprobacion ? setAutorizando(true) : registrar()))}>
-          {def.aprobacion ? 'Pedir autorización' : 'Registrar'}
+        <Button loading={enviando} onClick={() => void fm.enviar(() => (def.chico ? registrar() : setAutorizando(true)))}>
+          {def.chico ? 'Registrar' : 'Pedir autorización'}
         </Button></>}>
       <div className="stack">
-        <Field label="Tipo" htmlFor="mv-tipo" hint={def.ayuda}>
+        <Field label="Tipo" htmlFor="mv-tipo"
+          hint={def.chico && topes ? `${def.ayuda} Hasta ${pesos(topes.pettyLimitCents)} por turno no pide autorización; arriba, sí.`
+            : !def.chico && topes && !can('cash:variance:approve') ? `${def.ayuda} Tu puesto: hasta ${pesos(topes.withdrawalShiftLimitCents)} por turno.` : def.ayuda}>
           <select id="mv-tipo" className="select" value={tipo} onChange={(e) => setTipo(e.target.value as typeof tipo)}>
-            {TIPOS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+            {tipos.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </Field>
         <Field label="Importe" htmlFor="mv-monto" required error={fm.error('monto')}>

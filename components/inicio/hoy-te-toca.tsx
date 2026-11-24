@@ -42,10 +42,20 @@ function textoDe(r: RenglonDelInicio): Texto {
       icono: <UserX />, href: '/socios?adeudo=1', titulo: `${n(r.count, 'socio suspendido', 'socios suspendidos')} con adeudo por decidir`,
       texto: 'Su periodo ya terminó y siguen suspendidos: cóbrales o decide su adeudo desde su ficha.',
     };
-    case 'texts': return {
-      icono: <FileSignature />, href: '/consentimientos', titulo: n(r.count, 'texto sin publicar', 'textos sin publicar'),
-      texto: `Falta: ${r.detail.map((t) => CONSENT_TYPE[t] ?? t).join(', ')}. Sin texto publicado no se pueden recoger firmas ni registrar rostros.`,
-    };
+    case 'texts': {
+      // Lo que ya se pidió publicar y espera la firma de la dueña no «falta publicar» (3.12, D-25).
+      const esperan = new Set(r.waiting ?? []);
+      const faltan = r.detail.filter((t) => !esperan.has(t));
+      const nombres = (ts: readonly string[]) => ts.map((t) => CONSENT_TYPE[t] ?? t).join(', ');
+      if (esperan.size > 0 && faltan.length === 0) return {
+        icono: <FileSignature />, href: '/consentimientos', titulo: 'El aviso de privacidad espera la firma de la dueña',
+        texto: 'Ya pediste publicarlo: no se publica hasta que ella lo lea y lo firme. Mientras tanto no se puede dar de alta a nadie.',
+      };
+      return {
+        icono: <FileSignature />, href: '/consentimientos', titulo: n(faltan.length, 'texto sin publicar', 'textos sin publicar'),
+        texto: `Falta: ${nombres(faltan)}.${esperan.size > 0 ? ` Espera la firma de la dueña: ${nombres([...esperan])}.` : ''} Sin texto publicado no se pueden recoger firmas ni registrar rostros.`,
+      };
+    }
     case 'classes': return {
       icono: <CalendarX />, href: '/clases', titulo: `${n(r.count, 'clase de hoy', 'clases de hoy')} sin coach`,
       texto: 'Asígnale quién la da o cancélala antes de que llegue la gente.',

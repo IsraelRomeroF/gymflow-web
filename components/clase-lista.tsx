@@ -10,13 +10,14 @@ import { zonaDe } from '@/lib/zonas';
 import { momentoDeClase, plazoEnTexto, textoDePago, type Sesion } from '@/lib/clases';
 import { useSession, useToast, errorText } from '@/components/session';
 import { Badge, Button, Callout, CampoMotivo, Dialog, Empty, MenuMas, Skeleton, ErrorCarga } from '@/components/ui';
-import { CobrarClaseDialog } from '@/components/cobro-clase';
+import { ApartarPagandoDialog, CobrarClaseDialog, textoDelApartado, type ApartadoCotizado } from '@/components/cobro-clase';
 import { useBuscarSocios } from '@/lib/buscar-socios';
 
 // Siguen saliendo de aquí para quien ya los importaba; viven en `lib/clases.ts`.
 export { momentoDeClase, type Sesion };
 
-type Cotizacion = { canBook: boolean; reason: string | null; requiresPayment: boolean; priceLabel: string | null; dropInOnly?: boolean };
+// `priceCents`, `payNow` y `holdUntil`: D-16 (bloque 3.5, edición puntual).
+type Cotizacion = { canBook: boolean; reason: string | null; requiresPayment: boolean; priceCents?: string; priceLabel: string | null; dropInOnly?: boolean } & ApartadoCotizado;
 type Hallado = Pick<MemberSummary, 'id' | 'firstName' | 'lastName' | 'memberCode'>;
 /** A quién se le cobra la clase suelta, y si al cobrar se marca su llegada. */
 type Cobro = { memberId: string; nombre: string; chargeId: string; priceCents: string; marcar: string | null; reciente: boolean };
@@ -38,9 +39,8 @@ export function ListaDialog({ sesion, branchId, onClose, inscribiendo = false }:
 }) {
   const toast = useToast();
   // La dueña ve la lista sin poder reservar ni pasar lista.
-  const { can, branches, org } = useSession();
+  const { can, branches, org, me } = useSession();
   const zona = zonaDe(branches.find((b) => b.id === branchId), org);
-  const opera = can('classes:book_for_member');
   const puedeCobrar = can('payments:record');
   const gestiona = can('classes:manage');
   const [reservas, setReservas] = useState<SessionBooking[] | null>(null);
@@ -53,7 +53,15 @@ export function ListaDialog({ sesion, branchId, onClose, inscribiendo = false }:
   const [ocupado, setOcupado] = useState<string | null>(null);
   // Antes de cargarle nada al socio, recepción ve si va incluida o cuánto cuesta.
   const [propuesta, setPropuesta] = useState<{ h: Hallado; q: Cotizacion } | null>(null);
+  const [pagarAlApartar, setPagarAlApartar] = useState<{ h: Hallado; priceCents: string; porQue: 'OWES_MEMBERSHIP' | 'HOLD_CLOSED' } | null>(null);
   const [coach, setCoach] = useState<string | null>(sesion.coachUserId ?? null);
+  const [coachNombre, setCoachNombre] = useState<string | null>(sesion.coachName ?? null);
+  // D-28: quien es SOLO coach opera la sesión que imparte o cubre (inscribir, quitar, pasar lista, suplente y cupo).
+  // Si nombra a un suplente deja de ser suya en el acto. Quien arma el horario (`classes:manage`) opera cualquiera.
+  const soloCoach = (me.roleKeys ?? []).length > 0 && (me.roleKeys ?? []).every((k) => k === 'COACH');
+  const esSuya = coach !== null && coach === me.userId;
+  const opera = can('classes:book_for_member') && (!soloCoach || esSuya);
+  const ajusta = gestiona || (can('classes:session:operate') && esSuya);
   // Quitar una reserva libera el lugar: se confirma nombrando a la persona (11-16).
   const [quitando, setQuitando] = useState<SessionBooking | null>(null);
   // Por qué se quita, si se dice: queda en la bitácora (11-02).
@@ -81,6 +89,13 @@ export function ListaDialog({ sesion, branchId, onClose, inscribiendo = false }:
   }
 
   async function reservar(h: Hallado) {
+    // D-16 (bloque 3.5): quien debe su mensualidad, o con menos de una hora, solo la aparta pagándola en el momento.
+    const c = propuesta?.h.id === h.id ? propuesta.q : null;
+    if (c?.requiresPayment && c.payNow) {
+      if (!puedeCobrar) { toast('error', `${textoDelApartado(c)} Pídeselo a quien cobra en recepción.`); return; }
+      setPagarAlApartar({ h, priceCents: c.priceCents ?? '0', porQue: c.payNow });
+      return;
+    }
     setOcupado(h.id);
     try {
       const r = await api<{ chargeId: string | null; priceCents: string }>(`/classes/schedules/${sesion.id}/bookings`, { method: 'POST', body: JSON.stringify({ memberId: h.id }) });
@@ -196,10 +211,12 @@ export function ListaDialog({ sesion, branchId, onClose, inscribiendo = false }:
           </div>
           <div className="lista-cabecera-fin">
             {/* Quién la imparte: un suplente se pone aquí, solo para esta clase. */}
-            {gestiona && programada
-              ? <ElegirCoach id={`coach-${sesion.id}`} url={`/classes/schedules/${sesion.id}/coach`} valor={coach} branchId={branchId} etiqueta="Imparte" onCambio={(c) => setCoach(c)} />
-              : <p className="small"><span className="muted">Imparte:</span> {sesion.coachName ?? 'sin coach asignado'}</p>}
-            {gestiona && programada && (cupoNuevo === null
+            {ajusta && programada
+              ? <ElegirCoach id={`coach-${sesion.id}`} url={`/classes/schedules/${sesion.id}/coach`} valor={coach} branchId={branchId}
+                  etiqueta={gestiona ? 'Imparte' : 'Imparte (elige quién te cubre)'} sinVacio={!gestiona}
+                  onCambio={(c, nombre) => { setCoach(c); setCoachNombre(nombre); }} />
+              : <p className="small"><span className="muted">Imparte:</span> {coachNombre ?? 'sin coach asignado'}</p>}
+            {ajusta && programada && (cupoNuevo === null
               ? <button type="button" className="row-link small" onClick={() => setCupoNuevo(String(cupo))}><Pencil size={12} /> Cambiar el cupo</button>
               : (
                 <div className="row gap-6">
@@ -213,7 +230,7 @@ export function ListaDialog({ sesion, branchId, onClose, inscribiendo = false }:
         </div>
 
         {opera && programada && (llenos
-          ? <p className="small muted">La clase está llena. Para inscribir a alguien más, {gestiona ? 'sube el cupo o quita una reserva' : 'hay que quitar una reserva o pedir a la gerencia que suba el cupo'}.</p>
+          ? <p className="small muted">La clase está llena. Para inscribir a alguien más, {ajusta ? 'sube el cupo o quita una reserva' : 'hay que quitar una reserva o pedir a la gerencia que suba el cupo'}.</p>
           : buscando ? (
             <div className="input-icon">
               <Search />
@@ -226,7 +243,7 @@ export function ListaDialog({ sesion, branchId, onClose, inscribiendo = false }:
             <div className="stack-sm">
               <span><strong>{propuesta.h.firstName} {propuesta.h.lastName}</strong> · {
                 !propuesta.q.canBook ? `No se puede inscribir: ${propuesta.q.reason}`
-                  : propuesta.q.requiresPayment ? `${propuesta.q.dropInOnly ? 'Sin plan vigente: ' : 'No va en su plan: '}clase suelta ${propuesta.q.priceLabel} · ${puedeCobrar ? 'se cobra ahora' : 'se carga a su cuenta'}`
+                  : propuesta.q.requiresPayment ? `${propuesta.q.dropInOnly ? 'Sin plan vigente: ' : 'No va en su plan: '}clase suelta ${propuesta.q.priceLabel} · ${puedeCobrar ? 'se cobra ahora' : 'se carga a su cuenta'}. ${textoDelApartado(propuesta.q, zona)}`
                     : 'Incluida en su plan · sin costo'}</span>
               <div className="row gap-8">
                 {propuesta.q.canBook && (
@@ -277,6 +294,11 @@ export function ListaDialog({ sesion, branchId, onClose, inscribiendo = false }:
         {momento === 'TERMINADA' && <p className="tiny muted">El pase de lista ya se cerró.</p>}
       </div>
     </Dialog>
+    {pagarAlApartar && (
+      <ApartarPagandoDialog memberId={pagarAlApartar.h.id} nombre={pagarAlApartar.h.firstName} scheduleId={sesion.id} priceCents={pagarAlApartar.priceCents}
+        porQue={pagarAlApartar.porQue} branchId={branchId} clase={sesion.className ?? 'la clase'} onClose={() => setPagarAlApartar(null)}
+        onListo={async () => { setPagarAlApartar(null); setQ(''); setPropuesta(null); await cargar(); }} />
+    )}
     {cobrar && (
       <CobrarClaseDialog memberId={cobrar.memberId} nombre={cobrar.nombre} chargeId={cobrar.chargeId} priceCents={cobrar.priceCents}
         branchId={branchId} clase={sesion.className ?? 'la clase'}

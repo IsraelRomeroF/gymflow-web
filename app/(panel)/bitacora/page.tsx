@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { History, ShieldCheck, Download, DoorOpen } from 'lucide-react';
+import { History, ShieldCheck, Download, DoorOpen, ScanFace } from 'lucide-react';
 import { api } from '@/lib/api';
 import { diaLargo, fechaCorta, hora } from '@/lib/format';
 import { useFormulario } from '@/lib/formulario';
@@ -15,6 +15,9 @@ import { Badge, Button, Callout, CampoFecha, CampoMotivo, Card, Dialog, Empty, E
 type Persona = { id: string; fullName: string; entries?: number };
 /** Entradas por excepción de una persona en un día y una sede (`GET /audit/exceptions`, 20-06). */
 type Excepciones = { date: string; actorUserId: string | null; actorName: string | null; branchId: string | null; count: number; limit: number | null; overLimit: boolean };
+
+/** Entradas autorizadas sin rostro por quien las autorizó, en un día y una sede (`GET /audit/exceptions` → `withoutFace`; D-06, 3.12). */
+type SinRostro = { date: string; byUserId: string | null; byName: string | null; branchId: string | null; count: number };
 
 type Categoria = 'sensibles' | 'todo' | 'dinero' | 'socios' | 'acceso' | 'personal' | 'clases' | 'catalogo' | 'plataforma';
 const CATEGORIAS: ReadonlyArray<{ value: Categoria; label: string }> = [
@@ -85,6 +88,7 @@ export default function BitacoraPage() {
   const [error, setError] = useState<string | null>(null);
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [excepciones, setExcepciones] = useState<Excepciones[]>([]);
+  const [sinRostro, setSinRostro] = useState<SinRostro[]>([]);
   const [exportar, setExportar] = useState(false);
   const [verificando, setVerificando] = useState(false);
 
@@ -105,10 +109,10 @@ export default function BitacoraPage() {
 
   // Entradas por excepción, resumidas por persona y día: solo en «Para revisar».
   useEffect(() => {
-    if (categoria !== 'sensibles') { setExcepciones([]); return; }
+    if (categoria !== 'sensibles') { setExcepciones([]); setSinRostro([]); return; }
     let vivo = true;
-    api<{ summary: Excepciones[] }>(`/audit/exceptions?${rango}${persona ? `&actorUserId=${persona}` : ''}`)
-      .then((r) => { if (vivo) setExcepciones(r.summary); }).catch(() => { if (vivo) setExcepciones([]); });
+    api<{ summary: Excepciones[]; withoutFace?: SinRostro[] }>(`/audit/exceptions?${rango}${persona ? `&actorUserId=${persona}` : ''}`)
+      .then((r) => { if (vivo) { setExcepciones(r.summary); setSinRostro(r.withoutFace ?? []); } }).catch(() => { if (vivo) { setExcepciones([]); setSinRostro([]); } });
     return () => { vivo = false; };
   }, [categoria, rango, persona]);
 
@@ -159,7 +163,12 @@ export default function BitacoraPage() {
     setCategoria('acceso'); setPersona(x.actorUserId ?? ''); setDesde(x.date); setHasta(x.date);
     if (x.branchId && sedes.length > 1) setSede(x.branchId);
   }
-  const sinNada = eventos !== null && eventos.length === 0 && !(categoria === 'sensibles' && excepciones.length > 0);
+  // Quien autorizó no siempre es quien registró (la firma de la dueña en el mostrador): se abre el día y la sede, sin persona.
+  function verSinRostro(x: SinRostro) {
+    setCategoria('acceso'); setPersona(''); setDesde(x.date); setHasta(x.date);
+    if (x.branchId && sedes.length > 1) setSede(x.branchId);
+  }
+  const sinNada = eventos !== null && eventos.length === 0 && !(categoria === 'sensibles' && (excepciones.length > 0 || sinRostro.length > 0));
 
   return (
     <>
@@ -212,6 +221,24 @@ export default function BitacoraPage() {
                     <button type="button" className="row-link" onClick={() => verExcepciones(x)}>ver</button>
                   </div>
                   {x.overLimit && <Badge tone="warn" dot>Revisar</Badge>}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+        {categoria === 'sensibles' && sinRostro.length > 0 && (
+          // D-06: la otra forma de entrar es que alguien con autoridad lo autorice en cada visita; aquí se ve cuántas (3.12).
+          <Card pad={false} title="Entradas autorizadas sin rostro" data-testid="resumen-sin-rostro"
+            sub={`${sinRostro.reduce((t, x) => t + x.count, 0).toLocaleString('es-MX')} en el periodo, resumidas por quién autorizó y día. Cada una tiene su motivo en Acceso.`}>
+            <ul className="list">
+              {sinRostro.map((x) => (
+                <li key={`${x.date}|${x.byUserId}|${x.branchId}`} className="list-item">
+                  <ScanFace size={16} className="muted" />
+                  <div className="flex-1 min-w-0 small">
+                    <strong>{x.byName ?? 'Alguien que ya no está en el equipo'}</strong> autorizó {x.count === 1 ? '1 entrada' : `${x.count} entradas`} sin rostro{' '}
+                    <span className="muted nowrap">· {fechaCorta(x.date)}{x.branchId ? ` · ${branchName(x.branchId)}` : ''}</span>{' '}
+                    <button type="button" className="row-link" onClick={() => verSinRostro(x)}>ver</button>
+                  </div>
                 </li>
               ))}
             </ul>

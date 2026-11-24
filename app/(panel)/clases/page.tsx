@@ -41,7 +41,9 @@ export default function ClasesPage() {
   const [vista, setVista] = useState<Vista>('sesiones');
   // El coach (y solo coach) aterriza en sus clases; los demás, en todas.
   const esCoach = (me.roleKeys ?? []).includes('COACH');
-  const [mias, setMias] = useState((me.roleKeys ?? []).length > 0 && (me.roleKeys ?? []).every((k) => k === 'COACH'));
+  // Quien es SOLO coach opera las sesiones que imparte (D-28): en las demás ve el cupo, sin «Inscribir».
+  const soloCoach = (me.roleKeys ?? []).length > 0 && (me.roleKeys ?? []).every((k) => k === 'COACH');
+  const [mias, setMias] = useState(soloCoach);
   const [tipos, setTipos] = useState<Tipo[] | null>(null);
   const [plantillas, setPlantillas] = useState<Plantilla[] | null>(null);
   const [sesiones, setSesiones] = useState<Sesion[] | null>(null);
@@ -52,6 +54,8 @@ export default function ClasesPage() {
   const [lista, setLista] = useState<{ sesion: Sesion; inscribir: boolean } | null>(null);
   const [generando, setGenerando] = useState(false);
   const gestiona = can('classes:manage');
+  // D-28: cancelar (una sesión, un horario, una clase) es de la gerencia; al coach ni se le ofrece.
+  const cancela = can('classes:session:cancel');
 
   // `/clases?vista=horario` abre en Horario. Se lee al montar: con useSearchParams la página dejaría de prerenderse.
   useEffect(() => {
@@ -156,7 +160,7 @@ export default function ClasesPage() {
                     action={gestiona && <Button icon={<Plus />} onClick={() => setEditarTipo('nuevo')}>Crear la primera clase</Button>} />
                 </Card>
                 {/* Sin clases activas solo queda lo que se puede reactivar. */}
-                <Horario sede={sede} tipos={tipos ?? []} plantillas={plantillas} weekdayHoy={new Date(`${hoy}T12:00:00Z`).getUTCDay()} gestiona={gestiona}
+                <Horario sede={sede} tipos={tipos ?? []} plantillas={plantillas} weekdayHoy={new Date(`${hoy}T12:00:00Z`).getUTCDay()} gestiona={gestiona} cancela={cancela}
                   onNuevaClase={() => setEditarTipo('nuevo')} onEditarTipo={setEditarTipo} onRetirarTipo={retirarTipo} onReactivar={(t) => void reactivar(t)}
                   onNuevoBloque={(weekday) => setHorario({ weekday })} onEditarHorario={(plantilla) => setHorario({ plantilla })} alCambiar={pedir} />
               </>
@@ -175,14 +179,14 @@ export default function ClasesPage() {
                 {vista === 'sesiones' ? (
                   <Sesiones sesiones={mias && sesiones ? sesiones.filter((x) => x.coachUserId === me.userId) : sesiones} zona={zona} hoy={hoy}
                     sinNada={mias ? { titulo: 'No impartes ninguna clase en los próximos 7 días', texto: 'Aquí aparecen las sesiones en las que tú eres el coach o cubres a alguien. En «Todas» ves las demás.' } : undefined}
-                    puede={{ verLista: can('classes:read'), inscribir: can('classes:book_for_member'), gestionar: gestiona }}
+                    puede={{ verLista: can('classes:read'), inscribir: can('classes:book_for_member'), cancelar: cancela, soloLasDe: soloCoach ? me.userId : null }}
                     onAbrir={(sesion, inscribir) => setLista({ sesion, inscribir })} onCancelar={cancelarSesion}
                     vacio={mias ? <Button variant="secondary" onClick={() => cambiarMias(false)}>Ver todas las sesiones</Button>
                       : canOrg('classes:manage') && (plantillas ?? []).length > 0
                       ? <Button variant="secondary" icon={<RefreshCw />} loading={generando} onClick={() => void generar()}>Generar las sesiones ahora</Button>
                       : gestiona ? <Button variant="secondary" icon={<CalendarDays />} onClick={() => cambiarVista('horario')}>Ir al horario</Button> : undefined} />
                 ) : (
-                  <Horario sede={sede} tipos={tipos ?? []} plantillas={plantillas} weekdayHoy={new Date(`${hoy}T12:00:00Z`).getUTCDay()} gestiona={gestiona}
+                  <Horario sede={sede} tipos={tipos ?? []} plantillas={plantillas} weekdayHoy={new Date(`${hoy}T12:00:00Z`).getUTCDay()} gestiona={gestiona} cancela={cancela}
                     onNuevaClase={() => setEditarTipo('nuevo')} onEditarTipo={setEditarTipo} onRetirarTipo={retirarTipo} onReactivar={(t) => void reactivar(t)}
                     onNuevoBloque={(weekday) => setHorario({ weekday })} onEditarHorario={(plantilla) => setHorario({ plantilla })} alCambiar={pedir} />
                 )}
@@ -193,7 +197,7 @@ export default function ClasesPage() {
       {editarTipo && <TipoDialog tipo={editarTipo === 'nuevo' ? null : editarTipo} onClose={() => setEditarTipo(null)}
         onDone={async (creado) => { setEditarTipo(null); await cargar(); if (creado) setHorario({ tipoId: creado }); }} />}
       {horario && tipos && !retirar && <HorarioDialog tipos={activos} sede={sede} inicial={horario}
-        onClose={() => setHorario(null)} onDone={async () => { setHorario(null); await cargar(); }} onQuitar={quitarHorario} />}
+        onClose={() => setHorario(null)} onDone={async () => { setHorario(null); await cargar(); }} onQuitar={cancela ? quitarHorario : undefined} />}
       {retirar && <RetirarDialog {...retirar} onClose={() => setRetirar(null)} onDone={async () => { setRetirar(null); setHorario(null); await cargar(); }} />}
     </>
   );

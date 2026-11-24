@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { RefreshCw, ArrowLeftRight, Snowflake, Sun, Ban, CircleCheck, Wallet, CalendarClock, Eraser } from 'lucide-react';
-import { api } from '@/lib/api';
+import { RefreshCw, ArrowLeftRight, Snowflake, Sun, Ban, CircleCheck, Wallet, CalendarClock, Eraser, Repeat } from 'lucide-react';
+import { api, ApiError } from '@/lib/api';
 import { fecha, pesos, ultimoDia } from '@/lib/format';
 import { duracion, porPeriodo, type Plan } from '@/lib/plans';
 import { useSession, useToast, errorText } from './session';
@@ -11,6 +11,7 @@ import { Button, Callout, CampoMotivo, Dialog, ErrorCarga, Field, Skeleton, Swit
 import { EstadoCarga, useCarga } from '@/lib/carga';
 import { CobroFields, cobroListo, cuerpoDelCobro, COBRO_INICIAL, type Cobro } from './cobro';
 import { AutorizacionDialog } from './autorizacion';
+import { AdeudoAlCerrar } from './ficha/adeudo';
 
 export type Membresia = {
   id: string; planId: string; status: string; soldAtBranchId: string | null;
@@ -20,9 +21,15 @@ export type Membresia = {
   paidThrough?: string | null;
   /** De una suspendida: periodos que no recorrió. Sin atrasos no hay adeudo que decidir (4-08). */
   missedPeriods?: number | null;
+  /** De quién es: lo trae la API; lo usa el aviso del adeudo al cancelar (D-12). */
+  memberId?: string;
+  /** Lo que paga por periodo y si «conserva su precio» (D-19; bloque 3.5). */
+  periodPriceCents?: string;
+  priceProtected?: boolean;
+  priceProtectedReason?: string | null;
 };
 
-type Accion = 'adeudo' | 'renovar' | 'cambiar' | 'congelar' | 'descongelar' | 'cancelar';
+type Accion = 'adeudo' | 'renovar' | 'cambiar' | 'congelar' | 'descongelar' | 'cancelar' | 'renovacion';
 
 /**
  * Lo que se puede hacer con la membresía, según su estado y los permisos.
@@ -54,6 +61,9 @@ export function AccionesMembresia({
     { a: 'cambiar', label: 'Cambiar de plan', icon: <ArrowLeftRight />, show: s === 'ACTIVE' && can('memberships:change_plan') },
     { a: 'congelar', label: 'Congelar', icon: <Snowflake />, show: s === 'ACTIVE' && !!plan?.allowFreeze && can('memberships:freeze') },
     { a: 'descongelar', label: 'Descongelar', icon: <Sun />, show: s === 'FROZEN' && can('memberships:freeze') },
+    // D-14 (bloque 3.5): si al terminar se le cobra otro periodo igual o vence y se le vuelve a vender. Se eligió al vender; aquí se cambia.
+    { a: 'renovacion', label: membresia.autoRenew ? 'Que no se renueve sola' : 'Que se renueve sola', icon: <Repeat />,
+      show: ['ACTIVE', 'PAST_DUE', 'FROZEN'].includes(s) && !!plan && ['RECURRING', 'PREPAID_PERIOD'].includes(plan.billingModel) && can('memberships:change_plan') },
     { a: 'cancelar', label: 'Cancelar', icon: <Ban />, variant: 'danger-ghost', show: !['CANCELED', 'EXPIRED'].includes(s) && can('memberships:cancel') },
   ];
   const visibles = botones.filter((b) => b.show);
@@ -80,6 +90,7 @@ export function AccionesMembresia({
       {abierta === 'congelar' && plan && <Congelar m={membresia} plan={plan} nombre={memberName} onClose={cerrar} onDone={listo} />}
       {abierta === 'descongelar' && <Descongelar m={membresia} nombre={memberName} onClose={cerrar} onDone={listo} />}
       {abierta === 'cancelar' && <Cancelar m={membresia} nombre={memberName} onClose={cerrar} onDone={listo} />}
+      {abierta === 'renovacion' && <CambiarRenovacion m={membresia} plan={plan} nombre={memberName} onClose={cerrar} onDone={listo} />}
     </>
   );
 }
@@ -321,14 +332,47 @@ function Cancelar({ m, nombre, onClose, onDone }: Props) {
       footer={<><Button variant="secondary" onClick={onClose} disabled={enviando}>Volver</Button>
         <Button variant="danger" icon={<Ban />} loading={enviando} disabled={motivo.trim().length < 3} onClick={() => void cancelar()}>Cancelar membresía</Button></>}>
       <div className="stack">
-        {/* Lo que de verdad hace cancelar (4-10): el gancho de billing anula las cuotas sin ningún pago; lo pagado no se devuelve. */}
+        {/* Lo que de verdad hace cancelar (D-12 y D-13, bloque 3.5): la deuda se queda; lo pagado y no usado queda a su favor. */}
         <Callout tone="warn" title="Deja de entrar de inmediato">
-          Sus cuotas sin ningún pago se anulan; lo que pagó en parte se queda como adeudo hasta que la gerencia lo cobre o lo condone.
-          Lo que ya pagó no se le devuelve ni le queda a favor. Si vuelve, conserva su antigüedad.
+          Lo que ya pagó y no usó (los días que faltan de su periodo) queda a su favor: cubre primero lo que deba y, si pide que se le devuelva,
+          se hace desde su estado de cuenta con autorización. Si vuelve, conserva su antigüedad.
         </Callout>
+        {m.memberId && <AdeudoAlCerrar memberId={m.memberId} membershipId={m.id} branchId={m.soldAtBranchId} al="cancelar" />}
         <Field label="Motivo" htmlFor="mot-cn" hint="Obligatorio. Alimenta el análisis de bajas.">
           <input id="mot-cn" className="input" value={motivo} placeholder="Se muda de ciudad, precio, horario…" onChange={(e) => setMotivo(e.target.value)} />
         </Field>
+      </div>
+    </Dialog>
+  );
+}
+
+/** D-14: cambia si la membresía se renueva sola, con motivo. */
+function CambiarRenovacion({ m, plan, nombre, onClose, onDone }: Props & { plan: Plan | null }) {
+  const toast = useToast();
+  const [motivo, setMotivo] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const [fallo, setFallo] = useState<string | null>(null);
+  const aSola = !m.autoRenew;
+  const prepago = plan?.billingModel === 'PREPAID_PERIOD';
+  async function guardar() {
+    setEnviando(true); setFallo(null);
+    try {
+      await api(`/memberships/${m.id}/auto-renew`, { method: 'PUT', body: JSON.stringify({ autoRenew: aSola, reason: motivo.trim() }) });
+      toast('ok', aSola ? 'Se renovará sola al terminar' : 'Ya no se renueva sola: al terminar vence');
+      onDone();
+    } catch (e) { setFallo(errorText(e, 'No se pudo cambiar')); } finally { setEnviando(false); }
+  }
+  return (
+    <Dialog open size="sm" onClose={onClose} title={aSola ? `Que la membresía de ${nombre} se renueve sola` : `Que la membresía de ${nombre} ya no se renueve sola`} error={fallo}
+      footer={<><Button variant="secondary" onClick={onClose} disabled={enviando}>Volver</Button>
+        <Button loading={enviando} disabled={faltaMotivo(motivo)} onClick={() => void guardar()}>{aSola ? 'Que se renueve sola' : 'Que no se renueve'}</Button></>}>
+      <div className="stack">
+        <Callout tone={aSola ? 'warn' : 'info'}>
+          {aSola
+            ? `Al terminar su periodo (${fecha(ultimoDia(m.currentPeriodEnd))}) se le emite ${prepago ? 'otro periodo completo' : 'la siguiente cuota'}${plan ? ` de ${pesos(m.periodPriceCents ?? plan.priceCents)}` : ''} sin que nadie se la venda. Si no la paga, queda en mora.`
+            : `Al terminar su periodo (${fecha(ultimoDia(m.currentPeriodEnd))}) vence y se le vuelve a vender.${prepago ? ' Se le avisa 15 días antes.' : ''}`}
+        </Callout>
+        <CampoMotivo id="ren-motivo" autoFocus value={motivo} onChange={setMotivo} motivos={aSola ? ['Lo pidió el socio'] : ['Lo pidió el socio', 'No la eligió al comprar']} />
       </div>
     </Dialog>
   );
@@ -344,8 +388,8 @@ type Opciones = {
 
 /**
  * Suspendida que vuelve: el dueño decide si se le cobran los periodos que no
- * vino (reanudar) o se le perdonan (olvidar). Olvidar es del gerente o el
- * dueño y siempre pide una segunda autorización.
+ * vino (reanudar) o se le perdonan (olvidar). Olvidar es de la gerencia: sola
+ * hasta una mensualidad del socio; arriba pide la segunda autorización (D-12).
  */
 function DecidirAdeudo({ m, nombre, onClose, onDone }: Props) {
   const toast = useToast();
@@ -379,7 +423,11 @@ function DecidirAdeudo({ m, nombre, onClose, onDone }: Props) {
       const que = decision === 'RESUME' ? 'Adeudo reanudado' : 'Adeudo olvidado';
       toast('ok', r.membership.status === 'ACTIVE' ? `${que}: ${nombre} ya puede entrar` : `${que}; queda suspendida hasta que pague`);
       onDone();
-    } catch (e) { toast('error', errorText(e, 'No se pudo aplicar')); } finally { setEnviando(false); }
+    } catch (e) {
+      // D-12: olvidar dentro de una mensualidad del socio pasa solo; arriba, la API pide la firma (428).
+      if (e instanceof ApiError && e.status === 428) setAutorizando(true);
+      else toast('error', errorText(e, 'No se pudo aplicar'));
+    } finally { setEnviando(false); }
   }
 
   return (
@@ -389,8 +437,8 @@ function DecidirAdeudo({ m, nombre, onClose, onDone }: Props) {
         footer={<><Button variant="secondary" onClick={onClose} disabled={enviando}>Cancelar</Button>
           <Button icon={decision === 'FORGIVE' ? <Eraser /> : <CalendarClock />} loading={enviando}
             disabled={!decision || motivo.trim().length < 3 || !cobro.listo}
-            onClick={() => (decision === 'FORGIVE' ? setAutorizando(true) : void enviar())}>
-            {decision === 'FORGIVE' ? 'Pedir autorización' : cobro.ahora && aPagar ? `Reanudar y cobrar ${pesos(aPagar)}` : 'Reanudar adeudo'}
+            onClick={() => void enviar()}>
+            {decision === 'FORGIVE' ? (cobro.ahora && aPagar ? `Olvidar y cobrar ${pesos(aPagar)}` : 'Olvidar adeudo') : cobro.ahora && aPagar ? `Reanudar y cobrar ${pesos(aPagar)}` : 'Reanudar adeudo'}
           </Button></>}>
         {error ? <Callout tone="danger">{error}</Callout> : !o ? <Skeleton h={180} /> : (
           <div className="stack">
@@ -424,7 +472,7 @@ function DecidirAdeudo({ m, nombre, onClose, onDone }: Props) {
                     {!o.forgiveNewPeriod ? 'Su periodo empezó hoy: condona el cargo desde el estado de cuenta.'
                       : o.missedPeriods.length === 0 ? 'Su periodo sigue en curso: no hay meses atrasados que olvidar. Cóbrale lo que debe.'
                       : !can('billing:waiver:apply') ? 'Solo la gerencia puede perdonar un adeudo.'
-                      : `Se condonan ${pesos(o.openCents)} y arranca un periodo nuevo hoy, del ${fecha(o.forgiveNewPeriod.start)} al ${fecha(o.forgiveNewPeriod.end)}. Su día de corte pasa a ser hoy.`}
+                      : `Se condonan ${pesos(o.openCents)} y arranca un periodo nuevo hoy, del ${fecha(o.forgiveNewPeriod.start)} al ${fecha(o.forgiveNewPeriod.end)}. Su día de corte pasa a ser hoy. Hasta una mensualidad suya no pide autorización.`}
                   </span>
                 </span>
               </button>

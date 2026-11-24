@@ -23,7 +23,8 @@ export function Sesiones({ sesiones, zona, hoy, puede, onAbrir, onCancelar, vaci
   sesiones: Sesion[] | null; zona: string;
   /** Hoy en la sucursal (`AAAA-MM-DD`). */
   hoy: string;
-  puede: { verLista: boolean; inscribir: boolean; gestionar: boolean };
+  /** `cancelar`: solo la gerencia (D-28). `soloLasDe`: quien es solo coach inscribe en las sesiones que imparte. */
+  puede: { verLista: boolean; inscribir: boolean; cancelar: boolean; soloLasDe?: string | null };
   onAbrir: (s: Sesion, inscribir: boolean) => void;
   onCancelar: (s: Sesion) => void;
   /** Lo que se ofrece cuando no hay ninguna sesión en la semana. */
@@ -49,6 +50,8 @@ export function Sesiones({ sesiones, zona, hoy, puede, onAbrir, onCancelar, vaci
     const terminada = s.status === 'CLOSED' || momento === 'TERMINADA';
     const abre = !cancelada && puede.verLista;
     const enLista = !terminada && (momento === 'LISTA' || momento === 'EN_CURSO');
+    // D-28: quien es solo coach opera las sesiones que imparte; en las demás ve el cupo.
+    const laOpera = !puede.soloLasDe || s.coachUserId === puede.soloLasDe;
     return (
       <li key={s.id} className={`list-item sesion-fila${abre ? ' is-link' : ''}`} data-cancelada={cancelada || undefined}
         onClick={() => { if (abre) onAbrir(s, false); }}
@@ -80,14 +83,14 @@ export function Sesiones({ sesiones, zona, hoy, puede, onAbrir, onCancelar, vaci
             : terminada ? <Badge>Terminada</Badge>
               : (
                 <div className="row gap-6">
-                  {enLista && puede.verLista ? <Button size="sm" icon={<ListChecks />} onClick={(e) => { e.stopPropagation(); onAbrir(s, false); }}>Pasar lista</Button>
-                    : puede.inscribir ? (
+                  {enLista && puede.verLista && laOpera ? <Button size="sm" icon={<ListChecks />} onClick={(e) => { e.stopPropagation(); onAbrir(s, false); }}>Pasar lista</Button>
+                    : puede.inscribir && laOpera ? (
                       // Recepción inscribe a un socio en un toque (antes había que abrir la lista y descubrir el buscador).
                       s.bookedCount >= s.capacity ? <Badge tone="warn" dot>Llena</Badge>
                         : <Button size="sm" variant="secondary" icon={<UserPlus />} onClick={(e) => { e.stopPropagation(); onAbrir(s, true); }}>Inscribir</Button>
                     ) : <Badge tone="ok" dot>Programada</Badge>}
                   {/* Lo destructivo no se queda a un clic de «Inscribir» en cada fila (11-12): va en «Más». */}
-                  {puede.gestionar && (
+                  {puede.cancelar && (
                     <MenuMas tam="sm" etiqueta={`Más acciones de ${s.className ?? 'la sesión'} de las ${hora(s.startsAt, zona)}`}
                       items={[{ label: 'Cancelar sesión', icon: <Ban />, peligro: true, onClick: () => onCancelar(s) }]} />
                   )}

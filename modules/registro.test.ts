@@ -31,9 +31,9 @@ function mirada(rol: string, liberadas: readonly string[] = []): Mirada {
 }
 
 /** ¿El puesto, por sí mismo, trae la sección? (lo que dice el núcleo, sin llave) */
-const laTrae = (s: Seccion, rol: string) => !s.permisos?.length
+const laTrae = (s: Seccion, rol: string) => (s.soloRoles ? s.soloRoles.includes(rol) : !s.permisos?.length
   || s.permisos.some((p) => (nucleo.ROLE_PERMISSIONS[rol] ?? []).includes(p))
-  || (s.roles ?? []).includes(rol);
+  || (s.roles ?? []).includes(rol));
 
 const seccion = (href: string) => SECCIONES.find((s) => s.href === href)!;
 

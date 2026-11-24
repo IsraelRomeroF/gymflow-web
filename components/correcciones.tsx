@@ -21,10 +21,12 @@ import { AutorizacionDialog, type Operacion } from './autorizacion';
  *  - «Corregir» sobre un CARGO que se debe: Descontar, Condonar o Anular, cada
  *    uno con su catálogo de motivos (los de perdonar no son los de descontar).
  *
- * Las reglas son las que ya existían: la reversa deshace el cobro completo y
- * siempre pide firma; el reembolso (tarjeta en línea) admite una parte y
- * siempre pide firma; el descuento pasa solo dentro del tope del puesto; la
- * condonación y la anulación siempre piden firma (D-12, D-13).
+ * Las reglas: la reversa deshace el cobro completo y siempre pide firma; el
+ * reembolso (tarjeta en línea) y la devolución de una parte de un cobro de
+ * mostrador (D-13: efectivo de la caja abierta, transferencia con referencia)
+ * siempre piden firma; el descuento pasa solo dentro del tope del puesto; la
+ * condonación pasa sola hasta una mensualidad del socio y arriba pide firma
+ * (D-12); la anulación siempre pide firma.
  */
 
 type Turno = OpenCashSessionsLite['sessions'][number];
@@ -84,6 +86,16 @@ function queHaceLaReversa(method: string, conCaja: boolean): string {
   }
 }
 
+/** Qué pasa al devolver UNA PARTE de un cobro de mostrador (D-13): el cargo no vuelve a deber por ese importe. */
+function queHaceLaParte(method: string, conCaja: boolean): string {
+  const noDebe = 'Ese importe deja de cobrársele: el cargo no vuelve a quedar pendiente y su membresía no cambia.';
+  switch (method) {
+    case 'CASH': return conCaja ? `El efectivo sale de la caja abierta hoy, con su folio. ${noDebe}` : `Esta sucursal no lleva Caja: devuélvele el efectivo en mano. ${noDebe}`;
+    case 'CARD_TERMINAL': return `${conCaja ? 'Se resta del total de tarjeta de la caja abierta hoy; la' : 'La'} devolución a su tarjeta se hace en la terminal del banco. ${noDebe}`;
+    default: return `No sale de la caja: devuélvelo por transferencia y anota su referencia. ${noDebe}`;
+  }
+}
+
 /** Devolver dinero de un pago: deshacer el cobro (mostrador) o reembolsar a la tarjeta (en línea). */
 export function PagoAcciones({ pago, onDone }: { pago: StatementPayment; onDone: () => void }) {
   const { can, activoEn } = useSession();
@@ -91,7 +103,7 @@ export function PagoAcciones({ pago, onDone }: { pago: StatementPayment; onDone:
   const [turnos, setTurnos] = useState<Turno[] | null>(null);
   if (pago.status !== 'SUCCEEDED' || BigInt(pago.amountCents) <= 0n) return null;
   const tarjeta = pago.method === 'CARD_ON_FILE';
-  if (!can(tarjeta ? 'payments:refund' : 'payments:reverse')) return null;
+  if (!can(tarjeta ? 'payments:refund' : 'payments:reverse') && !can('payments:refund')) return null;
 
   // Los turnos abiertos se cargan ANTES de abrir el diálogo: la caja aparece desde el primer pintado, sin saltos.
   async function abrir() {
@@ -132,30 +144,37 @@ function DevolverDialog({ pago, turnos, onClose, onListo }: { pago: StatementPay
   const pideCaja = !tarjeta && !!turnos && turnos.length > 1;
   const cents = cuanto === 'todo' ? total : parte;
   const importeBien = cents !== null && cents > 0n && cents <= total;
-  const valido = motivo.trim().length >= 3 && importeBien && (!pideCaja || !!cajaId);
-  // La clave de rastreo de la devolución no tiene campo propio en la API: viaja en el motivo y queda en la bitácora.
-  const motivoCompleto = [motivo.trim(), !tarjeta && porTransferencia(pago.method) && referencia.trim() ? `devuelto por transferencia, ref. ${referencia.trim()}` : '']
+  const valido = motivo.trim().length >= 3 && importeBien && (!pideCaja || !!cajaId) && (!(cuanto === 'parte' && !tarjeta && porTransferencia(pago.method)) || referencia.trim().length >= 3);
+  // D-13 (bloque 3.5): una PARTE de un cobro de mostrador es una devolución (`/return`), siempre con firma;
+  // la referencia de la transferencia tiene su campo y es obligatoria. «Todo» sigue siendo la reversa.
+  const parcial = !tarjeta && cuanto === 'parte';
+  const pideReferencia = parcial && porTransferencia(pago.method);
+  // En la reversa completa la clave de rastreo no tiene campo propio: viaja en el motivo y queda en la bitácora.
+  const motivoCompleto = [motivo.trim(), !tarjeta && !parcial && porTransferencia(pago.method) && referencia.trim() ? `devuelto por transferencia, ref. ${referencia.trim()}` : '']
     .filter(Boolean).join(' · ').slice(0, 300);
+  // Una llave por diálogo: el doble clic o el reintento no sacan dinero dos veces.
+  const [llave] = useState(() => crypto.randomUUID());
 
   function enviar() {
     if (!valido || cents === null) return;
     setFallo(null);
-    void ejecutar(tarjeta ? 'payments:refund' : 'payments:reverse', pago.branchId ?? null,
+    void ejecutar(tarjeta || parcial ? 'payments:refund' : 'payments:reverse', pago.branchId ?? null,
       { resourceType: 'Payment', resourceId: pago.id, amountCents: cents, motivo: motivoCompleto },
-      tarjeta ? `Autorizar reembolso de ${pesos(cents)}` : `Autorizar la devolución de ${pesos(total)}`,
+      tarjeta ? `Autorizar reembolso de ${pesos(cents)}` : `Autorizar la devolución de ${pesos(parcial ? cents : total)}`,
       async (token) => {
         setEnviando(true);
         try {
-          await api(`/payments/${pago.id}/${tarjeta ? 'refund' : 'reverse'}`, {
+          await api(`/payments/${pago.id}/${tarjeta ? 'refund' : parcial ? 'return' : 'reverse'}`, {
             method: 'POST',
             body: JSON.stringify({
               reason: motivoCompleto,
-              ...(tarjeta ? { amountCents: cents.toString() } : {}),
+              ...(tarjeta || parcial ? { amountCents: cents.toString() } : {}),
+              ...(parcial ? { requestKey: llave, ...(pideReferencia ? { returnRef: referencia.trim() } : {}) } : {}),
               ...(!tarjeta && cajaId ? { cashSessionId: cajaId } : {}),
               ...(token ? { approvalToken: token } : {}),
             }),
           });
-          toast('ok', tarjeta ? 'Reembolso enviado al banco' : 'Pago revertido: el cargo vuelve a estar pendiente');
+          toast('ok', tarjeta ? 'Reembolso enviado al banco' : parcial ? `Se devolvieron ${pesos(cents)}: ese importe ya no se le cobra` : 'Pago revertido: el cargo vuelve a estar pendiente');
           onListo();
         } catch (e) { setFallo(errorText(e, 'No se pudo devolver')); } finally { setEnviando(false); }
       }, true);
@@ -188,8 +207,10 @@ function DevolverDialog({ pago, turnos, onClose, onListo }: { pago: StatementPay
             <Opciones forma="tarjetas" etiquetadaPor="dev-cuanto" value={cuanto} onChange={setCuanto}
               opciones={[
                 { value: 'todo' as const, label: `Todo el cobro · ${pesos(total)}`, texto: tarjeta ? 'Se reembolsa completo a su tarjeta.' : 'Se deshace el cobro completo.' },
-                { value: 'parte' as const, label: 'Una parte', disabled: !tarjeta,
-                  texto: tarjeta ? 'Un importe menor, a su tarjeta.' : 'Hoy un cobro en efectivo, terminal o transferencia solo se deshace completo.' },
+                { value: 'parte' as const, label: 'Una parte', disabled: pago.method === 'CREDIT_NOTE',
+                  texto: tarjeta ? 'Un importe menor, a su tarjeta.'
+                    : pago.method === 'CREDIT_NOTE' ? 'El saldo a favor se devuelve desde «Devolver saldo a favor».'
+                      : 'Un importe menor: se le regresa y ese importe deja de cobrársele.' },
               ]} />
           </div>
           {cuanto === 'parte' && (
@@ -202,7 +223,8 @@ function DevolverDialog({ pago, turnos, onClose, onListo }: { pago: StatementPay
           <Callout tone="warn" title="Lo que va a pasar">
             {tarjeta
               ? 'Se devuelve a la tarjeta del socio por el procesador. Lo reembolsado deja de cobrarse.'
-              : <>{queHaceLaReversa(pago.method, conCaja)} {pago.method !== 'CREDIT_NOTE' && 'Si ese pago había activado una membresía, vuelve a deber y entra en mora.'}</>}
+              : parcial ? queHaceLaParte(pago.method, conCaja)
+                : <>{queHaceLaReversa(pago.method, conCaja)} {pago.method !== 'CREDIT_NOTE' && 'Si ese pago había activado una membresía, vuelve a deber y entra en mora.'}</>}
           </Callout>
 
           {pideCaja && turnos && (
@@ -217,7 +239,8 @@ function DevolverDialog({ pago, turnos, onClose, onListo }: { pago: StatementPay
             </Field>
           )}
           {!tarjeta && porTransferencia(pago.method) && (
-            <Field label="Referencia de la devolución" htmlFor="dev-ref" hint="Si ya se la transferiste, anota la clave de rastreo: queda en la bitácora junto al motivo.">
+            <Field label="Referencia de la devolución" htmlFor="dev-ref" required={pideReferencia}
+              hint={pideReferencia ? 'La clave de rastreo de la transferencia con la que se le devolvió. Obligatoria.' : 'Si ya se la transferiste, anota la clave de rastreo: queda en la bitácora junto al motivo.'}>
               <input id="dev-ref" className="input" value={referencia} maxLength={60} onChange={(e) => setReferencia(e.target.value)} />
             </Field>
           )}
@@ -255,7 +278,7 @@ export function CargoAcciones({ cargo, onDone }: { cargo: CargoFila; onDone: () 
 
 const CAMINO: Record<Correccion, { label: string; texto: string; icono: React.ReactNode }> = {
   descontar: { label: 'Descontar', icono: <Percent />, texto: 'Una promoción o un convenio. Dentro de tu tope no pide autorización.' },
-  condonar: { label: 'Condonar', icono: <HandHeart />, texto: 'Perdonar una deuda que sí existía. Siempre pide autorización.' },
+  condonar: { label: 'Condonar', icono: <HandHeart />, texto: 'Perdonar una deuda que sí existía. Hasta una mensualidad del socio no pide autorización; arriba, sí.' },
   anular: { label: 'Anular', icono: <Ban />, texto: 'El cargo nunca debió existir (error de captura). Siempre pide autorización.' },
 };
 
@@ -298,11 +321,11 @@ function CorregirDialog({ cargo, caminos, onClose, onListo }: { cargo: CargoFila
           toast('ok', anular ? 'Cargo anulado' : modo === 'condonar' ? 'Deuda condonada' : 'Descuento aplicado');
           onListo();
         } catch (e) {
-          // El descuento que pasa del tope pide firma: lo atiende `ejecutar`.
+          // El descuento que pasa del tope y el perdón que pasa de una mensualidad (D-12) piden firma: lo atiende `ejecutar`.
           if (e instanceof ApiError && e.status === 428) throw e;
           setFallo(errorText(e, 'No se pudo aplicar'));
         } finally { setEnviando(false); }
-      }, modo !== 'descontar').catch((e) => setFallo(errorText(e, 'No se pudo aplicar')));
+      }, anular).catch((e) => setFallo(errorText(e, 'No se pudo aplicar')));
   }
 
   return (
@@ -311,7 +334,7 @@ function CorregirDialog({ cargo, caminos, onClose, onListo }: { cargo: CargoFila
       <Dialog open onClose={onClose} title={`Corregir «${concepto(cargo.concept)}»`} sub={`Pendiente ${pesos(cargo.balanceCents)} de ${pesos(cargo.amountCents)}`} error={fallo}
         footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button>
           <Button variant={modo === 'descontar' ? 'primary' : 'danger'} loading={enviando} disabled={!valido} onClick={enviar}>
-            {modo === 'descontar' ? 'Aplicar descuento' : 'Pedir autorización'}</Button></>}>
+            {modo === 'descontar' ? 'Aplicar descuento' : modo === 'condonar' ? 'Condonar' : 'Pedir autorización'}</Button></>}>
         <div className="stack">
           {caminos.length > 1 && (
             <div>

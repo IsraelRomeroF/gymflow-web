@@ -24,8 +24,10 @@ export function useCoachesDeClases(branchId?: string): { coaches: CoachDeClase[]
  * Quién imparte: en un horario (cambia sus clases futuras) o en UNA clase (un
  * suplente). El socio lo ve en su portal.
  */
-export function ElegirCoach({ url, valor, branchId, onCambio, id, etiqueta = 'Quién la imparte' }: {
+export function ElegirCoach({ url, valor, branchId, onCambio, id, etiqueta = 'Quién la imparte', sinVacio = false }: {
   url: string; valor: string | null; branchId?: string; onCambio: (coachUserId: string | null, nombre: string | null) => void; id: string; etiqueta?: string;
+  /** El coach que pone suplente en SU sesión tiene que nombrar a alguien (D-28): dejarla sin coach es de quien arma el horario. */
+  sinVacio?: boolean;
 }) {
   const toast = useToast();
   const { coaches, error, recargar } = useCoachesDeClases(branchId);
@@ -45,7 +47,7 @@ export function ElegirCoach({ url, valor, branchId, onCambio, id, etiqueta = 'Qu
     <label className="row gap-8 items-center small" htmlFor={id}>
       <span className="muted">{etiqueta}</span>
       <select id={id} className="select w-auto" disabled={guardando || coaches.length === 0} value={valor ?? ''} onChange={(e) => void cambiar(e.target.value)} data-testid="elegir-coach">
-        <option value="">{coaches.length === 0 ? 'No hay coaches dados de alta' : 'Sin coach asignado'}</option>
+        {(!sinVacio || valor === null) && <option value="">{coaches.length === 0 ? 'No hay coaches dados de alta' : 'Sin coach asignado'}</option>}
         {coaches.map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
       </select>
     </label>

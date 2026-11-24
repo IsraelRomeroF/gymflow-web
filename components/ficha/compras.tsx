@@ -5,7 +5,7 @@ import { Printer, ShoppingBag } from 'lucide-react';
 import type { MemberPosSales, MemberPosSale } from '@gymflow/core/contracts';
 import { METODO_DE_PAGO, etiqueta } from '@gymflow/core/vocabulario';
 import { api } from '@/lib/api';
-import { fechaHora, pesos } from '@/lib/format';
+import { fecha, fechaHora, pesos } from '@/lib/format';
 import { useSession, errorText } from '@/components/session';
 import { Badge, Button, Card, Empty, ErrorCarga, EsqueletoLista, IconTile } from '@/components/ui';
 
@@ -50,7 +50,9 @@ export function ComprasSocio({ memberId }: { memberId: string }) {
                   <li key={v.id} className="list-item items-start mov" data-testid="compra" data-estado={v.status}>
                     <IconTile size="sm" tone={anulada ? 'neutral' : 'ok'}><ShoppingBag /></IconTile>
                     <div className="flex-1 min-w-0">
-                      <div className="small strong mov-titulo">{queCompro(v)}{anulada && <> <Badge>Anulada</Badge></>}</div>
+                      <div className="small strong mov-titulo">{queCompro(v)}{anulada && <> <Badge>Anulada</Badge></>}
+                        {/* D-13 (bloque 3.5): sigue por corregir, o ya se devolvió otro día. */}
+                        {v.flagged && <> <Badge tone="warn">Por corregir</Badge></>}{v.returnedOn && <> <Badge tone="info">Devuelta el {fecha(v.returnedOn)}</Badge></>}</div>
                       <div className="tiny muted">
                         {fechaHora(v.soldAt)}{v.method ? ` · ${etiqueta(METODO_DE_PAGO, v.method, v.method)}` : ''}{v.folio ? ` · ${v.folio}` : ''}
                         {v.soldByName ? ` · Cobró ${v.soldByName}` : ''}{branches.length > 1 ? ` · ${branchName(v.branchId)}` : ''}
