@@ -18,7 +18,7 @@ const HUELLAS = {
   'components/dialogo.tsx': '1a236e2971e98658',
   'components/campos.tsx': 'dc9ee9fd72a6b4a1',
   'lib/carga.tsx': 'b356a37773b9bcf3',
-  'lib/format.ts': '7137b8cf4def9382',
+  'lib/format.ts': '08a14551c32cb486',
   'lib/formulario.ts': 'b8b8b804ffc3bee6',
 };
 // El hermano se deduce de la carpeta, no del nombre del paquete (`@gymflow/portal` nunca era 'gymflow-portal',

@@ -242,6 +242,12 @@ export function antiguedad(desde: string | Date | number, ahora = new Date()): s
   return anios === 1 ? '1 año' : `${anios} años`;
 }
 
+/** «hace 3 meses», o «hoy» con antigüedad de cero (bloque 4.16: antes decía «hace 0 días»). */
+export function haceTanto(desde: string | Date | number, ahora = new Date()): string {
+  const t = antiguedad(desde, ahora);
+  return t === '0 días' ? 'hoy' : `hace ${t}`;
+}
+
 export function telefono(e164: string | null | undefined): string {
   if (!e164) return '—';
   const m = /^\+52(\d{2})(\d{4})(\d{4})$/.exec(e164);

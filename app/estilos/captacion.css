@@ -62,3 +62,13 @@
 /* «Agregar más datos» y su explicación: juntos si caben; si no, la explicación completa debajo (no a medias junto al botón). */
 .mas-datos-fila { display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; row-gap: 2px; }
 .mas-datos-fila > .hint { flex: 1 1 260px; }
+
+/* ── Fase 4 · bloque 4.13 · Prospectos ───────────────────────────────────────
+   Con «Se cierra solo» la columna «Cuándo toca» creció y «Más» bajaba solo a un segundo renglón
+   bajo «Contactar» e «Inscribir». En pantallas anchas las tres acciones van juntas; en las angostas
+   siguen partiéndose como antes. */
+/* `.flex-wrap` es `!important` en compartido.css: por eso aquí también. */
+@media (min-width: 1180px) { .acciones-en-linea { flex-wrap: nowrap !important; } }
+/* «Se cierra solo por falta de contacto» es la insignia más larga de la tabla: sin partirse empujaba
+   las acciones fuera de la tarjeta a 1024 px. Se parte en dos renglones si no cabe. */
+.table td .badge-que-se-parte .badge { white-space: normal; height: auto; padding-block: 2px; line-height: 1.35; }

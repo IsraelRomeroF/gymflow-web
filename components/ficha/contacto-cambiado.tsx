@@ -66,7 +66,7 @@ export function ContactoCambiado({ memberId, nombre, onCambio }: { memberId: str
         {comparte && <p className="small">Ese celular también es el de otro socio: {QUIEN_RESPONDE[comparte.responsibleKind ?? ''] ?? 'falta anotar quién responde por el número'}. Revísalo abajo, en «Comparte celular».</p>}
         <p className="small">Cuando venga, confirma con {nombre} que el cambio es suyo. Si no lo es, la gerencia regresa el dato con «Editar datos» y le cierra el portal en sus teléfonos.</p>
         {fallo && <p className="small text-danger" role="alert">{fallo}</p>}
-        <div className="row wrap gap-8 mt-8">
+        <div className="row wrap gap-8 mt-8 contacto-cambiado-accion">
           <Button size="sm" loading={confirmando} onClick={() => void confirmar()}>Ya lo confirmé con {nombre}</Button>
         </div>
       </Callout>

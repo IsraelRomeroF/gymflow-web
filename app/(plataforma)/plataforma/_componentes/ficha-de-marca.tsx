@@ -262,7 +262,8 @@ function RechazarSolicitud({ solicitud: s, onClose, onHecho }: { solicitud: Plat
   });
   return (
     <Dialog open onClose={onClose} title={`Rechazar: ${DATO_DEL_GIMNASIO[s.field] ?? s.field}${s.branchName ? ` · ${s.branchName}` : ''}`} error={fallo}
-      sub={`Lo pidió ${s.requestedBy.fullName}: ${loPedido(s)}. No cambia ningún dato.`}
+      // Bloque 4.16: sin doble punto cuando lo pedido ya termina en punto («…cualquier sucursal.. No cambia…»).
+      sub={`Lo pidió ${s.requestedBy.fullName}: ${loPedido(s).replace(/[.\s]+$/, '')}. No cambia ningún dato.`}
       footer={<><Button variant="secondary" onClick={onClose}>Volver</Button><Button variant="danger" loading={f.enviando} onClick={() => void rechazar()}>Rechazar solicitud</Button></>}>
       <CampoMotivo id="rs-resp" autoFocus value={respuesta} onChange={setRespuesta} error={f.error('respuesta')} label="Respuesta para quien la pidió" maxLength={500}
         hint="La lee en su panel y queda en la bitácora de la marca." motivos={['No coincide con tu constancia fiscal: mándanos la vigente', 'Ya estaba registrado así', 'La imagen no se lee bien: manda otra']} />

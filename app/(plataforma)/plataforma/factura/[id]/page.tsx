@@ -75,7 +75,7 @@ export default function FacturaPage() {
             <div data-testid="factura-receptor">
               <p className="label">A</p>
               <p className="strong">{f.receiver?.legalName ?? f.organization?.legalName ?? 'Marca'}</p>
-              <p className="small mono">{f.receiver?.rfc ? `RFC ${f.receiver.rfc}` : <span className="muted">Sin RFC en su ficha</span>}</p>
+              <p className="small">{f.receiver?.rfc ? <span className="mono">RFC {f.receiver.rfc}</span> : <span className="muted">Sin RFC en su ficha</span>}</p>
               <p className="small muted">{f.receiver?.tradeName ?? f.organization?.tradeName}</p>
             </div>
             <div>

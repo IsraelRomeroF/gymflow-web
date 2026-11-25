@@ -93,7 +93,7 @@ export function FilasDeInteresados({ items, hoy, variasSedes, sedeDe, a }: {
                         <Toca p={p} hoy={hoy} />
                         {/* A una semana de cerrarse solo (D-31): contactarlo o ponerle fecha lo deja en la lista. */}
                         {p.autoCloseSoon && p.autoCloseOn && (
-                          <span data-testid="se-cierra-solo"><Badge tone="danger"><Hourglass size={12} />{p.autoCloseOn <= hoy ? 'Se cierra solo por falta de contacto' : `Se cierra solo el ${fecha(p.autoCloseOn)}`}</Badge></span>
+                          <span data-testid="se-cierra-solo" className="badge-que-se-parte"><Badge tone="danger"><Hourglass size={12} />{p.autoCloseOn <= hoy ? 'Se cierra solo por falta de contacto' : `Se cierra solo el ${fecha(p.autoCloseOn)}`}</Badge></span>
                         )}
                       </div>}
                 </td>
@@ -107,7 +107,7 @@ export function FilasDeInteresados({ items, hoy, variasSedes, sedeDe, a }: {
                           <Button size="sm" variant="ghost" icon={<RotateCcw />} onClick={() => a.reabrir(p)}>Reabrir</Button>
                           <MenuMas tam="sm" etiqueta={`Más acciones de ${completo}`} items={[{ label: 'Historial de contactos', icon: <History />, onClick: () => a.historial(p) }]} />
                         </div>
-                      : <div className="row gap-6 justify-end flex-wrap">
+                      : <div className="row gap-6 justify-end flex-wrap acciones-en-linea">
                           <Button size="sm" variant="secondary" icon={<PhoneCall />} onClick={() => a.contactar(p)}>Contactar</Button>
                           <Button size="sm" variant="ghost" icon={<UserPlus />} onClick={() => a.inscribir(p)}>Inscribir</Button>
                           {/* Lo que no es de todos los días, y lo que cierra el seguimiento, en «Más». */}

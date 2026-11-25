@@ -6,7 +6,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  antiguedad, comparar, concepto, dia, diaLargo, escribirFecha, escribirHora, fecha, fechaCorta, fechaHora,
+  antiguedad, haceTanto, comparar, concepto, dia, diaLargo, escribirFecha, escribirHora, fecha, fechaCorta, fechaHora,
   fechaNumerica, fijarZona, hace, hora, hora12, hoyEn, leerFecha, leerHora, masDias, nombreMes, pesos, zonaActiva,
 } from './format.ts';
 
@@ -96,6 +96,8 @@ test('la hora se lee de 24 o de 12 y se guarda como HH:MM', () => {
 test('antigüedad desde una fecha o desde días (panel y portal usan la misma)', () => {
   assert.deepEqual([1, 0, 59, 400, 800].map((d) => antiguedad(d)), ['1 día', '0 días', '59 días', '13 meses', '2 años']);
   assert.equal(antiguedad('2024-11-19', new Date('2026-11-19T12:00:00Z')), '2 años');
+  // Bloque 4.16: con antigüedad de cero, «hoy» y no «hace 0 días».
+  assert.deepEqual([0, 1, 400].map((d) => haceTanto(d)), ['hoy', 'hace 1 día', 'hace 13 meses']);
   assert.equal(hace('2026-11-19T11:59:40Z', new Date('2026-11-19T12:00:00Z')), 'justo ahora');
   assert.equal(hace('2026-11-18T12:00:00Z', new Date('2026-11-19T12:00:00Z')), 'ayer');
 });

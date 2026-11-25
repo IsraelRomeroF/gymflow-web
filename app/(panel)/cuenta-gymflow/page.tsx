@@ -59,6 +59,8 @@ export default function CuentaConGymflowPage() {
           </Card>
         )}
         <Card title="Tu mensualidad" sub={cuenta.upcoming ? `Desde la factura de ${mes(cuenta.upcoming.effectiveFrom).toLowerCase()} será de ${pesos(cuenta.upcoming.totalCents)} al mes; hasta entonces pagas lo de hoy.` : undefined} pad={false} data-testid="mensualidad-gymflow">
+          {/* Bloque 4.16: sin precios no se pinta una tabla vacía con «Total $0.00». */}
+          {cuenta.monthly.lines.length === 0 ? <Empty icon={<Receipt />} title="GymFlow todavía no te ha dado precio" text="Cuando GymFlow fije tu mensualidad, aquí verás cada concepto y el total al mes." /> : (
           <div className="table-wrap">
             <table className="table">
               <thead><tr><th>Concepto</th><th className="right">Al mes</th></tr></thead>
@@ -71,6 +73,7 @@ export default function CuentaConGymflowPage() {
               </tbody>
             </table>
           </div>
+          )}
           {cuenta.monthly.discount && <p className="small muted card-foot" data-testid="descuento-vigente">Tienes un descuento hasta la factura de {mes(cuenta.monthly.discount.lastMonth).toLowerCase()}. Después pagas la mensualidad sin ese renglón.</p>}
         </Card>
         <Card title="Facturas" pad={false} data-testid="facturas-gymflow">
@@ -101,7 +104,7 @@ export default function CuentaConGymflowPage() {
             <div>
               <p className="label">Tu gimnasio</p>
               <p className="strong">{receiver.legalName}</p>
-              <p className="small mono">{receiver.rfc ? `RFC ${receiver.rfc}` : <span className="muted">Sin RFC registrado</span>}</p>
+              <p className="small">{receiver.rfc ? <span className="mono">RFC {receiver.rfc}</span> : <span className="muted">Sin RFC registrado</span>}</p>
               <p className="tiny muted">Si la razón social o el RFC están mal, pide el cambio a GymFlow desde «Mi gimnasio».</p>
             </div>
             <div>

@@ -208,3 +208,9 @@ body { font-size: var(--t-base); line-height: 22px; }
 .importar-caso[data-decision="CREATE"] { border-color: var(--info-line, var(--line-strong)); }
 .importar-caso[data-decision="SKIP"] { opacity: .7; }
 
+
+/* ── Fase 4 · bloque 4.13 · total de la factura de GymFlow ───────────────────
+   «Total a pagar», «Paga al mes» y «Resta» van en celdas de encabezado del pie de la tabla y salían
+   con el estilo de la cabecera (letra chica y gris), más discretos que cualquier renglón. En el pie
+   pesan como lo que son: la cifra que se paga. */
+.table tfoot th { font-size: var(--t-base); font-weight: 700; color: var(--fg); height: 48px; border-top: 1px solid var(--line-strong, var(--line)); border-bottom: 0; }

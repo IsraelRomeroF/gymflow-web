@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { X, CircleCheck, CalendarDays } from 'lucide-react';
 import type { AccessException } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { antiguedad, fechaCorta, hora } from '@/lib/format';
+import { fechaCorta, haceTanto, hora } from '@/lib/format';
 import { DENIAL_REASON } from '@/lib/labels';
 import { EstadoCarga, useCarga } from '@/lib/carga';
 import { Avatar, Breadcrumb, Button, Card, Skeleton } from '@/components/ui';
@@ -50,7 +50,7 @@ export default function ExcepcionPage() {
                 <Avatar name={v.member.fullName} size={64} />
                 <div>
                   <h1 className="profile-name">{v.member.fullName}</h1>
-                  <p className="small muted"><code>{v.member.memberCode}</code> · socio desde hace {antiguedad(v.member.joinedAt)}</p>
+                  <p className="small muted"><code>{v.member.memberCode}</code> · socio desde {haceTanto(v.member.joinedAt)}</p>
                 </div>
               </div>
 

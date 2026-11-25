@@ -248,9 +248,10 @@ export default function TableroPage() {
                 {BigInt(data.portfolio.lostCents) > 0n && <div className="row-between" data-testid="deuda-perdida" title="Deuda de membresías que llevaron suspendidas el plazo del gimnasio. No está en «Por cobrar»; sigue en el estado de cuenta de cada socio y se puede cobrar.">
                   <span className="muted">Dada por perdida ({data.portfolio.lostMembers} {data.portfolio.lostMembers === 1 ? 'socio' : 'socios'})</span><span className="num">{pesos(data.portfolio.lostCents, { decimals: false })}</span>
                 </div>}
-                {/* Sin enlaces a pantallas que no son de su puesto (UX5-D-06). */}
-                {can('members:read')
-                  ? <Link className="small strong row gap-4" href="/socios?adeudo=1">Ver quién debe <ArrowRight size={14} /></Link>
+                {/* Sin enlaces a pantallas que no son de su puesto (UX5-D-06). Bloque 4.15: la lista
+                    de deudores (también los dados de baja) es de quien ve estados de cuenta; la dueña, sin nombres (D-25). */}
+                {can('billing:statement:read')
+                  ? <Link className="small strong row gap-4" href="/tablero/deudores" data-testid="ver-quien-debe">Ver quién debe <ArrowRight size={14} /></Link>
                   : <span className="small muted">El detalle de quién debe lo lleva la gerencia.</span>}
                 <div className="row-between"><span className="muted">Socios activos</span><span className="num strong">{data.activeMembers.toLocaleString('es-MX')}</span></div>
                 <div className="row-between"><span className="muted row gap-4"><Repeat size={13} />Cobro mensual fijo</span><span className="num strong">{pesos(data.money.mrrCents, { decimals: false })}</span></div>

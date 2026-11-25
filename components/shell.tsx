@@ -232,7 +232,7 @@ export function Shell({ children }: { children: ReactNode }) {
               <button type="button" role="menuitem" onClick={() => { setMenuUsuario(false); router.push('/seguridad'); }}><MonitorSmartphone size={17} /><span>Mis sesiones</span></button>
               {/* 24-09 (bloque 4.11): en el mostrador el turno siguiente no opera con el nombre de quien se fue. Cierra esta
                   sesión y deja la entrada lista para la otra persona; la caja abierta sigue abierta a nombre de quien la abrió. */}
-              {(me.roleKeys ?? []).includes('RECEPTIONIST') && (
+              {(me.roleKeys ?? []).includes('RECEPTION') && (
                 <button type="button" role="menuitem" onClick={() => void logout('/login?relevo=1')}><ArrowLeftRight size={17} /><span>Cambiar de usuario</span></button>
               )}
               <button type="button" role="menuitem" onClick={() => void logout()}><LogOut size={17} /><span>Cerrar sesión</span></button>

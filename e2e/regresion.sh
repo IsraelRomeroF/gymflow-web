@@ -29,6 +29,15 @@
 # `direccion-cierre` abren su propio turno en «Caja 2 Centro» y lo cortan;
 # `entrada-reglas` enciende la regla del rostro y la apaga; `direccion-cierre`
 # cierra el mes pasado y lo vuelve a abrir.
+#
+# Fase 4 (bloque 4.12): los recorridos de la fase 4 van también antes de
+# `mensajes` (fase4/4.12-recorridos.md): cortes, plazos, nomina,
+# datos-y-marca, interesados, portal-contacto, avisos-duena,
+# sesion-telefono, plataforma-cobro, portal-precios-rostro y deudores.
+# `cortes` y `avisos-duena` abren su turno en «Caja 2 Centro» y lo cortan;
+# `plazos` deja los plazos de fábrica; `datos-y-marca` devuelve el horario de
+# Norte; `avisos-duena` corre el corredor de 15 minutos de pruebas
+# (`pnpm jobs:pruebas:15min`) y vuelve a encender el aviso que apagó.
 set -u
 S=$(cd "$(dirname "$0")" && pwd)
 mkdir -p "$S/shots" "$S/archivos"
@@ -64,10 +73,10 @@ es_pruebas || { echo "La API de $GYMFLOW_E2E_API no es la de pruebas; no se corr
 # Calentar: Next en desarrollo compila cada ruta la primera vez que se pide,
 # y mientras compila detiene también el proxy hacia la API. Sin esto, el
 # primer flujo que toca una pantalla nueva falla por tiempo, no por un error.
-for r in /login /panel /caja /punto-de-venta /socios /socios/00000000-0000-7000-8000-000000000000 /altas /prospectos /clases /rutinas /tablero /retencion /planes /productos /personal /sucursales /modulos /seguridad /plataforma /plataforma/precios /plataforma/planes /plataforma/seguridad /plataforma/00000000-0000-7000-8000-000000000000 /plataforma/factura/00000000-0000-7000-8000-000000000000 /arranque /autorizaciones /bitacora /movimientos /personal/roles /biometria /acceso /consentimientos /importar /recibo/00000000-0000-7000-8000-000000000000 /precios /gimnasio /mensajes /recibo/estado/00000000-0000-7000-8000-000000000000 /recibo/venta/00000000-0000-7000-8000-000000000000 /cuenta-gymflow; do
+for r in /login /panel /caja /punto-de-venta /socios /socios/00000000-0000-7000-8000-000000000000 /altas /prospectos /clases /rutinas /tablero /retencion /planes /productos /personal /sucursales /modulos /seguridad /plataforma /plataforma/precios /plataforma/planes /plataforma/seguridad /plataforma/00000000-0000-7000-8000-000000000000 /plataforma/factura/00000000-0000-7000-8000-000000000000 /arranque /autorizaciones /bitacora /movimientos /personal/roles /biometria /acceso /consentimientos /importar /recibo/00000000-0000-7000-8000-000000000000 /precios /gimnasio /mensajes /recibo/estado/00000000-0000-7000-8000-000000000000 /recibo/venta/00000000-0000-7000-8000-000000000000 /cuenta-gymflow /avisos /tablero/deudores /plataforma/cobranza; do
   curl -s -o /dev/null --max-time 120 "$GYMFLOW_E2E_PANEL$r"
 done
-for r in / /activar /pagos /clases /asistencia /rutina /alta/00000000-0000-7000-8000-000000000000; do
+for r in / /activar /pagos /pagos/precios /cuenta /clases /asistencia /rutina /alta/00000000-0000-7000-8000-000000000000; do
   curl -s -o /dev/null --max-time 120 "$GYMFLOW_E2E_PORTAL$r"
 done
 # La base de pruebas para lib/base.mjs (adelantar el reloj de UN registro, o
@@ -79,7 +88,7 @@ cd $S
 LIBS=${GYMFLOW_E2E_LIBS:-$HOME/.cache/gymflow-e2e/libs/usr/lib/x86_64-linux-gnu}
 [ -d "$LIBS" ] && export LD_LIBRARY_PATH=$LIBS${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
 fallos=0
-for f in ${FLOWS:-padron mostrador mostrador-espera movil desborde menu modulos personal sucursales plataforma plataforma-ux cobranza dinero adeudo privacidad movimientos carga roles llave bloque3 bloque4 control permisos remota duena direccion contrasenas sesion antiguedad ventas membresia portal portal-ux avisos diseno importar importar-seguro caja altas flow clases crecimiento prospectos rutinas firmas escalera cumplimiento primer-uso mostrador-tarjeta ficha captacion clases-ciclo coach-dia direccion-precios plataforma-ficha firma-franja dinero-socio cajon entrada-reglas precios direccion-cierre altas-familia coach-codigo apoderado cuenta-gymflow mensajes}; do
+for f in ${FLOWS:-padron mostrador mostrador-espera movil desborde menu modulos personal sucursales plataforma plataforma-ux cobranza dinero adeudo privacidad movimientos carga roles llave bloque3 bloque4 control permisos remota duena direccion contrasenas sesion antiguedad ventas membresia portal portal-ux avisos diseno importar importar-seguro caja altas flow clases crecimiento prospectos rutinas firmas escalera cumplimiento primer-uso mostrador-tarjeta ficha captacion clases-ciclo coach-dia direccion-precios plataforma-ficha firma-franja dinero-socio cajon entrada-reglas precios direccion-cierre altas-familia coach-codigo apoderado cuenta-gymflow cortes plazos nomina datos-y-marca interesados portal-contacto avisos-duena sesion-telefono plataforma-cobro portal-precios-rostro deudores mensajes}; do
   timeout 400 node $f.mjs > out-$f.log 2>&1; rc=$?
   oks=$(grep -c "^ok" out-$f.log); malos=$(grep -c "FALLÓ\|DESBORDA" out-$f.log)
   [ $rc -ne 0 ] && fallos=$((fallos+1))

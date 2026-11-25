@@ -112,3 +112,24 @@ li:last-child > button.puerta-fila { border-bottom: 0; }
 .pie-tres > .btn { justify-content: center; }
 .pie-tres > .btn-primary { grid-column: 1 / -1; grid-row: 1; }
 @media (hover: none), (pointer: coarse) { .solo-teclado { display: none; } }
+
+/* ── Fase 4 · bloque 4.13 · visual de Caja y Cortes ──────────────────────────
+   · `.descuadre-fila`: «Descuadres por revisar». Una raya entre cortes; en el teléfono el texto va
+     a todo lo ancho y «Ver corte» / «Revisar» bajan a su renglón (antes el texto quedaba en una
+     columna de dos palabras junto a los botones).
+   · `.cargar-mas`: «Cargar más cortes» del tamaño de su texto y centrado, no una barra de lado a lado. */
+.descuadre-fila + .descuadre-fila { border-top: 1px solid var(--line); }
+@media (max-width: 720px) {
+  .descuadre-fila { flex-wrap: wrap; row-gap: 8px; }
+  .descuadre-fila > :first-child { flex: 1 1 100%; }
+  .descuadre-fila > :last-child { margin-left: auto; }
+}
+.cargar-mas { display: flex; flex-direction: column; align-items: center; gap: var(--s-2); text-align: center; }
+
+/* ── Fase 4 · bloque 4.16 · «Cortes de caja» a 1024 px ───────────────────────
+   · `.col-contado`: entre el teléfono (que ya la omite con `stack-hide`) y 1280 px, la columna «Contado»
+     se omite para que las demás quepan junto al menú sin desplazar de lado. La cifra sigue en la hoja
+     del corte (la fila entera la abre) y la diferencia, que es lo que se revisa, sigue a la vista. */
+@media (min-width: 721px) and (max-width: 1280px) {
+  .table .col-contado { display: none; }
+}

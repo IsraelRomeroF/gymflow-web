@@ -133,7 +133,7 @@ export function VistaCortes() {
       <Card title="Cortes" sub={`Los turnos cerrados, del más reciente al más antiguo. Una diferencia de más de ${TOLERANCIA} queda por revisar hasta que la gerencia la cierra con su nota.`} pad={false}
         actions={<Segmented etiqueta="Qué cortes ver" value={filtro} onChange={setFiltro} options={FILTROS} />}
         footer={cursor && !cortes.error ? (
-          <div className="stack-sm">
+          <div className="cargar-mas">
             {errorMas && <p className="small danger" role="alert">{errorMas}</p>}
             <Button size="sm" variant="secondary" loading={pidiendo} onClick={() => void cargarMas()} data-testid="cortes-cargar-mas">Cargar más cortes</Button>
           </div>
@@ -155,7 +155,7 @@ export function VistaCortes() {
           ) : (
             <div className="table-wrap">
               <table className="table table-stack">
-                <thead><tr><th>Fecha</th><th>Caja</th><th>De quién fue</th><th className="right num">Contado</th><th className="right num">Diferencia</th><th>Revisión</th><th /></tr></thead>
+                <thead><tr><th>Fecha</th><th>Caja</th><th>De quién fue</th><th className="right num col-contado">Contado</th><th className="right num">Diferencia</th><th>Revisión</th><th /></tr></thead>
                 <tbody>
                   {visibles.map((t) => (
                     <tr key={t.id} className={`is-link${t.varianceCents && BigInt(t.varianceCents) !== 0n ? ' fila-descuadre' : ''}`}
@@ -166,7 +166,7 @@ export function VistaCortes() {
                       </td>
                       <td>{nombreCaja.get(t.cashRegisterId) ?? 'Caja'}{variasSedes ? <div className="tiny muted">{nombreSede.get(t.branchId) ?? ''}</div> : null}</td>
                       <td className="small" data-label="De quién fue">{quienResponde(t)}</td>
-                      <td className="right num stack-hide">{t.countedCashCents ? pesos(t.countedCashCents) : '—'}</td>
+                      <td className="right num stack-hide col-contado">{t.countedCashCents ? pesos(t.countedCashCents) : '—'}</td>
                       <td className="right num" data-label="Diferencia"><Diferencia cents={t.varianceCents} /></td>
                       <td data-label="Revisión">
                         <EstadoRevision turno={t} />

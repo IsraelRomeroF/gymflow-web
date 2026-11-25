@@ -54,3 +54,8 @@
 .contacto-cambiado-lista { margin: 0 0 6px; padding-left: 18px; }
 .contacto-cambiado-lista li + li { margin-top: 2px; }
 
+
+/* ── Fase 4 · bloque 4.13 · el aviso del contacto cambiado en el teléfono ────
+   «Ya lo confirmé con ‹nombre›» lleva el nombre del socio: con uno largo, a 390 px el botón se salía
+   de la tarjeta del aviso. Ahora se parte en dos renglones si no cabe. */
+.contacto-cambiado-accion .btn { max-width: 100%; height: auto; min-height: 32px; padding-block: 6px; white-space: normal; line-height: 1.3; text-align: left; }

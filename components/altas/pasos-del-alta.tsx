@@ -41,7 +41,9 @@ export function accionDelPaso(o: Pick<MemberOnboarding, 'memberId' | 'owesCents'
 
 /** Lo que dice cada paso debajo de su nombre. */
 function detalle(o: MemberOnboarding, p: Paso): string | null {
-  if (p.key === 'SELL') return o.membership ? `${o.membership.planName ?? 'Su plan'}${o.membership.currentPeriodEnd ? ` hasta el ${fecha(o.membership.currentPeriodEnd)}` : ''}` : 'Todavía no tiene plan: sin él no puede entrar.';
+  if (p.key === 'SELL') return o.membership ? `${o.membership.planName ?? 'Su plan'}${o.membership.currentPeriodEnd ? ` hasta el ${fecha(o.membership.currentPeriodEnd)}` : ''}`
+    // Hecho sin plan vigente (bloque 4.16): ya tuvo uno, que se canceló o venció.
+    : p.done ? 'Ya tuvo plan; hoy no tiene uno vigente.' : 'Todavía no tiene plan: sin él no puede entrar.';
   if (p.key === 'COLLECT') return `Debe ${pesos(o.owesCents)}.`;
   if (p.key === 'PORTAL') return p.done ? null : 'Con su código entra al portal desde su celular. Está en su ficha.';
   if (p.key === 'FACE') return p.done ? null : 'Para entrar con su rostro. Se le pide su consentimiento ahí mismo.';

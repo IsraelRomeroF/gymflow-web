@@ -91,10 +91,11 @@ export function PedirCambio({ perfil, datoInicial, sedeInicial, onClose, onEnvia
           )}
         </div>
         {dato !== 'OTHER' && (
-          <p className="small muted" data-testid="pc-hoy">Hoy: {esLogo ? (perfil.brand.logo ? 'hay un logo registrado' : 'sin logo') : <span className="strong">{valorDeDato(dato, hoy)}</span>}</p>
+          // Bloque 4.16: en negritas solo un valor que existe; «sin registrar» va como «sin logo», sin negritas.
+          <p className="small muted" data-testid="pc-hoy">Hoy: {esLogo ? (perfil.brand.logo ? 'hay un logo registrado' : 'sin logo') : hoy ? <span className="strong">{valorDeDato(dato, hoy)}</span> : 'sin registrar'}</p>
         )}
         {esLogo ? (
-          <Field label="Logo nuevo" htmlFor="pc-logo" error={f.error('valor')} hint={`PNG, JPG o WebP de hasta ${LOGO_MAX_KB} KB. ${hayHoy ? 'Sin imagen, se pide quitar el logo.' : ''}`}>
+          <Field label="Logo nuevo" htmlFor="pc-logo" error={f.error('valor')} hint={`PNG, JPG o WebP de hasta ${LOGO_MAX_KB} KB.${hayHoy ? ' Sin imagen, se pide quitar el logo.' : ''}`}>
             <div className="row gap-12 flex-wrap items-center">
               {/* Vista previa de un archivo local (data:), no una imagen del sitio */}
               {logo && <img src={logo} alt="Logo elegido" className="logo-marca" />}
@@ -104,7 +105,8 @@ export function PedirCambio({ perfil, datoInicial, sedeInicial, onClose, onEnvia
           </Field>
         ) : (
           <Field label={dato === 'OTHER' ? 'Qué quieres que cambie' : 'Valor nuevo'} htmlFor="pc-valor" error={f.error('valor')}
-            hint={`${AYUDA_DE_DATO[dato] ?? ''}${sePuedeQuitar(dato) && hayHoy ? ' Déjalo vacío para pedir que se quite.' : ''}`}>
+            // Sin ayuda para ese dato no queda una pista vacía (bloque 4.16).
+            hint={`${AYUDA_DE_DATO[dato] ?? ''}${sePuedeQuitar(dato) && hayHoy ? ' Déjalo vacío para pedir que se quite.' : ''}`.trim() || undefined}>
             {dato === 'RECEIPT_LEGEND' || dato === 'BRANCH_HOURS' || dato === 'OTHER'
               ? <textarea id="pc-valor" className="textarea" rows={3} maxLength={dato === 'OTHER' ? 500 : 300} value={valor} onChange={(e) => setValor(e.target.value)} />
               : <input id="pc-valor" className="input" type={esTelefono(dato) ? 'tel' : 'text'} inputMode={esTelefono(dato) ? 'tel' : undefined} maxLength={160} value={valor} onChange={(e) => setValor(e.target.value)} />}

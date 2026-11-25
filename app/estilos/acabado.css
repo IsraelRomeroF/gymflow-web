@@ -184,3 +184,12 @@
 .estacion-ingresar svg { width: 26px; height: 26px; }
 .estacion-ingresar:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 
+
+/* ── Fase 4 · bloque 4.13 · tablas apiladas en el teléfono ──────────────────
+   · Una celda con etiqueta y sin contenido no pinta su etiqueta sola («Revisión» sin nada al lado).
+   · La raya ámbar de la fila con descuadre va en el borde de la tarjeta, no pegada a la fecha. */
+@media (max-width: 720px) {
+  .table-stack td[data-label]:empty { display: none; }
+  .table-stack tr.fila-descuadre td:first-child { box-shadow: none; }
+  .table-stack tbody tr.fila-descuadre { box-shadow: inset 3px 0 0 var(--warn); }
+}

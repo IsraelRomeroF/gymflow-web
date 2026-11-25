@@ -137,7 +137,7 @@ export function GastosFijos({ sede, hoy, compacto, onCambio }: { sede: string; h
       ) : (
         <Empty icon={<Landmark />} title="Sin gastos fijos este mes" text={gestiona ? 'Registra la renta, los pagos de nómina y los servicios para que la ganancia sea ganancia.' : quien} />
       ) : (
-        <ul className="list">
+        <ul className="list gastos-lista">
           {visibles.map((g) => {
             const apagado = !!g.voidedAt || !!g.correctedInMonth;
             // La nómina de antes de la nómina por pago: un total, sin persona ni fecha. Se queda como está.

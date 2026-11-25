@@ -181,7 +181,7 @@ export function PreferenciasDeAvisos({ avisos, onCambio }: { avisos: OwnerAlerts
   return (
     <div className="stack" data-testid="preferencias-avisos">
       {!avisos.pushConfigured && <Callout tone="info">Este servidor todavía no tiene activados los avisos al teléfono: por ahora todo sale solo aquí, en el panel. Lo que elijas queda guardado para cuando se activen.</Callout>}
-      <ul className="stack lista-limpia">
+      <ul className="stack lista-limpia avisos-interruptores">
         {avisos.preferences.map((p) => (
           <li key={p.kind} data-preferencia={p.kind}>
             <Switch checked={p.enabled} disabled={guardando === p.kind} onChange={(v) => void cambiar(p.kind, v)}>

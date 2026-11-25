@@ -145,7 +145,7 @@ function CajaDeOperacion() {
         <Card title="Descuadres por revisar" sub="Cada uno es de quien abrió el turno. Revísalo y ciérralo con tu nota." pad={false}>
           <ul className="lista-limpia" data-testid="descuadres-por-revisar">
             {porRevisar.map((t) => (
-              <li key={t.id} className="card-body row-between gap-8">
+              <li key={t.id} className="card-body row-between gap-8 descuadre-fila">
                 <span className="small">
                   <span className="strong">{fecha(t.businessDate)} · {nombreCaja.get(t.cashRegisterId)?.name ?? 'Caja'}</span>{' '}
                   <Diferencia cents={t.varianceCents} /> <span className="muted">· {quienResponde(t)}</span>
@@ -254,7 +254,8 @@ function TurnoAbierto({ titulo, turno, ajeno, puedeCerrar, puedeMover, onCorte, 
               <div className="stack-sm mt-8">
                 {corte.movements.map((mv) => (
                   <div key={mv.id} className="row-between small">
-                    <span>{MOVIMIENTO[mv.movementType] ?? mv.movementType} <span className="muted">· {mv.reason}</span></span>
+                    {/* Bloque 4.12: el retiro del dueño se nombra como en la hoja del corte (antes decía «Retiro a caja fuerte»). */}
+                    <span>{mv.ownerDraw ? 'Retiro del dueño' : MOVIMIENTO[mv.movementType] ?? mv.movementType} <span className="muted">· {mv.reason}</span></span>
                     <span className="num">{pesos(mv.amountCents)}</span>
                   </div>
                 ))}
@@ -320,7 +321,7 @@ function CorteDialog({ turno, caja, ajeno, onClose }: { turno: Turno; caja: Caja
   if (paso === 'listo' && resultado) {
     const v = BigInt(resultado.varianceCents);
     return (
-      <Dialog open onClose={onClose} title="Corte hecho" sub={`${caja.name} · turno cerrado a las ${hora(new Date().toISOString())}`}
+      <Dialog key="hecho" open onClose={onClose} title="Corte hecho" sub={`${caja.name} · turno cerrado a las ${hora(new Date().toISOString())}`}
         footer={<><Button variant="secondary" onClick={onClose}>Listo</Button><Link className="btn btn-primary" href={`/caja/${turno.id}`}><Printer />Ver e imprimir corte</Link></>}>
         <div className="stack">
           <div className="corte-veredicto" data-kind={resultado.varianceKind}>
@@ -343,7 +344,7 @@ function CorteDialog({ turno, caja, ajeno, onClose }: { turno: Turno; caja: Caja
 
   if (paso === 'motivo' && revelado) {
     return (
-      <Dialog open onClose={onClose} title="La caja no cuadra" sub="El conteo ya quedó fijo. Explica la diferencia para poder cerrar."
+      <Dialog key="motivo" open onClose={onClose} title="La caja no cuadra" sub="El conteo ya quedó fijo. Explica la diferencia para poder cerrar."
         footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button loading={enviando} onClick={() => void f.enviar(() => cerrar(motivo.trim()))}>Cerrar con diferencia</Button></>}>
         <div className="stack">
           {diferencia !== null && diferencia !== 0n && (
@@ -366,7 +367,7 @@ function CorteDialog({ turno, caja, ajeno, onClose }: { turno: Turno; caja: Caja
   }
 
   return (
-    <Dialog open size="lg" onClose={onClose} title={`Corte · ${caja.name}`} sub="Cuenta el efectivo del cajón, incluido el fondo. Después verás si cuadra."
+    <Dialog key="conteo" open size="lg" onClose={onClose} title={`Corte · ${caja.name}`} sub="Cuenta el efectivo del cajón, incluido el fondo. Después verás si cuadra."
       footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button icon={<Calculator />} loading={enviando} onClick={() => void cerrar()}>Cerrar con {pesos(total)}</Button></>}>
       <div className="conteo">
         {(['billete', 'moneda'] as const).map((tipo) => (

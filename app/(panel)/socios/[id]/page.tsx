@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { Phone, Building2, CalendarDays, LayoutGrid, ScanFace, FileSignature, Receipt, CreditCard, Wallet, Smartphone, ShoppingBag, HeartPulse, LifeBuoy, DoorOpen, Pencil, CalendarCheck, UserRoundCheck, ListChecks, History, PhoneCall, ScrollText } from 'lucide-react';
 import { api } from '@/lib/api';
-import { antiguedad, fecha, fechaHora, pesos, telefono } from '@/lib/format';
+import { fecha, fechaHora, haceTanto, pesos, telefono } from '@/lib/format';
 import { CONSENT_CHANNEL, CONSENT_TYPE } from '@/lib/labels';
 import { useSession } from '@/components/session';
 import { Avatar, Badge, Breadcrumb, Button, Callout, Card, Empty, PageHeader, Skeleton, Stat, Tabs, ErrorCarga, NoExiste, esNoExiste, EsqueletoTabla, MenuMas } from '@/components/ui';
@@ -96,7 +96,9 @@ export default function SocioPage() {
   // no dice «Sin membresía» (y ofrecía vender otra), «Sin consentimientos»,
   // «Sin biometría» ni «Sin notas de salud», ni deja un esqueleto eterno en
   // el estado de cuenta. Todo sale en UNA ola, sin esperar a la ficha.
-  const membresiasCarga = useCarga(useCallback(() => api<Membership[]>(`/members/${id}/memberships`), [id]));
+  // Bloque 4.16: de un socio dado de baja la API no da membresías ni biometría («Socio no encontrado»); eso no es un
+  // error que reintentar: llega como lista vacía y la ficha dice «Dado de baja» (si no existe, la ficha entera lo dice).
+  const membresiasCarga = useCarga(useCallback(() => api<Membership[]>(`/members/${id}/memberships`).catch(vacioSiDeBaja<Membership>), [id]));
   const memberships = membresiasCarga.datos ?? null;
   // Sin el catálogo solo se pierde el nombre del plan: se dice «Plan».
   const planesCarga = useCarga(useCallback(() => (can('catalog:read') ? api<Plan[]>('/plans?includeInactive=true') : Promise.resolve([] as Plan[])), [can]));
@@ -106,7 +108,7 @@ export default function SocioPage() {
   const consentsCarga = useCarga(useCallback(() => (can('members:consent:read') ? api<Consent[]>(`/members/${id}/consents`) : Promise.resolve(null)), [id, can]));
   const consents = consentsCarga.datos ?? null;
   const bioCarga = useCarga(useCallback(() => (can('members:consent:read') && activo('biometrics')
-    ? api<{ enrollments: Enrollment[] }>(`/members/${id}/biometric-enrollments`).then((r) => r.enrollments) : Promise.resolve(null)), [id, can, activo]));
+    ? api<{ enrollments: Enrollment[] }>(`/members/${id}/biometric-enrollments`).then((r) => r.enrollments, vacioSiDeBaja<Enrollment>) : Promise.resolve(null)), [id, can, activo]));
   const bio = bioCarga.datos ?? null;
   // Solo con permiso de salud: la API no se la da a nadie más.
   const verSalud = can('members:health:read');
@@ -165,13 +167,13 @@ export default function SocioPage() {
   }
 
   useEffect(() => {
-    if (!pideVenta || memberships === null) return;
+    if (!pideVenta || memberships === null || !m) return;
     // Se consume UNA vez: la ficha recarga membresías al editar o cobrar, y
     // sin esto el asistente de venta se volvía a abrir solo.
     setPideVenta(false);
     router.replace(`/socios/${id}`, { scroll: false });
-    if (!memberships.some((x) => !['CANCELED', 'EXPIRED'].includes(x.status))) setVender(true);
-  }, [pideVenta, memberships, id, router]);
+    if (m.status !== 'ARCHIVED' && !memberships.some((x) => !['CANCELED', 'EXPIRED'].includes(x.status))) setVender(true);
+  }, [pideVenta, memberships, m, id, router]);
 
   function cambiarTab(t: Tab) {
     setTab(t);
@@ -229,13 +231,19 @@ export default function SocioPage() {
   // emitir y la membresía no avanzó (A3-N1). Se dice aquí, no solo en la bitácora.
   const sinRenovar = vigente?.status === 'ACTIVE' && vigente.autoRenew && vigente.currentPeriodEnd.slice(0, 10) < hoyNegocio;
   /** Cómo se renueva, dicho según el tipo de plan (4-01, 4-02). */
-  const renovacion = (x: Membership) => x.autoRenew ? 'Se renueva sola'
+  // Bloque 4.16: una cancelada o vencida ya no se renueva aunque guarde `autoRenew` (decía «Se renueva sola»
+  // junto a «Cancelada: no se renueva»).
+  const renovacion = (x: Membership) => x.status === 'CANCELED' ? 'No se renueva: se canceló'
+    : x.status === 'EXPIRED' ? 'No se renueva: ya venció'
+    : x.autoRenew ? 'Se renueva sola'
     : planVigente?.billingModel === 'DAY_PASS' ? 'Visita suelta: no se renueva'
       : planVigente?.billingModel === 'PREPAID_PERIOD' ? 'No se renueva: vence y se vuelve a vender'
         : 'Renovación manual';
   // «Vigente hasta» solo cuando de verdad lo está; si debe, lo que cuenta es hasta dónde pagó (3-01).
   const esVigencia = !!vigente && ['ACTIVE', 'TRIALING', 'FROZEN'].includes(vigente.status) && !cuotaAbierta;
   const bioVivos = bio?.filter((e) => !e.revokedAt) ?? [];
+  // Dado de baja (bloque 4.16): sus tarjetas lo dicen en vez de «No se pudo consultar».
+  const deBaja = m.status === 'ARCHIVED';
   // Su firma biométrica es de un texto anterior al vigente (6-03, 21-09). No le impide entrar.
   const firmaVieja = consents?.find((c) => c.consentType === 'BIOMETRIC' && c.needsResign && c.currentVersion) ?? null;
   const porRenovar = firmaVieja ? { signedVersion: firmaVieja.documentVersion, currentVersion: firmaVieja.currentVersion! } : null;
@@ -259,7 +267,8 @@ export default function SocioPage() {
     ...(can('billing:statement:read') ? [{ value: 'cuenta' as const, label: 'Estado de cuenta', icon: <Receipt /> }] : []),
     // Historial de accesos (2026-10-09): entradas, negativas y excepciones con su motivo.
     ...(can('access:attendance:read') ? [{ value: 'accesos' as const, label: 'Accesos', icon: <DoorOpen /> }] : []),
-    ...(can('members:consent:read') && activo('biometrics') ? [{ value: 'biometria' as const, label: 'Biometría', icon: <ScanFace />, count: bioVivos.length }] : []),
+    // De un dado de baja no hay biometría que ver ni registrar (bloque 4.16; la API responde «Socio no encontrado»).
+    ...(can('members:consent:read') && activo('biometrics') && !deBaja ? [{ value: 'biometria' as const, label: 'Biometría', icon: <ScanFace />, count: bioVivos.length }] : []),
     ...(can('members:consent:read') ? [{ value: 'consentimientos' as const, label: 'Consentimientos', icon: <FileSignature />, count: consents?.filter((c) => c.granted && !c.revokedAt).length }] : []),
     ...((can('training:assign') || can('training:read')) && activo('training') ? [{ value: 'rutina' as const, label: 'Rutina', icon: <ListChecks /> }] : []),
     // Todo lo asentado sobre este socio (1.11): lo ve quien tiene Bitácora, y solo lo de sus sucursales.
@@ -285,7 +294,7 @@ export default function SocioPage() {
             <div className="profile-meta">
               <span><code>{m.memberCode}</code></span>
               <span><Building2 />{branchName(m.homeBranchId)}</span>
-              <span><CalendarDays />Socio desde hace {antiguedad(m.joinedAt)}</span>
+              <span><CalendarDays />Socio desde {haceTanto(m.joinedAt)}</span>
               {/* D-18 (bloque 4.4, edición puntual): «de baja desde», calculado con el plazo del gimnasio. */}
               <BajaDelSocio memberId={m.id} version={cambios} />
               {m.phoneE164 && <span><Phone />{telefono(m.phoneE164)}</span>}
@@ -302,7 +311,8 @@ export default function SocioPage() {
           {(() => {
             const debeAlgo = can('payments:record') && !!st && neto > 0n;
             const puedeEntrar = can('access:monitor') && m.status !== 'ARCHIVED';
-            const puedeVender = can('memberships:create') && memberships !== null && !memberships.some((x) => !['CANCELED', 'EXPIRED'].includes(x.status));
+            // A un dado de baja no se le vende: primero se reactiva (en «Más»).
+            const puedeVender = can('memberships:create') && !deBaja && memberships !== null && !memberships.some((x) => !['CANCELED', 'EXPIRED'].includes(x.status));
             // Inscribir a una clase: a la vista si no compite con vender; si no, en "Más".
             const puedeInscribir = can('classes:book_for_member') && activo('classes') && m.status !== 'ARCHIVED';
             const inscribirVisible = puedeInscribir && !(puedeVender && !debeAlgo);
@@ -340,11 +350,12 @@ export default function SocioPage() {
       <div className="grid grid-4 mb-24">
         <Stat
           icon={<CreditCard />} label="Membresía"
-          value={<span className="stat-value--text">{vigente ? plans.get(vigente.planId)?.name ?? 'Plan' : paseDeHoy ? 'Pase del día' : paquete ? 'Paquete de visitas' : 'Sin plan'}</span>}
+          value={<span className="stat-value--text">{vigente ? plans.get(vigente.planId)?.name ?? 'Plan' : deBaja ? 'Dado de baja' : paseDeHoy ? 'Pase del día' : paquete ? 'Paquete de visitas' : 'Sin plan'}</span>}
           // Ficha de estado único (UX7 Mostrador 3): el estado lo dice la insignia de la
           // cabecera; aquí solo lo que ella no dice.
           note={vigente
             ? renovacion(vigente)
+            : deBaja ? (memberships === null ? '…' : 'Ya no tiene membresía')
             : paseDeHoy ? `Vale hoy en ${branchName(paseDeHoy.branchId)}${(pasesCarga.datos?.total ?? 0) > 1 ? ` · lleva ${pasesCarga.datos!.total} pases` : ''}`
             : paquete
               // El paquete se ve en la ficha (UXA-03): antes decía "Sin plan" y ofrecía vender una mensualidad.
@@ -382,8 +393,9 @@ export default function SocioPage() {
         {can('members:consent:read') && activo('biometrics') && (
           <Stat
             icon={<ScanFace />} label="Identificación"
-            value={<span className="stat-value--text">{bioCarga.error ? 'Sin dato' : bio === null ? '…' : bioVivos.length === 0 ? 'Mostrador' : bioVivos.map((e) => e.modality === 'FACE' ? 'Rostro' : 'Huella').filter((v, i, a) => a.indexOf(v) === i).join(' + ')}</span>}
-            note={bioCarga.error ? <>No se pudo consultar. <button type="button" className="row-link" onClick={() => void bioCarga.recargar()}>Reintentar</button></>
+            value={<span className="stat-value--text">{deBaja && bio !== null && bioVivos.length === 0 ? 'Dado de baja' : bioCarga.error ? 'Sin dato' : bio === null ? '…' : bioVivos.length === 0 ? 'Mostrador' : bioVivos.map((e) => e.modality === 'FACE' ? 'Rostro' : 'Huella').filter((v, i, a) => a.indexOf(v) === i).join(' + ')}</span>}
+            note={deBaja && bio !== null && bioVivos.length === 0 ? 'No entra mientras siga de baja'
+              : bioCarga.error ? <>No se pudo consultar. <button type="button" className="row-link" onClick={() => void bioCarga.recargar()}>Reintentar</button></>
               : bio === null ? ' ' : bioVivos.length === 0 ? 'Sin biometría: entra por recepción'
                 : `${((n) => (n === 1 ? '1 sucursal' : `${n} sucursales`))(new Set(bioVivos.map((e) => e.branchId)).size)}${porRenovar ? ' · debe volver a firmar' : ''}`}
           />
@@ -437,8 +449,10 @@ export default function SocioPage() {
           <Card title="Membresía" sub={vigente ? plans.get(vigente.planId)?.name : undefined}>
             {membresiasCarga.error && <ErrorCarga titulo="No se pudo cargar su membresía" mensaje={membresiasCarga.error} onReintentar={() => void membresiasCarga.recargar()} />}
             {memberships === null && !membresiasCarga.error && <Skeleton h={120} />}
-            {memberships?.length === 0 && (
-              <Empty icon={<CreditCard />} title="Sin membresía" text="Todavía no tiene plan."
+            {memberships?.length === 0 && (deBaja
+              ? <Empty icon={<CreditCard />} title="Dado de baja"
+                text={`Ya no tiene membresía.${can('members:create') && !m.anonymizedAt ? ' Si vuelve, se reactiva desde «Más»: misma ficha, mismo código.' : ''}`} />
+              : <Empty icon={<CreditCard />} title="Sin membresía" text="Todavía no tiene plan."
                 action={can('memberships:create') && <Button size="sm" icon={<ShoppingBag />} onClick={() => setVender(true)}>Vender membresía</Button>} />
             )}
             {vigente && (
@@ -488,7 +502,7 @@ export default function SocioPage() {
       {tab === 'rutina' && <RutinaSocioTab memberId={m.id} nombre={m.firstName} nombreCompleto={nombre} />}
       {tab === 'bitacora' && can('audit:read') && <BitacoraSocio memberId={m.id} />}
 
-      {tab === 'biometria' && (
+      {tab === 'biometria' && !deBaja && (
         <BiometriaTab memberId={m.id} memberName={m.firstName} homeBranchId={m.homeBranchId} onLoaded={alCambiarBiometria}
           porRenovar={porRenovar} onFirmado={() => void consentsCarga.recargar()} />
       )}
@@ -602,4 +616,10 @@ function FranjaDelAlta({ memberId, version, alPulsar }: { memberId: string; vers
       </Card>
     </div>
   );
+}
+
+/** Bloque 4.16: el 404 de una lectura de la ficha (socio dado de baja) llega como lista vacía; lo demás sigue siendo error. */
+function vacioSiDeBaja<T>(e: unknown): T[] {
+  if (esNoExiste(e)) return [];
+  throw e;
 }

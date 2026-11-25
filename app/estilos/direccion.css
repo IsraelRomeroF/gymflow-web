@@ -124,3 +124,21 @@
 .gastos-se-repiten > .list { margin: var(--s-2) 0; }
 /* El aviso de lo que una sección deja ver, junto a su interruptor en «Qué ve» (Personal). */
 .llave-aviso { color: var(--warn); font-weight: 500; }
+
+/* ── Fase 4 · bloque 4.13 · Movimientos en el teléfono ─────────────────────── */
+/* «Por confirmar», «Lo que se repite» y los gastos del mes: el concepto a todo lo ancho y, debajo,
+   el importe con sus botones. Antes el concepto quedaba en una columna de una palabra por renglón
+   y el importe se encimaba sobre él. Las sublistas pierden su sangría: ya la da su bloque.
+   (`.flex-1` es `!important` en compartido.css: por eso aquí también.) */
+@media (max-width: 720px) {
+  .gastos-por-confirmar .list-item, .gastos-se-repiten .list-item, .gastos-lista .list-item { flex-wrap: wrap; row-gap: 6px; }
+  .gastos-por-confirmar .list-item > .flex-1, .gastos-se-repiten .list-item > .flex-1, .gastos-lista .list-item > .flex-1 { flex: 1 1 100% !important; }
+  .gastos-por-confirmar .list-item > .num, .gastos-se-repiten .list-item > .num, .gastos-lista .list-item > .num { margin-right: auto; }
+  .gastos-por-confirmar .list-item, .gastos-se-repiten .list-item { padding-inline: 0; }
+}
+/* «Mis avisos» en el teléfono: cada interruptor trae una descripción de tres o cuatro renglones; el
+   interruptor va arriba, junto al nombre del aviso, no a media altura del párrafo. */
+@media (max-width: 860px) {
+  .avisos-interruptores .switch-field { align-items: flex-start; }
+  .avisos-interruptores .switch-track { margin-top: 1px; }
+}
