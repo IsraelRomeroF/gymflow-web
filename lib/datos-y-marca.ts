@@ -1,5 +1,5 @@
 import { DATO_DEL_GIMNASIO } from '@gymflow/core/vocabulario';
-import { telefono } from './format';
+import { telefono } from '@gymflow/ui/format';
 
 /**
  * DATOS Y MARCA DEL GIMNASIO (D-27, bloque 4.6): lo que comparten «Mi

@@ -13,7 +13,7 @@ const nodeGlobals = {
 // Los `catch` que esconden un error como un vacío: `.catch(() => setX([]))`,
 // `.catch(() => { setX({}); })`, `.catch(() => setX(0))` y `.catch(() => [])`.
 // Con algo más dentro (guardar el error, avisar) ya no son silenciosos.
-const MENSAJE_CATCH = "Un error de carga no se muestra como «no hay nada» (26-01): usa useCarga/EstadoCarga (lib/carga.tsx) o guarda el error y dilo.";
+const MENSAJE_CATCH = "Un error de carga no se muestra como «no hay nada» (26-01): usa useCarga/EstadoCarga (@gymflow/ui/carga) o guarda el error y dilo.";
 const VACIO = (ruta) => [
   `[${ruta}.type='ArrayExpression'][${ruta}.elements.length=0]`,
   `[${ruta}.type='ObjectExpression'][${ruta}.properties.length=0]`,
@@ -45,12 +45,10 @@ const frontera = (grupos) => ["error", { patterns: grupos.map(([group, message])
 const NO_PANTALLAS = [DE_APP, "Una pieza o una regla no importa de una pantalla (app/): si dos pantallas lo usan, se mueve a components/ o a lib/ (27-10)."];
 const NO_PIEZAS = [DE_COMPONENTES, "lib/ y modules/ son reglas y datos: no importan piezas de components/. Si hace falta un tipo, se declara aquí o en el núcleo (27-10)."];
 const NO_NEGOCIO = [
-  ["@/components/*", "../*", "!../compartido", "!@/components/compartido", "!@/components/session", "!@/components/ui", "!@/components/ui/**"],
-  "components/ui/ son piezas de diseño: no importan piezas de negocio (solo compartido y la sesión) (27-10).",
+  ["@/components/*", "../*", "!@/components/session", "!@/components/ui", "!@/components/ui/**"],
+  "components/ui/ son piezas de diseño: no importan piezas de negocio (solo @gymflow/ui y la sesión) (27-10).",
 ];
 const EXCEPCIONES = {
-  // Envuelve `ErrorCarga` y `Skeleton` de compartido: es una pieza con forma de regla. Mudarla a components/ toca 40 pantallas.
-  "lib/carga.tsx": NO_PANTALLAS,
   // Solo importa el TIPO `ResumenAcceso` de components/acceso: el tipo debería vivir en el contrato del núcleo.
   "lib/resumen-acceso.ts": NO_PANTALLAS,
 };
@@ -75,7 +73,7 @@ export default tseslint.config(
       // solo deja la lista vacía (o el objeto vacío, o el cero) hace que «sin
       // red» se lea «sin planes», «sin personal», «0 días que viniste». Con la
       // red caída, recepción concluía que el plan no existía. Se usa `useCarga`
-      // y `EstadoCarga` (lib/carga.tsx), o se guarda el error y se dice.
+      // y `EstadoCarga` (`@gymflow/ui/carga`), o se guarda el error y se dice.
       "no-restricted-syntax": ["error", ...CATCH_SILENCIOSO],
     },
   },

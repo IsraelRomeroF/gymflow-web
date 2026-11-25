@@ -14,7 +14,7 @@ import type { Prospect, ProspectAutoClose, ProspectCounts, ProspectList, Prospec
 import { DEFAULT_PROSPECT_SOURCES, PROSPECT_QUEUES, type ProspectQueue } from '@gymflow/core/captacion';
 import { GRUPO_DE_INTERESADOS } from '@gymflow/core/vocabulario';
 import { hoyEn } from '@/lib/zonas';
-import { fecha } from '@/lib/format';
+import { fecha } from '@gymflow/ui/format';
 
 /** Un interesado con su último contacto y su grupo: contrato del núcleo (`GET /prospects`), por páginas (10-01). */
 type Prospecto = Prospect;

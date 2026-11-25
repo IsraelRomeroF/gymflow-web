@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { UserPlus, Save, FileSignature, Plus } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
-import { telefono } from '@/lib/format';
+import { telefono } from '@gymflow/ui/format';
 import { MEMBER_STATUS } from '@/lib/labels';
 import { useSession, useToast, errorText, erroresPorCampo } from './session';
 import { Badge, Button, Callout, CampoFecha, Dialog, ErrorCarga, Field, Segmented, Switch } from './ui';

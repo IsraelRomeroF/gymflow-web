@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Wallet, Users, TrendingUp, Building2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-import { pesos } from '@/lib/format';
+import { pesos } from '@gymflow/ui/format';
 import { useSession } from '@/components/session';
 import { InicioDuena } from '@/components/inicio-duena';
 import { AvisoSolicitudesArco } from '@/components/cumplimiento';
@@ -18,7 +18,7 @@ import { PorResolverEnLaPuerta } from '@/components/inicio/por-resolver-puerta';
 import { NuevoSocioDialog } from '@/components/socio-form';
 import { menuPara } from '@/modules/registro';
 import { PageHeader, Stat, Card, Badge, Skeleton, ErrorCarga } from '@/components/ui';
-import { useCarga } from '@/lib/carga';
+import { useCarga } from '@gymflow/ui/carga';
 import type { AsuntoDelInicio, Dashboard } from '@gymflow/core/contracts';
 
 function saludo(): string {

@@ -1,7 +1,7 @@
 'use client';
 
 import type { AccessSummaryItem } from '@gymflow/core/contracts';
-import { fecha } from '@/lib/format';
+import { fecha } from '@gymflow/ui/format';
 import { useResumenAccesoPorLotes } from '@/lib/resumen-acceso';
 import { Badge } from './ui';
 

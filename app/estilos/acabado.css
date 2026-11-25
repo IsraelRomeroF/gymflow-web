@@ -63,7 +63,7 @@
 
 /* Medidas del panel para los componentes compartidos. */
 :root:root { --c-radius: var(--r-card); --c-iconbtn: 32px; }
-/* EstadoCarga con `relleno` (lib/carga.tsx): el error o el esqueleto con el margen de una tarjeta. */
+/* EstadoCarga con `relleno` (@gymflow/ui/carga): el error o el esqueleto con el margen de una tarjeta. */
 .estado-carga { padding: var(--s-5) var(--s-6); }
 
 /* Altas: lista → detalle en tableta y teléfono (UX7 Clases 3). */

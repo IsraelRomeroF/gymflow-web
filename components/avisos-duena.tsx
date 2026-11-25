@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { BellRing, CalendarDays, CircleCheck, ShieldAlert } from 'lucide-react';
 import type { OwnerAlert, OwnerAlerts, WeeklySummary } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { dia, fechaHora, pesos } from '@/lib/format';
+import { dia, fechaHora, pesos } from '@gymflow/ui/format';
 import { errorText, useSession, useToast } from './session';
 import { Badge, ButtonLink, Callout, Card, Stat, Switch } from './ui';
 

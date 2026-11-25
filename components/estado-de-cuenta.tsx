@@ -5,7 +5,7 @@ import { ArrowDownLeft, FileText, Printer, Receipt, Undo2 } from 'lucide-react';
 import type { MemberStatement, StatementCharge, StatementChargesPage, StatementPayment, StatementPaymentsPage } from '@gymflow/core/contracts';
 import { COMO_SE_SALDO, METODO_DE_PAGO, etiqueta } from '@gymflow/core/vocabulario';
 import { api } from '@/lib/api';
-import { concepto, fecha, fechaHora, pesos } from '@/lib/format';
+import { concepto, fecha, fechaHora, pesos } from '@gymflow/ui/format';
 import { useToast, errorText } from './session';
 import { Badge, Button, Card, Empty, IconTile, Skeleton } from './ui';
 import { CargoAcciones, PagoAcciones } from './correcciones';

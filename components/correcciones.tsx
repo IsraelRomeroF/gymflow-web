@@ -6,7 +6,7 @@ import { MOTIVOS, OTRO, revisarMotivo } from '@gymflow/core/motivos';
 import { METODO_DE_PAGO, etiqueta } from '@gymflow/core/vocabulario';
 import type { Charge, OpenCashSessionsLite, StatementPayment } from '@gymflow/core/contracts';
 import { api, ApiError } from '@/lib/api';
-import { concepto, fechaHora, hora, pesos } from '@/lib/format';
+import { concepto, fechaHora, hora, pesos } from '@gymflow/ui/format';
 import { useSession, useToast, errorText } from './session';
 import { Button, Callout, CampoMotivo, Dialog, Field, Opciones } from './ui';
 import { InputPesos } from './input-pesos';

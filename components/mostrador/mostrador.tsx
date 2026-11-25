@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronRight, RotateCw, Search, UserPlus, UserSearch } from 'lucide-react';
-import { pesos, telefono } from '@/lib/format';
+import { pesos, telefono } from '@gymflow/ui/format';
 import { codigoExacto, useBuscarSocios, type SocioHallado } from '@/lib/buscar-socios';
 import { useResumenAccesoPorLotes } from '@/lib/resumen-acceso';
 import { AccesoBadge } from '@/components/acceso';
 import { useSession } from '@/components/session';
 import { Avatar, Badge, Button, Card, Dialog, Empty, ErrorCarga } from '@/components/ui';
-import { IconButton } from '@/components/compartido';
+import { IconButton } from '@gymflow/ui/compartido';
 import { EntradaDialog } from '@/components/entrada';
 import { TarjetaSocio } from './tarjeta-socio';
 

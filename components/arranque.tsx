@@ -6,7 +6,7 @@ import { ArrowRight, CircleCheck, Circle, Rocket } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useSession, useToast, errorText } from '@/components/session';
 import { Button, ButtonLink, Card, EsqueletoPagina } from '@/components/ui';
-import { IconTile } from './compartido';
+import { IconTile } from '@gymflow/ui/compartido';
 import type { Setup, SetupStep } from '@gymflow/core/contracts';
 
 /** La lista de arranque (`GET /organization/setup`): el contrato del núcleo. */

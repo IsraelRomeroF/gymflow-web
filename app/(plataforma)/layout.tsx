@@ -6,10 +6,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import { LogOut, ShieldCheck, KeyRound } from 'lucide-react';
 import { api, ApiError, alPedirReconfirmacion, alPerderSesion, finDeSesion } from '@/lib/api';
 import { irAEntrar, recordarFin, rutaActual, rutaDeEntrada, salirDeEsteEquipo } from '@/lib/sesion';
-import { hora } from '@/lib/format';
+import { hora } from '@gymflow/ui/format';
 import { ToastProvider } from '@/components/session';
 import { Button, Callout, Dialog, EsqueletoPagina, Field, irAlPrimerError } from '@/components/ui';
-import { Marca } from '@/components/compartido';
+import { Marca } from '@gymflow/ui/compartido';
 import '../plataforma.css';
 
 export type Plantilla = { key: string; name: string; description: string; off: string[] };

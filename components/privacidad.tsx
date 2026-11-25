@@ -4,8 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Download, UserMinus, ShieldOff, ShieldCheck, ScanFace } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
-import { fecha } from '@/lib/format';
-import { useCarga } from '@/lib/carga';
+import { fecha } from '@gymflow/ui/format';
+import { useCarga } from '@gymflow/ui/carga';
 import { useSession, useToast, errorText } from './session';
 import type { MemberPrivacyRequests, PrivacyBatch, PrivacyBatchSigned, PrivacyBatchSummary, PrivacyConservation, PrivacySettings } from '@gymflow/core/contracts';
 import {

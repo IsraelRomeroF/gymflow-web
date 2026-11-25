@@ -4,8 +4,8 @@ import { useCallback, useEffect } from 'react';
 import { Banknote, CreditCard, Landmark } from 'lucide-react';
 import type { OpenCashSessionLite, OpenCashSessionsLite } from '@gymflow/core/contracts';
 import { api, ApiError } from '@/lib/api';
-import { hora } from '@/lib/format';
-import { useCarga } from '@/lib/carga';
+import { hora } from '@gymflow/ui/format';
+import { useCarga } from '@gymflow/ui/carga';
 import { Callout, Field, Opciones, type Opcion } from '../ui';
 import { useSession } from '../session';
 

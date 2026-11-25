@@ -5,11 +5,11 @@ import { hoyEn, masDias, zonaDe } from '@/lib/zonas';
 import { Check, CircleCheck, Clock, Repeat, Ticket, CalendarDays, Wallet, Printer } from 'lucide-react';
 import { api } from '@/lib/api';
 import { parsePesos } from '@/lib/pesos';
-import { fecha, pesos, ultimoDia } from '@/lib/format';
+import { fecha, pesos, ultimoDia } from '@gymflow/ui/format';
 import { MODELO, duracion, porPeriodo, type Plan } from '@/lib/plans';
 import { useSession, useToast, errorText, erroresPorCampo } from './session';
 import { Badge, Button, Callout, CampoFecha, Dialog, Empty, ErrorCarga, Field, Skeleton, Switch } from './ui';
-import { EstadoCarga, useCarga } from '@/lib/carga';
+import { EstadoCarga, useCarga } from '@gymflow/ui/carga';
 import type { CollectionState, DayPassSaleResult, MemberStatement, RecordPaymentResult } from '@gymflow/core/contracts';
 import { CobroFields, cobroListo, cuerpoDelCobro, COBRO_INICIAL, type Cobro, CambioEfectivo } from './cobro';
 

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Plus, Pencil, Repeat, Ticket, CalendarDays, CalendarRange, Users, Building2, Snowflake, EyeOff, Eye } from 'lucide-react';
 import { api } from '@/lib/api';
-import { pesos } from '@/lib/format';
+import { pesos } from '@gymflow/ui/format';
 import { ACCESO, MODELO, duracion, porPeriodo, type Plan } from '@/lib/plans';
 import { useSession, errorText } from '@/components/session';
 import { Badge, Button, ButtonLink, Callout, Card, Empty, PageHeader, Skeleton, ErrorCarga } from '@/components/ui';

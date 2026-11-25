@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react';
 import { FileSignature } from 'lucide-react';
 import { api } from '@/lib/api';
-import { useCarga } from '@/lib/carga';
+import { useCarga } from '@gymflow/ui/carga';
 import { useToast, errorText } from '../session';
 import { Badge, Button, Callout, Dialog, ErrorCarga, Skeleton, Switch } from '../ui';
 import { textoBiometricoVigente } from './comun';

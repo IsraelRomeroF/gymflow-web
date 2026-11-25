@@ -6,11 +6,11 @@ import { useRouter } from 'next/navigation';
 import { Repeat, X, ListChecks, Printer, UserPen } from 'lucide-react';
 import type { MemberRoutine, RoutinePersonalized } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { fecha } from '@/lib/format';
+import { fecha } from '@gymflow/ui/format';
 import { GRUPO, NIVELES, OBJETIVOS, descanso, haceSemanas } from '@/lib/rutinas';
 import { useSession, useToast, errorText } from './session';
 import { Badge, Button, ButtonLink, CampoMotivo, Card, Dialog, Empty, ErrorCarga, Skeleton } from './ui';
-import { useCarga } from '@/lib/carga';
+import { useCarga } from '@gymflow/ui/carga';
 import { AsignarRutinaDialog } from './rutina-asignar';
 
 /**

@@ -5,14 +5,14 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Users, UserPlus, FileUp, DoorOpen, CalendarCheck, RotateCw } from 'lucide-react';
 import { api } from '@/lib/api';
-import { antiguedad, pesos, telefono } from '@/lib/format';
+import { antiguedad, pesos, telefono } from '@gymflow/ui/format';
 import { useResumenAccesoPorLotes } from '@/lib/resumen-acceso';
 import { AccesoBadge } from '@/components/acceso';
 import { useSession, errorText } from '@/components/session';
 import { Avatar, Badge, Button, ButtonLink, Card, Empty, Segmented, Skeleton, ErrorCarga, Switch } from '@/components/ui';
 import { EntradaDialog } from '@/components/entrada';
 import { InscribirClaseDialog } from '@/components/inscribir-clase';
-import { IconButton } from '@/components/compartido';
+import { IconButton } from '@gymflow/ui/compartido';
 import type { MemberListPage, MemberSummary } from '@gymflow/core/contracts';
 
 /** El socio y el padrón: contratos del núcleo (2-13). */

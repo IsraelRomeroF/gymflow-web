@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { CircleCheck, Printer, Wallet } from 'lucide-react';
 import { api } from '@/lib/api';
-import { pesos } from '@/lib/format';
+import { pesos } from '@gymflow/ui/format';
 import { useToast, errorText, erroresPorCampo } from '@/components/session';
 import { Button, Dialog } from '@/components/ui';
 import type { RecordPaymentResult } from '@gymflow/core/contracts';

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { CircleCheck, DoorOpen, FileSignature, Lock, Receipt, RotateCw, ShieldAlert, ShoppingBag, UserPlus, Users, Wallet } from 'lucide-react';
 import { api } from '@/lib/api';
-import { fecha as fechaLarga, hora, pesos } from '@/lib/format';
+import { fecha as fechaLarga, hora, pesos } from '@gymflow/ui/format';
 import { errorText, useSession } from './session';
 import { Button, ButtonLink, Callout, Cambio, Card, PageHeader, Skeleton } from './ui';
 import { AvisosEnTelefono } from './push';
@@ -13,7 +13,7 @@ import { AvisoSolicitudesArco } from './cumplimiento';
 import { GLOSARIO } from '@/lib/glosario';
 import { GlosarioDinero } from './glosario-dinero';
 import { hoyEn } from '@/lib/zonas';
-import { useCarga } from '@/lib/carga';
+import { useCarga } from '@gymflow/ui/carga';
 import { useCuentaConGymflow } from './cuenta-gymflow';
 import type { NoticeSignatureRequests, PrivacyConservation, Pulse as Pulso, RetentionSummary, StoreSummary } from '@gymflow/core/contracts';
 

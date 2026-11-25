@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Plus, Pencil, PackagePlus, Package, ClipboardList } from 'lucide-react';
 import { api } from '@/lib/api';
-import { fechaHora, pesos } from '@/lib/format';
+import { fechaHora, pesos } from '@gymflow/ui/format';
 import { aCentavos } from '@/lib/caja';
 import { useSession, useToast, errorText } from '@/components/session';
 import { Badge, Button, Card, Dialog, Empty, ErrorCarga, Field, PageHeader, EsqueletoTabla, Switch } from '@/components/ui';
-import { EstadoCarga, useCarga } from '@/lib/carga';
+import { EstadoCarga, useCarga } from '@gymflow/ui/carga';
 import type { InventoryMovement, InventoryMovementList, Product } from '@gymflow/core/contracts';
 import { MOVIMIENTO_DE_INVENTARIO, etiqueta } from '@gymflow/core/vocabulario';
 

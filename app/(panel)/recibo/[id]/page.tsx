@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from 'react';
 import { Printer } from 'lucide-react';
 import { api } from '@/lib/api';
-import { concepto, fecha, fechaHora, pesos } from '@/lib/format';
+import { concepto, fecha, fechaHora, pesos } from '@gymflow/ui/format';
 import { METODO_DE_PAGO, etiqueta } from '@gymflow/core/vocabulario';
 import type { PaymentReceipt } from '@gymflow/core/contracts';
 import { useSession, errorText } from '@/components/session';

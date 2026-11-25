@@ -6,9 +6,9 @@ import type { MonthlyCloseList, MonthlyClosePreview } from '@gymflow/core/contra
 import { api, ApiError } from '@/lib/api';
 import { useSession, useToast, errorText } from '@/components/session';
 import { Badge, Button, Callout, CampoMotivo, Card, Dialog, ERROR_MOTIVO, ErrorCarga, faltaMotivo, Field, sePuedeSeguir, VistaPrevia, type CifraPrevia } from '@/components/ui';
-import { fecha, nombreMes, pesos } from '@/lib/format';
-import { useFormulario } from '@/lib/formulario';
-import { useCarga, type Carga } from '@/lib/carga';
+import { fecha, nombreMes, pesos } from '@gymflow/ui/format';
+import { useFormulario } from '@gymflow/ui/formulario';
+import { useCarga, type Carga } from '@gymflow/ui/carga';
 import { GLOSARIO } from '@/lib/glosario';
 import { AutorizacionDialog, idDeCierreDeMes } from '@/components/autorizacion';
 

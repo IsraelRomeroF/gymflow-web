@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Plus, ArrowRight, Search } from 'lucide-react';
 import { api } from '@/lib/api';
-import { fecha, hace, pesos } from '@/lib/format';
+import { fecha, hace, pesos } from '@gymflow/ui/format';
 import { Badge, Button, Card, ErrorCarga, PageHeader, Stat, EsqueletoTabla, Segmented } from '@/components/ui';
 import { ESTADO_COBRO, dias } from './cobro';
 import { Bandeja, PrimerosPasos, requiereAtencion } from './_componentes/bandeja';

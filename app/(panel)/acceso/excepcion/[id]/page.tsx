@@ -5,9 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { X, CircleCheck, CalendarDays } from 'lucide-react';
 import type { AccessException } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { fechaCorta, haceTanto, hora } from '@/lib/format';
+import { fechaCorta, haceTanto, hora } from '@gymflow/ui/format';
 import { DENIAL_REASON } from '@/lib/labels';
-import { EstadoCarga, useCarga } from '@/lib/carga';
+import { EstadoCarga, useCarga } from '@gymflow/ui/carga';
 import { Avatar, Breadcrumb, Button, Card, Skeleton } from '@/components/ui';
 import { ResolverRechazo } from '@/components/cobro/resolver-rechazo';
 

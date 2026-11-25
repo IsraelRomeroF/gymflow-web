@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { EyeOff, Lock, PowerOff } from 'lucide-react';
-import { fecha } from '@/lib/format';
+import { fecha } from '@gymflow/ui/format';
 import { respuestaDePuerta, seccionDeRuta } from '@/modules/registro';
 import { cargarModulos, type Modulo } from '@/modules/api';
 import { useSession } from './session';

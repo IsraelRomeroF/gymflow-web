@@ -7,7 +7,7 @@ import { CANAL_DE_CONTACTO, RESULTADO_DE_CONTACTO } from '@gymflow/core/vocabula
 import { MOTIVOS, type Motivo } from '@gymflow/core/motivos';
 import { closesProspect } from '@gymflow/core/captacion';
 import { api } from '@/lib/api';
-import { fecha, hace } from '@/lib/format';
+import { fecha, hace } from '@gymflow/ui/format';
 import { useSession, useToast, errorText } from './session';
 import { hoyEn, masDias } from '@/lib/zonas';
 import { Badge, Button, CampoFecha, Dialog, Field, Opciones } from './ui';

@@ -4,7 +4,7 @@ import { useCallback } from 'react';
 import { Copy } from 'lucide-react';
 import { api } from '@/lib/api';
 import { ErrorCarga, Switch } from '@/components/ui';
-import { useCarga } from '@/lib/carga';
+import { useCarga } from '@gymflow/ui/carga';
 
 type Catalogo = {
   groups: Array<{ name: string; permissions: Array<{ key: string; description: string }> }>;

@@ -9,7 +9,7 @@ import { OUTBOUND_KINDS, type OutboundSummary } from '@gymflow/core/contracts';
 import { MOTIVO_DE_MENSAJE } from '@gymflow/core/vocabulario';
 import { api } from '@/lib/api';
 import { useSession } from './session';
-import { useEnNavegador } from './dialogo';
+import { useEnNavegador } from '@gymflow/ui/dialogo';
 
 /** Mandar mensajes desde la lista: recepción y gerencia. Ni la dueña ni el coach (D-30). */
 export const PERMISO_DE_MENSAJES = 'members:message:send';

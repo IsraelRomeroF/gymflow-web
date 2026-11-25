@@ -7,8 +7,8 @@ import { api } from '@/lib/api';
 import { DESCANSOS, GRUPO, GRUPOS, NIVELES, OBJETIVOS, descanso, type Ejercicio, type Grupo, type Item, type Rutina } from '@/lib/rutinas';
 import { useToast, errorText } from './session';
 import { Badge, Button, Callout, Card, Dialog, Empty, ErrorCarga, Field } from './ui';
-import { IconButton } from './compartido';
-import { useCarga } from '@/lib/carga';
+import { IconButton } from '@gymflow/ui/compartido';
+import { useCarga } from '@gymflow/ui/carga';
 
 type Dia = { name: string; items: Item[] };
 

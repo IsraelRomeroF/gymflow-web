@@ -5,13 +5,13 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Search, Minus, Plus, X, ShoppingCart, Ban, Package, CircleCheck, Printer } from 'lucide-react';
 import { api } from '@/lib/api';
-import { hora, pesos } from '@/lib/format';
+import { hora, pesos } from '@gymflow/ui/format';
 import { METODO } from '@/lib/caja';
 import { useSession, useToast, errorText } from '@/components/session';
 import { Badge, Button, ButtonLink, CampoMotivo, Card, Dialog, Empty, ERROR_MOTIVO, faltaMotivo, PageHeader, Skeleton, ErrorCarga, EsqueletoLista } from '@/components/ui';
-import { useFormulario } from '@/lib/formulario';
+import { useFormulario } from '@gymflow/ui/formulario';
 import { CambioEfectivo, CobroFields, cobroListo, cuerpoDelCobro, COBRO_INICIAL, type Cobro } from '@/components/cobro';
-import { IconButton } from '@/components/compartido';
+import { IconButton } from '@gymflow/ui/compartido';
 import type { PosSale, Product, ProductList } from '@gymflow/core/contracts';
 
 /** Contratos del núcleo (8-19): antes `Producto` estaba copiado en tres pantallas. */

@@ -5,8 +5,8 @@ import { useCallback, useState } from 'react';
 import { ScanFace, ShieldCheck } from 'lucide-react';
 import type { FaceRule, FaceRulePending } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { fecha } from '@/lib/format';
-import { useCarga } from '@/lib/carga';
+import { fecha } from '@gymflow/ui/format';
+import { useCarga } from '@gymflow/ui/carga';
 import { useSession, errorText } from '../session';
 import { Badge, Button, Callout, CampoMotivo, Card, Dialog, ErrorCarga, Skeleton, faltaMotivo } from '../ui';
 

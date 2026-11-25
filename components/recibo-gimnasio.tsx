@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { GymLogo } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { telefono } from '@/lib/format';
+import { telefono } from '@gymflow/ui/format';
 import { useSession } from './session';
 
 /**

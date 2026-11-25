@@ -6,8 +6,8 @@ import { ArrowRight, Check, Circle } from 'lucide-react';
 import type { MemberOnboarding } from '@gymflow/core/contracts';
 import { CAMPO, PASO_DEL_ALTA } from '@gymflow/core/vocabulario';
 import { api } from '@/lib/api';
-import { fecha, pesos } from '@/lib/format';
-import { useCarga, type Carga } from '@/lib/carga';
+import { fecha, pesos } from '@gymflow/ui/format';
+import { useCarga, type Carga } from '@gymflow/ui/carga';
 import { Skeleton } from '@/components/ui';
 
 /**

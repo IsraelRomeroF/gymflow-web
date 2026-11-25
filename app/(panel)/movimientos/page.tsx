@@ -5,10 +5,10 @@ import Link from 'next/link';
 import { ArrowDownLeft, ArrowUpRight, Receipt, TrendingUp, Download, Landmark, Wallet } from 'lucide-react';
 import { api } from '@/lib/api';
 import { METODO } from '@/lib/caja';
-import { capital, dia, fecha, hora, nombreMes, pesos } from '@/lib/format';
+import { capital, dia, fecha, hora, nombreMes, pesos } from '@gymflow/ui/format';
 import { useSession } from '@/components/session';
 import { Badge, Button, ButtonLink, Callout, CampoFecha, Card, Empty, ErrorCarga, PageHeader, Segmented, Skeleton, Stat, EsqueletoTabla } from '@/components/ui';
-import { EstadoCarga, useCarga } from '@/lib/carga';
+import { EstadoCarga, useCarga } from '@gymflow/ui/carga';
 import { GLOSARIO } from '@/lib/glosario';
 import { GlosarioDinero } from '@/components/glosario-dinero';
 // Los gastos fijos, la nómina por pago y lo que se repite (bloque 4.5): `gastos-fijos.tsx`.

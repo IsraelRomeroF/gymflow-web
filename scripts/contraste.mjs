@@ -37,8 +37,8 @@ for (const k of new Set([...Object.keys(elegido), ...Object.keys(delSistema)])) 
   if (elegido[k] !== delSistema[k]) falla(`oscuro: --${k} vale ${elegido[k] ?? '(nada)'} con el selector y ${delSistema[k] ?? '(nada)'} con el tema del sistema`);
 }
 
-// Los tokens compartidos (app/tokens.css, idéntico en panel y portal) ganan a los de globals.css.
-const compartidos = readFileSync(new URL('../app/tokens.css', import.meta.url), 'utf8');
+// Los tokens compartidos (@gymflow/ui/tokens.css, uno solo para panel y portal desde 4.10) ganan a los de globals.css.
+const compartidos = readFileSync(new URL(import.meta.resolve('@gymflow/ui/tokens.css')), 'utf8');
 const bloqueDe = (texto, selector) => {
   const ini = texto.indexOf(selector);
   if (ini < 0) return {};

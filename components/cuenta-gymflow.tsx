@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { GymflowAccount } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { fecha, pesos } from '@/lib/format';
+import { fecha, pesos } from '@gymflow/ui/format';
 import { useSession } from './session';
 import { Callout } from './ui';
 

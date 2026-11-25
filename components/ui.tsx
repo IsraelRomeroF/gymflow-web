@@ -4,8 +4,8 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { ChevronRight, SearchX, MoreHorizontal } from 'lucide-react';
-import { iniciales } from '@/lib/format';
-import { useEnNavegador } from './dialogo';
+import { iniciales } from '@gymflow/ui/format';
+import { useEnNavegador } from '@gymflow/ui/dialogo';
 
 /**
  * Piezas de interfaz del panel.
@@ -17,8 +17,8 @@ import { useEnNavegador } from './dialogo';
 
 // Las piezas que el panel comparte con el portal viven en compartido.tsx
 // (archivo idéntico en los dos repos); aquí se reexportan para no cambiar importaciones.
-import { Badge, Empty, Skeleton, type ButtonProps } from './compartido';
-export { Badge, Button, Callout, Empty, ErrorCarga, IconButton, IconTile, Skeleton, type ButtonProps, type Tono } from './compartido';
+import { Badge, Empty, Skeleton, type ButtonProps } from '@gymflow/ui/compartido';
+export { Badge, Button, Callout, Empty, ErrorCarga, IconButton, IconTile, Skeleton, type ButtonProps, type Tono } from '@gymflow/ui/compartido';
 
 export function ButtonLink({
   href, variant = 'secondary', size = 'md', icon, children,
@@ -171,13 +171,13 @@ export function Avatar({ name, size = 36 }: { name: string; size?: number }) {
  * es la hoja inferior). Se pinta en `document.body`; aquí se reexporta para
  * no cambiar importaciones.
  */
-export { Dialog, type DialogProps } from './dialogo';
+export { Dialog, type DialogProps } from '@gymflow/ui/dialogo';
 
 /** Campo con su etiqueta, asterisco de obligatorio y error debajo: vive en `ui/campo.tsx`. */
 export { Field } from './ui/campo';
 
 /** Fecha siempre dd/mm/aaaa y hora de 24 con su equivalente de 12 (26-06, D26-02): `campos.tsx`, espejo en el portal. */
-export { CampoFecha, CampoHora, etiquetaAtajo } from './campos';
+export { CampoFecha, CampoHora, etiquetaAtajo } from '@gymflow/ui/campos';
 
 /** El motivo con sus motivos frecuentes de un toque (26-09, D26-01). */
 export { CampoMotivo, faltaMotivo, AYUDA_MOTIVO, ERROR_MOTIVO, MOTIVO_MINIMO } from './ui/motivo';
@@ -321,5 +321,5 @@ export function Switch({ checked, onChange, children, disabled, title, id, style
   );
 }
 
-/** Lleva al primer campo con error: vive en `lib/formulario.ts` (con `useFormulario`, espejo en el portal). */
-export { irAlPrimerError } from '@/lib/formulario';
+/** Lleva al primer campo con error: vive en `@gymflow/ui/formulario` (con `useFormulario`, el mismo del portal). */
+export { irAlPrimerError } from '@gymflow/ui/formulario';

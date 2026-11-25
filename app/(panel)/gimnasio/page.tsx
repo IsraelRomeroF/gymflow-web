@@ -4,11 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { EyeOff, Send } from 'lucide-react';
 import type { GymChangeRequestList, GymProfile } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { fecha, telefono } from '@/lib/format';
+import { fecha, telefono } from '@gymflow/ui/format';
 import { ZONAS } from '@/lib/zonas';
 import { useSession, useToast } from '@/components/session';
 import { Badge, Button, ButtonLink, Callout, Card, Empty, EsqueletoLista, PageHeader } from '@/components/ui';
-import { EstadoCarga, useCarga } from '@/lib/carga';
+import { EstadoCarga, useCarga } from '@gymflow/ui/carga';
 import { PestanasGimnasio, useEntraA } from './pestanas';
 import { PedirCambio, Solicitudes } from './solicitudes';
 

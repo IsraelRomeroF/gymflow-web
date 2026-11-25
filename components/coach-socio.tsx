@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react';
 import { api } from '@/lib/api';
 import { errorText, useSession, useToast } from '@/components/session';
-import { useCarga } from '@/lib/carga';
+import { useCarga } from '@gymflow/ui/carga';
 
 type Coach = { id: string; fullName: string; branchIds: string[] };
 

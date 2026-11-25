@@ -5,13 +5,13 @@ import { useCallback, type ReactNode } from 'react';
 import { ArrowRight, CalendarX, CircleCheck, DoorOpen, FileSignature, HeartHandshake, Inbox, Repeat, ScanFace, Smartphone, Sparkles, Stamp, UserRoundPlus, UserX, Wallet } from 'lucide-react';
 import type { AsuntoDelInicio, MeHome, RenglonDelInicio } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { hora, pesos } from '@/lib/format';
+import { hora, pesos } from '@gymflow/ui/format';
 import { CONSENT_TYPE } from '@/lib/labels';
-import { useCarga } from '@/lib/carga';
+import { useCarga } from '@gymflow/ui/carga';
 import { menuPara } from '@/modules/registro';
 import { useSession } from '@/components/session';
 import { Card, ErrorCarga, Skeleton } from '@/components/ui';
-import { IconTile } from '@/components/compartido';
+import { IconTile } from '@gymflow/ui/compartido';
 
 const n = (cuantos: number, uno: string, varios: string) => `${cuantos.toLocaleString('es-MX')} ${cuantos === 1 ? uno : varios}`;
 

@@ -4,12 +4,12 @@ import { useCallback, useState } from 'react';
 import { Search, Tags } from 'lucide-react';
 import type { MemberMemberships, PriceProtectionResult, ProtectedPrices } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { pesos } from '@/lib/format';
+import { pesos } from '@gymflow/ui/format';
 import { useBuscarSocios, type SocioHallado } from '@/lib/buscar-socios';
 import { useSession, useToast, errorText } from '@/components/session';
 import { Button, CampoMotivo, Dialog, Empty, ERROR_MOTIVO, ErrorCarga, faltaMotivo } from '@/components/ui';
-import { useCarga } from '@/lib/carga';
-import { useFormulario } from '@/lib/formulario';
+import { useCarga } from '@gymflow/ui/carga';
+import { useFormulario } from '@gymflow/ui/formulario';
 import type { Plan } from '@/lib/plans';
 
 const VIVAS = new Set(['PENDING', 'TRIALING', 'ACTIVE', 'PAST_DUE', 'FROZEN', 'SUSPENDED']);

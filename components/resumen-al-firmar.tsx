@@ -3,8 +3,8 @@
 import { useCallback } from 'react';
 import type { SignatureBrief } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { fecha, pesos } from '@/lib/format';
-import { useCarga } from '@/lib/carga';
+import { fecha, pesos } from '@gymflow/ui/format';
+import { useCarga } from '@gymflow/ui/carga';
 
 /**
  * RESUMEN DE LA OPERACIÓN AL FIRMAR (fase 3, bloque 3.7 · D-25). Quien firma

@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { KeyRound, LogOut, Monitor, ShieldCheck, Smartphone, TabletSmartphone } from 'lucide-react';
 import { api } from '@/lib/api';
-import { EstadoCarga, useCarga } from '@/lib/carga';
-import { fechaCorta, hace, hora, hoyEn } from '@/lib/format';
+import { EstadoCarga, useCarga } from '@gymflow/ui/carga';
+import { fechaCorta, hace, hora, hoyEn } from '@gymflow/ui/format';
 import { ipVisible, suscripcionDeAvisos } from '@/lib/sesion';
 import { FIRMAS } from '@/modules/registro';
 import { errorText, useSession, useToast } from '@/components/session';

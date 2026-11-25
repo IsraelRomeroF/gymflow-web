@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
-import { hace } from '@/lib/format';
+import { hace } from '@gymflow/ui/format';
 import { rolDe } from '@/lib/labels';
 import { Badge, Card, ErrorCarga, Skeleton } from '@/components/ui';
 

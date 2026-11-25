@@ -5,7 +5,7 @@ import { Smartphone, ClipboardCheck, ConciergeBell, Printer } from 'lucide-react
 import { api } from '@/lib/api';
 import { enlaceAlta, usePortalUrl } from '@/lib/portal';
 import { Qr } from '@/components/qr';
-import { Callout, Marca } from '@/components/compartido';
+import { Callout, Marca } from '@gymflow/ui/compartido';
 import { direccionInestable } from '@/components/alta-enlace';
 
 /**

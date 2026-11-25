@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DoorOpen, ChevronRight, ShieldCheck, Activity, LogIn, Ban } from 'lucide-react';
 import { api } from '@/lib/api';
-import { hora } from '@/lib/format';
+import { hora } from '@gymflow/ui/format';
 import { DENIAL_REASON } from '@/lib/labels';
 import { useSession } from '@/components/session';
 import { Avatar, Badge, Card, Empty, PageHeader, Stat } from '@/components/ui';

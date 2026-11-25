@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { CalendarClock, CalendarDays, CalendarPlus, ListChecks, Plus, RefreshCw } from 'lucide-react';
 import { api } from '@/lib/api';
-import { fechaCorta, hora } from '@/lib/format';
+import { fechaCorta, hora } from '@gymflow/ui/format';
 import { hoyEn, masDias, zonaDe } from '@/lib/zonas';
 import { bloquesEnTexto, type Plantilla, type Sesion, type Tipo } from '@/lib/clases';
 import { useSession, useToast, errorText } from '@/components/session';

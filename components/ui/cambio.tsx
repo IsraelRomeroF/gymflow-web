@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { ArrowRight, TrendingDown, TrendingUp } from 'lucide-react';
-import { comparar, compararConteo } from '@/lib/format';
+import { comparar, compararConteo } from '@gymflow/ui/format';
 
 type Comparacion = {
   /** Lo de ahora y lo de antes: centavos (texto o bigint) o, con `conteo`, números. */
@@ -18,7 +18,7 @@ type Paso = { de: ReactNode; a: ReactNode; tono?: 'ok' | 'warn' | 'danger' };
  *
  * - Contra antes: «↗ $6,385 más que ayer a esta hora (+12 %)». La flecha dice
  *   hacia dónde y el color solo aparece si la diferencia pasa del 10 % y de
- *   $500 (`comparar` en `lib/format.ts`): un cambio de $40 no se pinta de
+ *   $500 (`comparar` en `@gymflow/ui/format`): un cambio de $40 no se pinta de
  *   rojo. Si las dos cifras son cero, no pinta nada.
  * - De → a: «$650 → $715», para lo que va a cambiar (un precio, un plan, un
  *   puesto) en una vista previa o una confirmación.

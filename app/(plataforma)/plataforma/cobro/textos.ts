@@ -1,4 +1,4 @@
-import { capital, hoyEn, nombreMes } from '@/lib/format';
+import { capital, hoyEn, nombreMes } from '@gymflow/ui/format';
 
 /**
  * COBRO DE PLATAFORMA: los tipos que manda la API y sus palabras. Un solo

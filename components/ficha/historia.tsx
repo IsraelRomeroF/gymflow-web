@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { CreditCard, DoorOpen, FileSignature, History, MessageCircle, UserCheck, UserRound, Wallet } from 'lucide-react';
 import type { HistoryKind, MemberHistory, MemberHistoryItem } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { fecha, fechaCorta, hora } from '@/lib/format';
+import { fecha, fechaCorta, hora } from '@gymflow/ui/format';
 import { zonaDe } from '@/lib/zonas';
 import { useSession, errorText } from '@/components/session';
 import { Badge, Button, Card, Empty, ErrorCarga, EsqueletoLista, IconTile, Segmented, type Tono } from '@/components/ui';

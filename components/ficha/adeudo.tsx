@@ -5,7 +5,7 @@ import { HandHeart } from 'lucide-react';
 import { MOTIVOS, OTRO, revisarMotivo } from '@gymflow/core/motivos';
 import type { DebtWaiverResult, MemberDebt } from '@gymflow/core/contracts';
 import { api, ApiError } from '@/lib/api';
-import { concepto, pesos } from '@/lib/format';
+import { concepto, pesos } from '@gymflow/ui/format';
 import { useSession, useToast, errorText } from '../session';
 import { Button, Callout, Dialog, Field, Opciones, Skeleton } from '../ui';
 import { AutorizacionDialog } from '../autorizacion';

@@ -3,8 +3,8 @@
 import { useCallback, useState } from 'react';
 import type { MemberContactChange, MemberContactChanges, MemberContactChangesReviewed } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { fechaHora, telefono } from '@/lib/format';
-import { useCarga } from '@/lib/carga';
+import { fechaHora, telefono } from '@gymflow/ui/format';
+import { useCarga } from '@gymflow/ui/carga';
 import { useToast, errorText } from '@/components/session';
 import { Button, Callout } from '@/components/ui';
 

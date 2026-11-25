@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { DoorOpen, Fingerprint, Hand, ScanFace, ShieldAlert } from 'lucide-react';
 import { api } from '@/lib/api';
-import { fechaCorta, hora } from '@/lib/format';
+import { fechaCorta, hora } from '@gymflow/ui/format';
 import { DENIAL_REASON } from '@/lib/labels';
 import { useSession, errorText } from './session';
 import { Badge, Card, Empty, ErrorCarga, EsqueletoLista } from './ui';

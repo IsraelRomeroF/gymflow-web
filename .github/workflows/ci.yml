@@ -18,6 +18,13 @@ jobs:
         with:
           repository: IsraelRomeroF/gymflow-core
           path: gymflow-core
+      # Desde el bloque 4.10 (D-40) tokens, estilos y piezas comunes vienen de
+      # `@gymflow/ui` (`link:../gymflow-ui`), otro repo público hermano. No se
+      # compila (Next lo compila desde su código); se instala para sus tipos.
+      - uses: actions/checkout@v4
+        with:
+          repository: IsraelRomeroF/gymflow-ui
+          path: gymflow-ui
 
       - uses: pnpm/action-setup@v4
         with: { version: 10.26.0 }
@@ -27,6 +34,10 @@ jobs:
       - name: Construir dominio
         working-directory: gymflow-core
         run: pnpm install --frozen-lockfile && pnpm build
+
+      - name: Instalar lo compartido
+        working-directory: gymflow-ui
+        run: pnpm install --frozen-lockfile
 
       - name: Instalar
         working-directory: gymflow-web

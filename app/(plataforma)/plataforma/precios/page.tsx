@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 import { api } from '@/lib/api';
-import { pesos } from '@/lib/format';
+import { pesos } from '@gymflow/ui/format';
 import type { PlatformPriceChangePreview } from '@gymflow/core/contracts';
 import { useToast, errorText } from '@/components/session';
 import { Breadcrumb, Button, Callout, Card, ErrorCarga, PageHeader, EsqueletoTabla } from '@/components/ui';

@@ -1,5 +1,5 @@
-@import './tokens.css';
-@import './compartido.css';
+@import '@gymflow/ui/tokens.css';
+@import '@gymflow/ui/compartido.css';
 
 /*
  * ESTILOS DEL PANEL — ÍNDICE (auditoría 8, bloque 2.12; hallazgo 27-08).
@@ -16,8 +16,9 @@
  * Dónde va una clase nueva: en el archivo de su área, al final de ese archivo
  * (ya no «al final de globals.css»). Los tokens derivados y el oscuro están
  * en `estilos/base.css`; `scripts/contraste.mjs` los lee de ahí siguiendo
- * estos @import. `tokens.css` y `compartido.css` son espejo con el portal
- * (`pnpm test:tokens`) y no se tocan aquí.
+ * estos @import. `tokens.css` y `compartido.css` vienen de `@gymflow/ui`
+ * (repo hermano `gymflow-ui`, el mismo para el portal, bloque 4.10): no se
+ * copian aquí (`pnpm test:tokens` lo vigila); se cambian allá, una vez.
  *
  *   base.css                    Tokens derivados (claro, oscuro elegido y oscuro del sistema) y la base: tipografía, enlaces, foco.
  *   marco.css                   El marco del panel: menú lateral, barra superior, contenido.

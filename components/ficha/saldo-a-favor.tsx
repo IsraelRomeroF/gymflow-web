@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Banknote, HandCoins, Landmark } from 'lucide-react';
 import type { CreditReturnResult, OpenCashSessionsLite } from '@gymflow/core/contracts';
 import { api, ApiError } from '@/lib/api';
-import { hora, pesos } from '@/lib/format';
+import { hora, pesos } from '@gymflow/ui/format';
 import { useSession, useToast, errorText } from '../session';
 import { Button, Callout, CampoMotivo, Dialog, Field, Opciones } from '../ui';
 import { InputPesos } from '../input-pesos';

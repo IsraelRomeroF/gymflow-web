@@ -4,11 +4,11 @@ import { useCallback, useState } from 'react';
 import { CalendarOff, Pencil, Scale } from 'lucide-react';
 import type { ClassPause, ClassPauseCreated, ClassPauseEnded, ClassPauses, ClassRules, ClassSettings } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { fecha, fechaCorta } from '@/lib/format';
+import { fecha, fechaCorta } from '@gymflow/ui/format';
 import { hoyEn, masDias, zonaDe } from '@/lib/zonas';
-import { useCarga } from '@/lib/carga';
+import { useCarga } from '@gymflow/ui/carga';
 import { plazoEnTexto } from '@/lib/clases';
-import { useFormulario } from '@/lib/formulario';
+import { useFormulario } from '@gymflow/ui/formulario';
 import { useSession, useToast, errorText } from '@/components/session';
 import { Button, Callout, CampoFecha, CampoMotivo, Card, Dialog, ERROR_MOTIVO, ErrorCarga, faltaMotivo, Field, Opciones, Skeleton } from '@/components/ui';
 

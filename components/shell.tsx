@@ -9,7 +9,7 @@ import { BotonTema, CLAVE_LATERAL } from './tema';
 import { Avatar, Button, Callout, Dialog, Field, Skeleton, EsqueletoPagina } from './ui';
 import { CommandPalette } from './command-palette';
 import { api, alPerderSesion } from '@/lib/api';
-import { hora } from '@/lib/format';
+import { hora } from '@gymflow/ui/format';
 import { irAEntrar, recordarFin, volverAEntrar } from '@/lib/sesion';
 import { rolDe } from '@/lib/labels';
 import { FIRMAS, SECCIONES, barraInferior, menuAcomodado } from '@/modules/registro';
@@ -19,7 +19,7 @@ import { Campana } from './campana';
 import { AvisoDeGymflow } from './cuenta-gymflow';
 import { useAvisosNuevos } from './avisos-duena';
 import { AvisoDeSolicitudes } from './solicitudes-gymflow';
-import { Marca } from '@/components/compartido';
+import { Marca } from '@gymflow/ui/compartido';
 
 /**
  * Marco del panel: barra lateral, barra superior y buscador global.

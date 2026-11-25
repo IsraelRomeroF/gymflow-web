@@ -1,15 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useCarga } from '@/lib/carga';
+import { useCarga } from '@gymflow/ui/carga';
 import Link from 'next/link';
 import { ShieldCheck, Monitor, LogOut, Clock, KeyRound, Globe, Link2 } from 'lucide-react';
 import { api } from '@/lib/api';
-import { fechaHora, hace, hora } from '@/lib/format';
+import { fechaHora, hace, hora } from '@gymflow/ui/format';
 import { ipVisible } from '@/lib/sesion';
 import { useToast, errorText } from '@/components/session';
 import { Badge, Button, Callout, Card, ErrorCarga, PageHeader, EsqueletoPagina, EsqueletoTabla, Empty } from '@/components/ui';
-import { IconTile } from '@/components/compartido';
+import { IconTile } from '@gymflow/ui/compartido';
 
 type Seguridad = {
   policy: { sessionHours: number; idleMinutes: number; stepUpMinutes: number; allowedIps: string[] };

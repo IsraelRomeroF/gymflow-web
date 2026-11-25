@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { pesos } from '@/lib/format';
+import { pesos } from '@gymflow/ui/format';
 import { etiquetaDeIva, type Desglose, type Linea } from './textos';
 
 /**

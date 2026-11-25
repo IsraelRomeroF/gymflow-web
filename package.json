@@ -14,12 +14,13 @@
     "lint": "eslint app components lib modules",
     "verify": "pnpm typecheck && pnpm lint",
     "test:textos": "node scripts/textos-puestos.mjs",
-    "test:tokens": "node scripts/tokens-iguales.mjs",
+    "test:tokens": "node scripts/sin-copias.mjs",
     "test:estilos": "node scripts/estilos-en-linea.mjs",
-    "test": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test modules/registro.test.ts modules/tabla-puestos.test.ts modules/coach-sin-whatsapp.test.ts lib/format.test.ts"
+    "test": "node --experimental-strip-types --disable-warning=ExperimentalWarning --test modules/registro.test.ts modules/tabla-puestos.test.ts modules/coach-sin-whatsapp.test.ts"
   },
   "dependencies": {
     "@gymflow/core": "link:../gymflow-core",
+    "@gymflow/ui": "link:../gymflow-ui",
     "lucide-react": "^1.48.0",
     "next": "^16.3.6",
     "qrcode-generator": "^2.0.4",

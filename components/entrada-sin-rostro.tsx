@@ -5,7 +5,7 @@ import { CircleCheck, DoorOpen, ScanFace, ShieldCheck, X } from 'lucide-react';
 import type { AccessGrantResult, AccessResolution } from '@gymflow/core/contracts';
 import { textosDeMotivo } from '@gymflow/core/motivos';
 import { api, motivoDe } from '@/lib/api';
-import { hora } from '@/lib/format';
+import { hora } from '@gymflow/ui/format';
 import { DENIAL_REASON } from '@/lib/labels';
 import { useSession, useToast, errorText } from './session';
 import { Button, ButtonLink, Callout, CampoMotivo, faltaMotivo } from './ui';

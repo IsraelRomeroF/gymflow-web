@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { api } from '@/lib/api';
-import { fecha, pesos } from '@/lib/format';
+import { fecha, pesos } from '@gymflow/ui/format';
 import { ESTADO_IMPORTACION } from '@/lib/importar';
 import { useToast, errorText } from '@/components/session';
 import { Badge, Breadcrumb, Callout, ErrorCarga, NoExiste, PageHeader, EsqueletoPagina, Tabs, esNoExiste } from '@/components/ui';
-import { useCarga } from '@/lib/carga';
+import { useCarga } from '@gymflow/ui/carga';
 import { Aplicada, BarraAplicar } from './aplicar';
 import { Asignaciones } from './asignaciones';
 import { ListaFilas } from './filas';

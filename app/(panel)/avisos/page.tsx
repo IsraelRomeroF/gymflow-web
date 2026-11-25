@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { BellRing, RotateCw } from 'lucide-react';
-import { dia, fechaHora } from '@/lib/format';
+import { dia, fechaHora } from '@gymflow/ui/format';
 import { useSession } from '@/components/session';
 import { AvisoDeLaLista, PreferenciasDeAvisos, ResumenDeLaSemana, useAvisosDeLaDuena, useAvisosVistos } from '@/components/avisos-duena';
 import { AvisosEnTelefono } from '@/components/push';

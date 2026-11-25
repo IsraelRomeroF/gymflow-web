@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Check } from 'lucide-react';
 import { api } from '@/lib/api';
-import { pesos } from '@/lib/format';
+import { pesos } from '@gymflow/ui/format';
 import { errorText } from '@/components/session';
 import { Badge, Breadcrumb, Button, Callout, Card, PageHeader, Segmented, EsqueletoTabla } from '@/components/ui';
 

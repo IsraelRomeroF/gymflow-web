@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { Check, Plus, TriangleAlert } from 'lucide-react';
-import { fecha, hace, pesos } from '@/lib/format';
+import { fecha, hace, pesos } from '@gymflow/ui/format';
 import { Badge, Button, Card } from '@/components/ui';
-import { IconTile } from '@/components/compartido';
+import { IconTile } from '@gymflow/ui/compartido';
 import type { Marca } from './tipos';
 
 /** Un pendiente de la bandeja "Requiere atención" (UX7 Plataforma): qué pasa y a dónde ir a resolverlo. */

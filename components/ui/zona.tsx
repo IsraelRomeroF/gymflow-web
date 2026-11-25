@@ -1,11 +1,11 @@
 'use client';
 
 import { useSession } from '@/components/session';
-import { fijarZona } from '@/lib/format';
+import { fijarZona } from '@gymflow/ui/format';
 
 /**
  * LA ZONA DEL GIMNASIO PARA TODO EL PANEL (26-06): fija la de la organización
- * en `lib/format.ts`, así `fecha()`, `hora()` y compañía pintan la hora del
+ * en `@gymflow/ui/format`, así `fecha()`, `hora()` y compañía pintan la hora del
  * gimnasio y no la de la computadora. Va dentro de `SessionProvider` y ANTES
  * del marco: se fija al pintarse, así el primer cuadro ya sale con la hora
  * correcta (un efecto llegaría un cuadro tarde). Una sucursal con su propia

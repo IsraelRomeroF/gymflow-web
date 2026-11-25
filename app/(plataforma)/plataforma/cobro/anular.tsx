@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { textosDeMotivo } from '@gymflow/core/motivos';
 import { api, motivoDe } from '@/lib/api';
-import { useFormulario } from '@/lib/formulario';
+import { useFormulario } from '@gymflow/ui/formulario';
 import { errorText, useToast } from '@/components/session';
 import { Button, CampoMotivo, Dialog, ERROR_MOTIVO, faltaMotivo } from '@/components/ui';
 import type { Factura } from './textos';

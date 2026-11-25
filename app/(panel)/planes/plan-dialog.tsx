@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { PlanImpact, PlanPriceChangePreview, ProtectedPrices } from '@gymflow/core/contracts';
 import { api, ApiError } from '@/lib/api';
-import { fecha, pesos } from '@/lib/format';
+import { fecha, pesos } from '@gymflow/ui/format';
 import { MODELO, type Plan } from '@/lib/plans';
 import { useSession, useToast, errorText } from '@/components/session';
 import { Button, Callout, CampoMotivo, Dialog, ErrorCarga, Field, Opciones, Segmented, Switch, VistaPrevia, type CifraPrevia } from '@/components/ui';
-import { useCarga, type Carga } from '@/lib/carga';
+import { useCarga, type Carga } from '@gymflow/ui/carga';
 import { parsePesos } from '@/lib/pesos';
 
 export type DetalleDePlan = {

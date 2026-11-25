@@ -3,8 +3,8 @@
 import { useCallback, useState } from 'react';
 import { KeyRound, Smartphone } from 'lucide-react';
 import { api } from '@/lib/api';
-import { fechaHora, hora } from '@/lib/format';
-import { useCarga } from '@/lib/carga';
+import { fechaHora, hora } from '@gymflow/ui/format';
+import { useCarga } from '@gymflow/ui/carga';
 import { usePortalUrl } from '@/lib/portal';
 import { useToast, errorText } from '@/components/session';
 import { Button, Callout, Dialog } from '@/components/ui';

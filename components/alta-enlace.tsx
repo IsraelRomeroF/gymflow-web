@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import { enlaceAlta, usePortalUrl } from '@/lib/portal';
 import { useSession, useToast } from './session';
 import { Button, Callout, Dialog, ErrorCarga, Field } from './ui';
-import { useCarga } from '@/lib/carga';
+import { useCarga } from '@gymflow/ui/carga';
 import { Qr } from './qr';
 
 type Formulario = { gymName: string; branchName: string; blockedBy: Array<{ kind: string; consentType: string }> };

@@ -3,7 +3,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { CalendarCheck, CalendarX2, MapPin } from 'lucide-react';
 import { api } from '@/lib/api';
-import { dia as diaDe, hora, hoyEn } from '@/lib/format';
+import { dia as diaDe, hora, hoyEn } from '@gymflow/ui/format';
 import { zonaDe } from '@/lib/zonas';
 import { useSession, useToast, errorText } from '@/components/session';
 import { Badge, Button, Callout, Dialog, Empty, EsqueletoLista } from '@/components/ui';

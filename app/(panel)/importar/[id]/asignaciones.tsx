@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import { nombrePlanArchivo } from '@/lib/importar';
 import { useSession, useToast, errorText } from '@/components/session';
 import { Button, Callout, Card, ErrorCarga, Field } from '@/components/ui';
-import type { Carga } from '@/lib/carga';
+import type { Carga } from '@gymflow/ui/carga';
 import { NO_CARGAR, type Detalle, type Plan } from './tipos';
 
 /**

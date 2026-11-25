@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { Clock, Pencil, Plus, RotateCcw, Trash2, UserRound, Users } from 'lucide-react';
-import { fechaCorta, pesos } from '@/lib/format';
+import { fechaCorta, pesos } from '@gymflow/ui/format';
 import { DIAS, aHora, type Plantilla, type Slot, type Tipo } from '@/lib/clases';
 import { Badge, Button, Card, MenuMas, Skeleton } from '@/components/ui';
 import { PausasCard, ReglasCard } from './reglas';

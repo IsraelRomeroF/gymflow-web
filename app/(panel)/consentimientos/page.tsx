@@ -5,12 +5,12 @@ import { History, Pencil, Plus, Lock, Eye, Trash2, FileSignature } from 'lucide-
 import type { ConsentDocumentList, ConsentDocumentPublishResult, ConsentDocumentReview, ConsentDocumentSummary, NoticeSignatureRequests } from '@gymflow/core/contracts';
 import { TEXTO_SOLO_CON_MODULO, corchetesSinCompletar, modeloDeTexto } from '@gymflow/core/privacidad';
 import { api } from '@/lib/api';
-import { fecha } from '@/lib/format';
+import { fecha } from '@gymflow/ui/format';
 import { CONSENT_TYPE } from '@/lib/labels';
-import { useFormulario } from '@/lib/formulario';
+import { useFormulario } from '@gymflow/ui/formulario';
 import { useSession, useToast, errorText } from '@/components/session';
 import { Badge, Button, Callout, CampoMotivo, Card, Dialog, ErrorCarga, Field, PageHeader, Skeleton, faltaMotivo, ERROR_MOTIVO } from '@/components/ui';
-import { useCarga } from '@/lib/carga';
+import { useCarga } from '@gymflow/ui/carga';
 import { BandejaArco, SolicitudesEnCifras } from '@/components/cumplimiento';
 import { Conservacion } from '@/components/privacidad';
 import { hoyEn } from '@/lib/zonas';

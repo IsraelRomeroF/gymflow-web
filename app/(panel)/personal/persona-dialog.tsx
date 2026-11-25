@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { KeyRound, UserCheck, UserX } from 'lucide-react';
 import { api } from '@/lib/api';
-import { hace, telefono as telefonoLegible } from '@/lib/format';
+import { hace, telefono as telefonoLegible } from '@gymflow/ui/format';
 import { useSession, useToast, errorText, erroresPorCampo } from '@/components/session';
 import { Badge, Button, Callout, Dialog, Field } from '@/components/ui';
 import { PermisosPersona, type Ajustes } from '@/components/permisos-persona';

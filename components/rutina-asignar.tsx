@@ -6,7 +6,7 @@ import { CalendarDays, ListChecks, Search, UserPlus, Users } from 'lucide-react'
 import type { MemberRoutine, RoutineList } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
 import { useBuscarSocios } from '@/lib/buscar-socios';
-import { EstadoCarga, useCarga } from '@/lib/carga';
+import { EstadoCarga, useCarga } from '@gymflow/ui/carga';
 import {
   GRUPO, NIVELES, OBJETIVOS, REVISION_POR_OMISION, SEMANAS_DE_REVISION, descanso, haceSemanas,
   type Rutina, type SemanasDeRevision,

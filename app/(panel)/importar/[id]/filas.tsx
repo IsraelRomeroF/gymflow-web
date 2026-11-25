@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Check, PenLine, Search, UserPlus, Users, X } from 'lucide-react';
 import { api } from '@/lib/api';
-import { fecha, pesos } from '@/lib/format';
+import { fecha, pesos } from '@gymflow/ui/format';
 import { DATO_DUDOSO, ESTADO_DATOS, type CampoDudoso } from '@/lib/importar';
 import { useBuscarSocios, type SocioHallado } from '@/lib/buscar-socios';
 import { useSession, useToast, errorText } from '@/components/session';

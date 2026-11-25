@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { parsePesos } from '@/lib/pesos';
-import { pesos } from '@/lib/format';
+import { pesos } from '@gymflow/ui/format';
 import { Field } from '../ui';
 
 /**

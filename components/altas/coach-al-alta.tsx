@@ -3,7 +3,7 @@
 import { useCallback } from 'react';
 import type { CoachOptions } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { useCarga } from '@/lib/carga';
+import { useCarga } from '@gymflow/ui/carga';
 import { Field } from '@/components/ui';
 
 /**

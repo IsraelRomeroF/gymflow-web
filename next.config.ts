@@ -31,16 +31,23 @@ if (DIST_PRUEBAS && !/^\.next\/dev-[a-z]+$/.test(DIST_PRUEBAS)) {
 }
 
 /**
- * EL NÚCLEO POR `link:` (auditoría 8, 27-02): `@gymflow/core` es la carpeta
- * hermana `../gymflow-core`, enlazada en `node_modules` por pnpm. Turbopack no
+ * EL NÚCLEO Y LO COMPARTIDO POR `link:` (auditoría 8, 27-02 y bloque 4.10):
+ * `@gymflow/core` es la carpeta hermana `../gymflow-core` y `@gymflow/ui`
+ * (tokens, estilos y piezas comunes del panel y el portal, D-40) la carpeta
+ * hermana `../gymflow-ui`, enlazadas en `node_modules` por pnpm. Turbopack no
  * resuelve archivos fuera de su raíz, así que la raíz es la carpeta que
- * contiene a los dos repositorios (solo vigila lo que de verdad lee). Sin
- * esto, importar `@gymflow/core/vocabulario` daría «Module not found».
+ * contiene a los repositorios (solo vigila lo que de verdad lee). Sin esto,
+ * importar `@gymflow/core/vocabulario` daría «Module not found». `@gymflow/ui`
+ * no trae `dist/`: se compila desde su código (`transpilePackages`), y su
+ * `lucide-react` es el de esta app (`resolveAlias`): sin eso, Turbopack toma el
+ * que `gymflow-ui` instala para sus tipos y los íconos de las piezas comunes
+ * viajan dos veces (React no, Next ya lo fija al suyo).
  */
 const RAIZ = path.resolve(process.cwd(), '..');
 
 const config: NextConfig = {
-  turbopack: { root: RAIZ },
+  turbopack: { root: RAIZ, resolveAlias: { 'lucide-react': './node_modules/lucide-react' } },
+  transpilePackages: ['@gymflow/ui'],
   ...(DIST_PRUEBAS ? { distDir: DIST_PRUEBAS, typescript: { tsconfigPath: 'tsconfig.pruebas.json' } } : {}),
   reactStrictMode: true,
   // Next 16 escribe AGENTS.md y CLAUDE.md en la raíz al arrancar. Son

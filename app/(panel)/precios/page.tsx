@@ -3,11 +3,11 @@
 import { useCallback, useState } from 'react';
 import { Tags } from 'lucide-react';
 import { api } from '@/lib/api';
-import { pesos } from '@/lib/format';
+import { pesos } from '@gymflow/ui/format';
 import { ACCESO, MODELO, duracion, porPeriodo, type Plan } from '@/lib/plans';
 import { useSession } from '@/components/session';
 import { ButtonLink, Card, Empty, EsqueletoTabla, PageHeader, Segmented } from '@/components/ui';
-import { EstadoCarga, useCarga } from '@/lib/carga';
+import { EstadoCarga, useCarga } from '@gymflow/ui/carga';
 
 const ORDEN = ['RECURRING', 'PREPAID_PERIOD', 'VISIT_PACK', 'DAY_PASS'] as const;
 

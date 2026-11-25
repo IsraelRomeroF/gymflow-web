@@ -5,7 +5,7 @@ import { Printer, ShoppingBag } from 'lucide-react';
 import type { MemberPosSales, MemberPosSale } from '@gymflow/core/contracts';
 import { METODO_DE_PAGO, etiqueta } from '@gymflow/core/vocabulario';
 import { api } from '@/lib/api';
-import { fecha, fechaHora, pesos } from '@/lib/format';
+import { fecha, fechaHora, pesos } from '@gymflow/ui/format';
 import { useSession, errorText } from '@/components/session';
 import { Badge, Button, Card, Empty, ErrorCarga, EsqueletoLista, IconTile } from '@/components/ui';
 

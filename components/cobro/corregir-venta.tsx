@@ -5,7 +5,7 @@ import { Ban, Flag, FlagOff, Undo2 } from 'lucide-react';
 import type { FlaggedPosSales, OpenCashSessionsLite, PosSale } from '@gymflow/core/contracts';
 import { METODO_DE_PAGO, etiqueta } from '@gymflow/core/vocabulario';
 import { api, ApiError } from '@/lib/api';
-import { fecha, fechaHora, hora, pesos } from '@/lib/format';
+import { fecha, fechaHora, hora, pesos } from '@gymflow/ui/format';
 import { useSession, useToast, errorText } from '../session';
 import { Badge, Button, Callout, CampoMotivo, Card, Dialog, Field, Skeleton } from '../ui';
 import { AutorizacionDialog } from '../autorizacion';

@@ -5,7 +5,7 @@ import { Copy } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useSession, useToast, errorText } from '@/components/session';
 import { Button, Callout, CampoMotivo, Dialog, ERROR_MOTIVO, faltaMotivo, Field } from '@/components/ui';
-import { useFormulario } from '@/lib/formulario';
+import { useFormulario } from '@gymflow/ui/formulario';
 import { WhatsappTemporal } from '@/components/entrega-temporal';
 import { TEMPORAL_DIAS, direccionDeEntrada, mensajeDeAcceso } from '@/lib/entrega-temporal';
 import type { Persona } from './persona';

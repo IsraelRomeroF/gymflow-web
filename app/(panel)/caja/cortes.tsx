@@ -6,12 +6,12 @@ import { useRouter } from 'next/navigation';
 import { History, Wallet } from 'lucide-react';
 import type { CashAlerts } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { fecha, hora, pesos } from '@/lib/format';
+import { fecha, hora, pesos } from '@gymflow/ui/format';
 import { TURNO, type Caja, type Turno } from '@/lib/caja';
 import { errorText, useSession } from '@/components/session';
 import { Badge, Button, Callout, Card, Empty, ErrorCarga, EsqueletoTabla, PageHeader, Segmented, Skeleton } from '@/components/ui';
 import { Diferencia, EstadoRevision, quienResponde, RevisarDialog, TOLERANCIA } from '@/components/caja';
-import { useCarga } from '@/lib/carga';
+import { useCarga } from '@gymflow/ui/carga';
 
 type Filtro = 'todos' | 'diferencia' | 'revisar';
 const FILTROS: ReadonlyArray<{ value: Filtro; label: string }> = [

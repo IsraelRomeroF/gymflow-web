@@ -4,8 +4,8 @@ import { useCallback, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Ban, Banknote, Printer, Undo2 } from 'lucide-react';
 import { api } from '@/lib/api';
-import { useCarga } from '@/lib/carga';
-import { fecha, pesos, ultimoDia } from '@/lib/format';
+import { useCarga } from '@gymflow/ui/carga';
+import { fecha, pesos, ultimoDia } from '@gymflow/ui/format';
 import { Badge, Breadcrumb, Button, Callout, Card, ErrorCarga, PageHeader, Skeleton, NoExiste, esNoExiste } from '@/components/ui';
 import { Anular, DeshacerPago, ESTADO_FACTURA, FORMA_DE_PAGO, FilaDeLinea, FilasDeDesglose, Pagar, dias, periodo, type FacturaConPagos, type Pago } from '../../cobro';
 

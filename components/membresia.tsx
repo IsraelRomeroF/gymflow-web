@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshCw, ArrowLeftRight, Snowflake, Sun, Ban, CircleCheck, Wallet, CalendarClock, Eraser, Repeat } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
-import { fecha, pesos, ultimoDia } from '@/lib/format';
+import { fecha, pesos, ultimoDia } from '@gymflow/ui/format';
 import { duracion, porPeriodo, type Plan } from '@/lib/plans';
 import { useSession, useToast, errorText } from './session';
 import { textosDeMotivo } from '@gymflow/core/motivos';
 import { Button, Callout, CampoMotivo, Dialog, ErrorCarga, Field, Skeleton, Switch, faltaMotivo } from './ui';
-import { EstadoCarga, useCarga } from '@/lib/carga';
+import { EstadoCarga, useCarga } from '@gymflow/ui/carga';
 import { CobroFields, cobroListo, cuerpoDelCobro, COBRO_INICIAL, type Cobro } from './cobro';
 import { AutorizacionDialog } from './autorizacion';
 import { AdeudoAlCerrar } from './ficha/adeudo';

@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from 'react';
 import { Printer } from 'lucide-react';
 import { api } from '@/lib/api';
-import { fecha, fechaHora, pesos } from '@/lib/format';
+import { fecha, fechaHora, pesos } from '@gymflow/ui/format';
 import { METODO, MOVIMIENTO, ORIGEN, TURNO, type Corte, type Turno } from '@/lib/caja';
 import { useSession, errorText } from '@/components/session';
 import { Breadcrumb, Button, Callout, Card, PageHeader, NoExiste, esNoExiste, EsqueletoPagina } from '@/components/ui';

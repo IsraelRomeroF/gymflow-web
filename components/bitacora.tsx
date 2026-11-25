@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { History, UserCheck } from 'lucide-react';
 import { api } from '@/lib/api';
-import { fechaCorta, hora } from '@/lib/format';
+import { fechaCorta, hora } from '@gymflow/ui/format';
 import { zonaDe } from '@/lib/zonas';
 import { useSession, errorText } from './session';
 import { Badge, Button, Card, Empty, ErrorCarga, EsqueletoLista, Segmented } from './ui';

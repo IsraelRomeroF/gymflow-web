@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Lock } from 'lucide-react';
 import { ALL_SECTIONS_UNLOCKED, LOCKABLE_SECTIONS, SECTION_GROUP_NAMES, effectiveSections, isSectionOpen, onlyEffectiveSections, setSectionOpen } from '@gymflow/core/secciones';
 import { api } from '@/lib/api';
-import { useFormulario } from '@/lib/formulario';
+import { useFormulario } from '@gymflow/ui/formulario';
 import { errorText, useToast } from '@/components/session';
 import { Button, CampoMotivo, Dialog, ERROR_MOTIVO, faltaMotivo, Switch } from '@/components/ui';
 

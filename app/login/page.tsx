@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Building2, ScanFace, ShieldCheck, ArrowRight } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { Button, Field, Callout, irAlPrimerError } from '@/components/ui';
-import { Marca } from '@/components/compartido';
+import { Marca } from '@gymflow/ui/compartido';
 import { erroresPorCampo } from '@/components/session';
 import { TEMPORAL_DIAS } from '@/lib/entrega-temporal';
 import { AVISO_DE_SALIDA, destinoTrasEntrar, esMotivoDeSalida, leerSalida, recordarFin } from '@/lib/sesion';

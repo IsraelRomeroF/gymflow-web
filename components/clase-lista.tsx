@@ -5,7 +5,7 @@ import { Users, UserCheck, UserPlus, Search, X, Wallet, Pencil } from 'lucide-re
 import type { ClassSettings, MemberSummary, SessionBooking, SessionBookings } from '@gymflow/core/contracts';
 import { ElegirCoach } from '@/components/coach-clase';
 import { api } from '@/lib/api';
-import { fechaCorta, hora } from '@/lib/format';
+import { fechaCorta, hora } from '@gymflow/ui/format';
 import { zonaDe } from '@/lib/zonas';
 import { momentoDeClase, plazoEnTexto, textoDePago, type Sesion } from '@/lib/clases';
 import { useSession, useToast, errorText } from '@/components/session';

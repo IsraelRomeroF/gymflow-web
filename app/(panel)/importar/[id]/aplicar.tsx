@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { CircleCheck, Download, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
-import { fecha, pesos } from '@/lib/format';
+import { fecha, pesos } from '@gymflow/ui/format';
 import { nombrePlanArchivo } from '@/lib/importar';
 import { useSession, useToast, errorText } from '@/components/session';
 import { descargarCsv } from '@/components/exportar';

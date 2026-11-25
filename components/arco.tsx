@@ -9,12 +9,12 @@ import {
   type TipoDeSolicitudArco,
 } from '@gymflow/core/privacidad';
 import { api } from '@/lib/api';
-import { fecha, fechaHora } from '@/lib/format';
+import { fecha, fechaHora } from '@gymflow/ui/format';
 import { CONSENT_TYPE } from '@/lib/labels';
-import { useFormulario } from '@/lib/formulario';
+import { useFormulario } from '@gymflow/ui/formulario';
 import { useSession, useToast, errorText } from '@/components/session';
 import { Badge, Button, Callout, CampoMotivo, Card, Dialog, Empty, ErrorCarga, Field, Opciones, Skeleton, faltaMotivo, ERROR_MOTIVO } from '@/components/ui';
-import { EstadoCarga, useCarga } from '@/lib/carga';
+import { EstadoCarga, useCarga } from '@gymflow/ui/carga';
 
 export type SolicitudArco = PrivacyRequest;
 

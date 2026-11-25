@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Package, Pencil, Play, Power, PowerOff } from 'lucide-react';
 import { api } from '@/lib/api';
-import { fecha, pesos } from '@/lib/format';
+import { fecha, pesos } from '@gymflow/ui/format';
 import { useToast, errorText } from '@/components/session';
 import { Badge, Breadcrumb, Button, Card, ErrorCarga, PageHeader, Stat, NoExiste, esNoExiste, EsqueletoPagina } from '@/components/ui';
 import { rolDe } from '@/lib/labels';

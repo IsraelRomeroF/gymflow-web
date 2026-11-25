@@ -6,8 +6,8 @@ import { Save, Users } from 'lucide-react';
 import type { IdentityCheck, MemberCompleted, MemberSharedPhone } from '@gymflow/core/contracts';
 import { CAMPO } from '@gymflow/core/vocabulario';
 import { api, ApiError } from '@/lib/api';
-import { fechaHora, telefono } from '@/lib/format';
-import { useCarga } from '@/lib/carga';
+import { fechaHora, telefono } from '@gymflow/ui/format';
+import { useCarga } from '@gymflow/ui/carga';
 import { useToast, errorText, erroresPorCampo } from '@/components/session';
 import { Badge, Button, CampoFecha, Dialog, Field, Opciones } from '@/components/ui';
 

@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import type { ApprovalApprover, ApprovalPreviousRejection, ApprovalRequestState } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { hora } from '@/lib/format';
-import { Callout } from '../compartido';
+import { hora } from '@gymflow/ui/format';
+import { Callout } from '@gymflow/ui/compartido';
 import { errorText } from '../session';
 import { Button, CampoMotivo, faltaMotivo } from '../ui';
 

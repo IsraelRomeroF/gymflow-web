@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Plus } from 'lucide-react';
 import { api } from '@/lib/api';
-import { pesos } from '@/lib/format';
+import { pesos } from '@gymflow/ui/format';
 import { ZONAS } from '@/lib/zonas';
 import { useToast, errorText, erroresPorCampo } from '@/components/session';
 import { Button, Callout, Dialog, Field, Switch, irAlPrimerError } from '@/components/ui';

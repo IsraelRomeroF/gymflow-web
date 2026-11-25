@@ -4,10 +4,10 @@ import { useCallback } from 'react';
 import Link from 'next/link';
 import { ScanFace, ShieldCheck, Trash2, CircleAlert, Server, FileSignature, Gauge } from 'lucide-react';
 import { api } from '@/lib/api';
-import { fecha } from '@/lib/format';
+import { fecha } from '@gymflow/ui/format';
 import { useSession, useToast, errorText } from '@/components/session';
 import { Avatar, Badge, Button, Card, Empty, ErrorCarga, PageHeader, Skeleton, Stat, EsqueletoTabla } from '@/components/ui';
-import { useCarga } from '@/lib/carga';
+import { useCarga } from '@gymflow/ui/carga';
 import { ReglaDelRostro } from '@/components/biometria';
 import type { BiometricsSummary, FaceEngineStatus, PendingTemplateDeletion } from '@gymflow/core/contracts';
 

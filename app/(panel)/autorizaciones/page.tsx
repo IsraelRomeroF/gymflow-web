@@ -5,10 +5,10 @@ import { Check, History, MessageCircleQuestion, ShieldCheck, X } from 'lucide-re
 import { APPROVAL_QUESTION_SUGGESTIONS } from '@gymflow/core';
 import type { ApprovalHistory, ApprovalHistoryItem, ApprovalInbox, ApprovalInboxItem } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { hace, hora, pesos } from '@/lib/format';
+import { hace, hora, pesos } from '@gymflow/ui/format';
 import { useSession, useToast, errorText } from '@/components/session';
 import { Badge, Button, Callout, CampoMotivo, Card, Dialog, Empty, ERROR_MOTIVO, ErrorCarga, faltaMotivo, Field, PageHeader, EsqueletoLista, Tabs, type Tono } from '@/components/ui';
-import { useFormulario } from '@/lib/formulario';
+import { useFormulario } from '@gymflow/ui/formulario';
 import { AvisosEnTelefono } from '@/components/push';
 import { ListaPorFirmar } from '@/components/privacidad';
 import { textoDeErrorDeFirma } from '@/components/autorizacion';

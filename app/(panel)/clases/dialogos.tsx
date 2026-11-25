@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react';
 import { CalendarPlus, Trash2 } from 'lucide-react';
 import type { ClassSessionCreated, ClassTemplateUpdated } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { fecha, fechaHora, hora12 } from '@/lib/format';
+import { fecha, fechaHora, hora12 } from '@gymflow/ui/format';
 import { hoyEn, masDias, zonaDe } from '@/lib/zonas';
 import { DIAS, aHora, deHora, type Plantilla, type Tipo } from '@/lib/clases';
 import { useSession, useToast, errorText } from '@/components/session';
 import { Button, Callout, CampoFecha, CampoHora, CampoMotivo, Dialog, ERROR_MOTIVO, faltaMotivo, Field, Opciones, Switch } from '@/components/ui';
-import { useFormulario } from '@/lib/formulario';
+import { useFormulario } from '@gymflow/ui/formulario';
 import { useCoachesDeClases } from '@/components/coach-clase';
 
 /** Una clase del catálogo: nombre, duración y cupo sugeridos, y el precio de la clase suelta. */

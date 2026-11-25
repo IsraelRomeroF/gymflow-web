@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Package, Pencil, Plus } from 'lucide-react';
 import { api } from '@/lib/api';
 import { parsePesos } from '@/lib/pesos';
-import { pesos } from '@/lib/format';
+import { pesos } from '@gymflow/ui/format';
 import { useToast, errorText } from '@/components/session';
 import { Badge, Breadcrumb, Button, Callout, Card, Dialog, Empty, ErrorCarga, Field, PageHeader, EsqueletoTabla, Switch } from '@/components/ui';
 import type { PlatformPriceChange, PlatformPriceChangePreview } from '@gymflow/core/contracts';

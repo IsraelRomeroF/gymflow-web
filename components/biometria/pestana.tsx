@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { ScanFace, Fingerprint, Plus, Building2, RefreshCw, Trash2, FileSignature } from 'lucide-react';
 import type { FaceEngineStatus } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { fecha, hace } from '@/lib/format';
+import { fecha, hace } from '@gymflow/ui/format';
 import { MODALITY } from '@/lib/labels';
 import { useSession, useToast, errorText } from '../session';
 import { Badge, Button, Callout, Card, Empty, Skeleton } from '../ui';

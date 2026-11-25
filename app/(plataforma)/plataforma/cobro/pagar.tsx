@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { textosDeMotivo } from '@gymflow/core/motivos';
 import { api, ApiError, motivoDe } from '@/lib/api';
-import { fecha, pesos } from '@/lib/format';
-import { useFormulario } from '@/lib/formulario';
+import { fecha, pesos } from '@gymflow/ui/format';
+import { useFormulario } from '@gymflow/ui/formulario';
 import { errorText, useToast } from '@/components/session';
 import { InputPesos } from '@/components/input-pesos';
 import { Button, Callout, CampoFecha, CampoMotivo, Dialog, ERROR_MOTIVO, faltaMotivo, Field, Switch } from '@/components/ui';

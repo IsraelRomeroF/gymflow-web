@@ -3,11 +3,11 @@
 import { useCallback, useState } from 'react';
 import { Landmark, Plus, Repeat, X } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
-import { capital, dia, nombreMes, pesos } from '@/lib/format';
+import { capital, dia, nombreMes, pesos } from '@gymflow/ui/format';
 import { useSession, errorText, useToast } from '@/components/session';
 import { Badge, Button, Callout, CampoFecha, CampoMotivo, Card, Dialog, Empty, ERROR_MOTIVO, ErrorCarga, faltaMotivo, Field, Skeleton, Switch } from '@/components/ui';
-import { useFormulario } from '@/lib/formulario';
-import { useCarga } from '@/lib/carga';
+import { useFormulario } from '@gymflow/ui/formulario';
+import { useCarga } from '@gymflow/ui/carga';
 import type { Expense, ExpenseList, ExpensePayees, ExpenseProposal, FrecuenciaDeGasto, RecurringExpense, RecurringExpenseList } from '@gymflow/core/contracts';
 import { GLOSARIO } from '@/lib/glosario';
 // Bloque 4.3 (caja): edición puntual. Con una caja abierta, el retiro del dueño en efectivo se registra desde Caja.
@@ -27,7 +27,7 @@ const CADA_CORTO: Record<FrecuenciaDeGasto, string> = { MONTHLY: 'cada mes', BIW
 /** Quién ve la nómina por persona (D-26): se dice donde se anota. */
 const QUIEN_VE_LA_NOMINA = 'Cuánto se le paga a cada persona lo ve quien tiene Movimientos: la dueña y la gerencia a la que se lo liberó.';
 const OTRA_PERSONA = '__otra__';
-// El mes se nombra como en el Tablero y en el cierre («octubre de 2026», `lib/format`): antes aquí decía «octubre 2026» y el
+// El mes se nombra como en el Tablero y en el cierre («octubre de 2026», `@gymflow/ui/format`): antes aquí decía «octubre 2026» y el
 // mismo mes se leía de dos maneras entre «Cerrar octubre de 2026» y «Ajuste de octubre 2026» (3.13).
 const otroMes = (m: string, n: number) => { const d = new Date(`${m}-01T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() + n); return d.toISOString().slice(0, 7); };
 const ultimoDiaDe = (m: string) => new Date(Date.UTC(Number(m.slice(0, 4)), Number(m.slice(5, 7)), 0)).toISOString().slice(0, 10);

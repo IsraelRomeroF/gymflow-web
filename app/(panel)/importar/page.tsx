@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FileUp, FileSpreadsheet, Upload } from 'lucide-react';
 import { api } from '@/lib/api';
-import { fechaHora } from '@/lib/format';
+import { fechaHora } from '@gymflow/ui/format';
 import { CAMPOS, ESTADO_IMPORTACION, leerArchivo, proponerColumnas, type Campo, type Tabla } from '@/lib/importar';
 import { useSession, useToast, errorText } from '@/components/session';
 import { hoyEn, zonaDe } from '@/lib/zonas';

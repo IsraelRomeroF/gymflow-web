@@ -6,11 +6,11 @@ import { Check, Lock, Minus } from 'lucide-react';
 import { ApiError } from '@/lib/api';
 import { useSession, useToast, errorText } from '@/components/session';
 import { Badge, Button, ButtonLink, Callout, Card, Dialog, ErrorCarga, Field, PageHeader, EsqueletoPagina } from '@/components/ui';
-import { fecha } from '@/lib/format';
+import { fecha } from '@gymflow/ui/format';
 import { cargarModulos, cambiarModulo, cambiarModuloEnSede, type EstadoModulos, type Modulo } from '@/modules/api';
 import { SECCIONES, respuestaDePuerta, seccionDeRuta } from '@/modules/registro';
 import { PestanasGimnasio } from '../gimnasio/pestanas';
-import { IconTile } from '@/components/compartido';
+import { IconTile } from '@gymflow/ui/compartido';
 
 /** El orden de los grupos en la pantalla: primero lo que más se enciende y apaga. */
 const ORDEN_GRUPOS = ['money', 'sell', 'members', 'entrance'];

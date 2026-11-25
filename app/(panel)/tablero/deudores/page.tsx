@@ -7,11 +7,11 @@ import { ArrowLeft, Wallet } from 'lucide-react';
 import type { PortfolioDebtors } from '@gymflow/core/contracts';
 import { ESTADO_DE_SOCIO } from '@gymflow/core/vocabulario';
 import { api, ApiError } from '@/lib/api';
-import { fecha, pesos } from '@/lib/format';
+import { fecha, pesos } from '@gymflow/ui/format';
 import { errorText, useSession } from '@/components/session';
 import { Badge, Button, ButtonLink, Callout, Card, Empty, ErrorCarga, EsqueletoTabla, PageHeader, Skeleton, Switch } from '@/components/ui';
 import { GLOSARIO } from '@/lib/glosario';
-import { useCarga } from '@/lib/carga';
+import { useCarga } from '@gymflow/ui/carga';
 
 /** Deudores por página; los siguientes, con «Cargar más». */
 const POR_PAGINA = 50;

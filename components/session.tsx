@@ -6,8 +6,8 @@ import { CircleCheck, CircleAlert } from 'lucide-react';
 import { CAMPO } from '@gymflow/core/vocabulario';
 import { api, ApiError, finDeSesion } from '@/lib/api';
 import { irAEntrar, recordarLugar, salirDeEsteEquipo } from '@/lib/sesion';
-import { errorALaVista, errorEnElDialogoAbierto } from './dialogo';
-import { Callout } from './compartido';
+import { errorALaVista, errorEnElDialogoAbierto } from '@gymflow/ui/dialogo';
+import { Callout } from '@gymflow/ui/compartido';
 
 export type Me = {
   userId: string;

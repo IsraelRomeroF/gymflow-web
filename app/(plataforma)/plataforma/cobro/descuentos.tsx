@@ -3,9 +3,9 @@
 import { useCallback, useState } from 'react';
 import { BadgePercent } from 'lucide-react';
 import { api } from '@/lib/api';
-import { useCarga } from '@/lib/carga';
-import { useFormulario } from '@/lib/formulario';
-import { pesos } from '@/lib/format';
+import { useCarga } from '@gymflow/ui/carga';
+import { useFormulario } from '@gymflow/ui/formulario';
+import { pesos } from '@gymflow/ui/format';
 import { errorText, useToast } from '@/components/session';
 import { Badge, Button, CampoMotivo, Dialog, ERROR_MOTIVO, Field, Opciones, faltaMotivo } from '@/components/ui';
 import { ConMotivo } from '../_componentes/con-motivo';

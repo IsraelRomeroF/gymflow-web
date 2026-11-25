@@ -4,8 +4,8 @@ import { useCallback } from 'react';
 import { UserMinus } from 'lucide-react';
 import type { MemberStanding } from '@gymflow/core/contracts';
 import { api } from '@/lib/api';
-import { fecha } from '@/lib/format';
-import { useCarga } from '@/lib/carga';
+import { fecha } from '@gymflow/ui/format';
+import { useCarga } from '@gymflow/ui/carga';
 
 /**
  * «DE BAJA DESDE» en la ficha (fase 4, bloque 4.4 · D-18). Baja es quien

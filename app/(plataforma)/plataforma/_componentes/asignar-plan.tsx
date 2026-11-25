@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { pesos } from '@/lib/format';
+import { pesos } from '@gymflow/ui/format';
 import { useToast, errorText } from '@/components/session';
 import { Button, Callout, Dialog, Field, irAlPrimerError } from '@/components/ui';
 import { usePlataforma } from '../../layout';

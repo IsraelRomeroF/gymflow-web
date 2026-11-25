@@ -3,12 +3,12 @@
 import { useCallback } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { fecha } from '@/lib/format';
+import { fecha } from '@gymflow/ui/format';
 import { useSession } from '@/components/session';
 import { Callout, Card, ErrorCarga, Skeleton } from '@/components/ui';
 import type { PrivacyInbox, PrivacyRequestsSummary } from '@gymflow/core/contracts';
 import { ARCO_CHANNEL, ARCO_KIND, EstadoDeSolicitud } from '@/components/arco';
-import { EstadoCarga, useCarga } from '@/lib/carga';
+import { EstadoCarga, useCarga } from '@gymflow/ui/carga';
 
 /**
  * La bandeja de cumplimiento (PS-07; 21-01): todo lo VIVO, primero lo vencido y

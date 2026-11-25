@@ -6,10 +6,10 @@ import { ShieldCheck, Smartphone } from 'lucide-react';
 import { APPROVAL_REJECT_LOCK_MS } from '@gymflow/core';
 import type { ApprovalApprovers } from '@gymflow/core/contracts';
 import { api, ApiError } from '@/lib/api';
-import { hora, pesos } from '@/lib/format';
+import { hora, pesos } from '@gymflow/ui/format';
 import { errorText } from './session';
 import { Button, Callout, CampoMotivo, Dialog, ErrorCarga, faltaMotivo, Field, Segmented } from './ui';
-import { useCarga } from '@/lib/carga';
+import { useCarga } from '@gymflow/ui/carga';
 import { Desenlace, RechazoAnterior, avisoDeAlcance, nombreDeFirmante, nombres, preguntaAbierta, type Firmante, type Solicitud } from './firma/desenlace';
 import { atenderEspera, esperaParaRetomar, ponerEspera, quitarEspera, soltarEspera } from './firma/espera';
 

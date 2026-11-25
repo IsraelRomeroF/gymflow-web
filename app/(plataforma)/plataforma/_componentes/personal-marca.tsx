@@ -1,7 +1,7 @@
 'use client';
 
 import { Eye, KeyRound, Plus, UserCheck, Users, UserX } from 'lucide-react';
-import { hace } from '@/lib/format';
+import { hace } from '@gymflow/ui/format';
 import { rolDe } from '@/lib/labels';
 import { Badge, Button, Card, Empty, MenuMas } from '@/components/ui';
 import type { Detalle, Usuario } from './tipos';

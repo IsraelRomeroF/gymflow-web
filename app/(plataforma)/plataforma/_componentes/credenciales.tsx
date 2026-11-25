@@ -7,7 +7,7 @@ import { TEMPORAL_DIAS, direccionDeEntrada, mensajeDeAcceso } from '@/lib/entreg
 import { WhatsappTemporal } from '@/components/entrega-temporal';
 import { useToast, errorText } from '@/components/session';
 import { Badge, Button, Callout, Dialog } from '@/components/ui';
-import { IconTile } from '@/components/compartido';
+import { IconTile } from '@gymflow/ui/compartido';
 import { ConMotivo } from './con-motivo';
 import { CAMBIO_DE_SERVICIO, type Credencial, type Servicio } from './tipos';
 

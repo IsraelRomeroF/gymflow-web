@@ -2,7 +2,7 @@
 
 import { Receipt } from 'lucide-react';
 import type { GymflowAccount } from '@gymflow/core/contracts';
-import { capital, fecha, nombreMes, pesos } from '@/lib/format';
+import { capital, fecha, nombreMes, pesos } from '@gymflow/ui/format';
 import { useAvisosVistos, useCuentaConGymflow } from '@/components/cuenta-gymflow';
 import { Badge, Callout, Card, Empty, EsqueletoPagina, PageHeader } from '@/components/ui';
 

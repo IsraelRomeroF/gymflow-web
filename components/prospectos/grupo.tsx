@@ -4,7 +4,7 @@ import { CalendarClock, History, Hourglass, MessageCircle, Pencil, Phone, PhoneC
 import type { Prospect } from '@gymflow/core/contracts';
 import { UNCONTACTED_ALERT_DAYS } from '@gymflow/core/captacion';
 import { ESTADO_DE_INTERESADO } from '@gymflow/core/vocabulario';
-import { fecha, hace, telefono } from '@/lib/format';
+import { fecha, hace, telefono } from '@gymflow/ui/format';
 import { Badge, Button, MenuMas } from '@/components/ui';
 import { UltimoContacto } from '@/components/seguimiento';
 

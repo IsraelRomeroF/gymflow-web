@@ -5,11 +5,11 @@ import { Building2, Plus, Pencil, Wallet, DoorClosed, DoorOpen } from 'lucide-re
 import { api, ApiError } from '@/lib/api';
 import { useSession, useToast, errorText, erroresPorCampo } from '@/components/session';
 import { Badge, Button, ButtonLink, CampoMotivo, Card, Dialog, Empty, ErrorCarga, Field, PageHeader, EsqueletoLista, Callout } from '@/components/ui';
-import { EstadoCarga, useCarga } from '@/lib/carga';
+import { EstadoCarga, useCarga } from '@gymflow/ui/carga';
 import { usePortalUrl } from '@/lib/portal';
 import { ZONAS } from '@/lib/zonas';
 import Link from 'next/link';
-import { telefono } from '@/lib/format';
+import { telefono } from '@gymflow/ui/format';
 import { PestanasGimnasio, useEntraA } from '../gimnasio/pestanas';
 
 type Sede = {

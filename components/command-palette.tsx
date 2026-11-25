@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Search, CornerDownLeft } from 'lucide-react';
-import { pesos, telefono } from '@/lib/format';
+import { pesos, telefono } from '@gymflow/ui/format';
 import { MEMBER_STATUS } from '@/lib/labels';
 import { useBuscarSocios, type SocioHallado } from '@/lib/buscar-socios';
 import { Avatar, Badge } from './ui';
 import { useSession } from './session';
 import { buscarSecciones } from '@/modules/registro';
-import { IconTile } from './compartido';
+import { IconTile } from '@gymflow/ui/compartido';
 import { TarjetaSocio } from './mostrador/tarjeta-socio';
 
 /**

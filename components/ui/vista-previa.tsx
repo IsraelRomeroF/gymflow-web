@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Callout, ErrorCarga, Skeleton } from '../compartido';
+import { Callout, ErrorCarga, Skeleton } from '@gymflow/ui/compartido';
 
 export type CifraPrevia = {
   etiqueta: ReactNode;

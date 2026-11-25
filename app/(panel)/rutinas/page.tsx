@@ -4,10 +4,10 @@ import { useCallback } from 'react';
 import Link from 'next/link';
 import { Plus, Users, CalendarDays, ListChecks } from 'lucide-react';
 import { api } from '@/lib/api';
-import { hace } from '@/lib/format';
+import { hace } from '@gymflow/ui/format';
 import { NIVELES, OBJETIVOS, type Resumen } from '@/lib/rutinas';
 import { Badge, ButtonLink, Card, Empty, PageHeader, Skeleton } from '@/components/ui';
-import { EstadoCarga, useCarga } from '@/lib/carga';
+import { EstadoCarga, useCarga } from '@gymflow/ui/carga';
 
 /**
  * RUTINAS del gimnasio. El coach las arma una vez y las asigna a muchos

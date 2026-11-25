@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { Ban, CalendarX2, ListChecks, MapPin, UserPlus, UserRound } from 'lucide-react';
-import { capital, dia, fechaCorta, hora } from '@/lib/format';
+import { capital, dia, fechaCorta, hora } from '@gymflow/ui/format';
 import { masDias } from '@/lib/zonas';
 import { momentoDeClase, type Sesion } from '@/lib/clases';
 import { Badge, Button, Card, Empty, EsqueletoLista, MenuMas } from '@/components/ui';

@@ -5,11 +5,11 @@ import Link from 'next/link';
 import { CalendarDays, DoorOpen, Inbox, Wallet, ArrowRight } from 'lucide-react';
 import { api } from '@/lib/api';
 import { AbrirDialog } from '@/components/caja';
-import { fecha, hora } from '@/lib/format';
+import { fecha, hora } from '@gymflow/ui/format';
 import { hoyEn, masDias, zonaDe } from '@/lib/zonas';
 import { useSession } from './session';
 import { Badge, Button, Card, ErrorCarga, Skeleton } from './ui';
-import { useCarga } from '@/lib/carga';
+import { useCarga } from '@gymflow/ui/carga';
 import type { Shift as Turno } from '@gymflow/core/contracts';
 
 /**

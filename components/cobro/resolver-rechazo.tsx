@@ -8,7 +8,7 @@ import { textosDeMotivo } from '@gymflow/core/motivos';
 import { AVISO_PASE_DEL_DIA } from '@gymflow/core/vocabulario';
 import { api, motivoDe } from '@/lib/api';
 import { parsePesos, textoPesos } from '@/lib/pesos';
-import { fecha, pesos } from '@/lib/format';
+import { fecha, pesos } from '@gymflow/ui/format';
 import { DENIAL_REASON } from '@/lib/labels';
 import { useSession, useToast, errorText, erroresPorCampo } from '../session';
 import { Button, Callout, CampoMotivo, faltaMotivo } from '../ui';
