@@ -119,11 +119,12 @@ await recorrido('direccion-precios', async (r) => {
   await imp.getByText(/tienen? este plan|Nadie tiene este plan/).waitFor({ timeout: T.respuesta });
   const n = visto.liveMemberships.toLocaleString('es-MX');
   // D-19 (bloque 3.6): la vista previa del cambio de precio se pide aparte; se espera a que llegue.
-  await imp.getByText(/en su siguiente pago/).first().waitFor({ timeout: T.respuesta });
+  // 4.20: un aumento dice «Les sube con 15 días de aviso»; «Les cambia en su siguiente pago» si a nadie le toca.
+  await imp.getByText(/en su siguiente pago|días de aviso/).first().waitFor({ timeout: T.respuesta });
   const textoImp = (await imp.innerText()).replace(/\s+/g, ' ');
   r.ok(visto.liveMemberships > 0 && textoImp.includes(`${n} ${visto.liveMemberships === 1 ? 'socio tiene' : 'socios tienen'} este plan`), `al cambiar el precio dice cuántos lo tienen (${n}, lo mismo que la API)`);
   r.ok(textoImp.includes(`${pesos(antes.priceCents)} → ${pesos(nuevo * 100)}`) && /Para las ventas nuevas/.test(textoImp), `el precio de lista pasa de ${pesos(antes.priceCents)} a ${pesos(nuevo * 100)} para las ventas nuevas`);
-  r.ok(/Les sube en su siguiente pago|Les cambia en su siguiente pago/.test(textoImp), 'y dice a cuántos socios les sube en su siguiente pago (D-19)');
+  r.ok(/Les sube con 15 días de aviso|Les cambia en su siguiente pago/.test(textoImp), 'y dice a cuántos socios les sube, con 15 días de aviso (D-19; 4.20)');
   const propia = visto.branches.find((x) => x.isOpen && x.hasOwnPrice);
   if (propia) r.ok(textoImp.includes(`${propia.name} (${pesos(propia.listPriceCents)})`) && /precio propio y no cambia/.test(textoImp), `avisa que ${propia.name} tiene su precio propio y no cambia`);
   await r.captura(ger, 'dp-4-plan-impacto-precio');

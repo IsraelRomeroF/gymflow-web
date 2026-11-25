@@ -60,7 +60,8 @@ const TEXTO: Record<Accion, { titulo: string; sub: string; boton: string; placeh
   },
   anonimizar: {
     titulo: 'Anonimizar', boton: 'Pedir autorización',
-    sub: 'Se borran su nombre, teléfono, correo, notas y salud; se revoca su biometría y la plantilla de su rostro se borra en el acto. No se puede deshacer.',
+    // P-11 (4.18): lo que deba se da por perdido al anonimizar.
+    sub: 'Se borran su nombre, teléfono, correo, notas y salud; se revoca su biometría y la plantilla de su rostro se borra en el acto. Lo que deba se da por perdido: sale de «Por cobrar», sin borrarse ni condonarse. No se puede deshacer.',
     placeholder: 'Solicitud de cancelación ARCO por escrito',
   },
 };
@@ -143,6 +144,9 @@ const RENGLONES_A_LA_VISTA = 50;
  * CONSERVACIÓN DE DATOS (D-32): cuánto se guarda de quien se va.
  *
  *  · el rostro deja de reconocerse el día de la baja y se borra a los 30 días;
+ *    desde P-01 (bloque 4.18) «baja» es también la calculada (canceló, o
+ *    terminó sin renovar), salvo quien sigue viniendo sin membresía; esa se
+ *    sigue reconociendo hasta borrarse. La tarjeta dice a quién y cuándo;
  *  · lo demás se anonimiza a los 24 meses (o el plazo del gimnasio), pero solo
  *    cuando el dueño firma la lista del mes. La gerencia puede sacar a alguien
  *    de la lista con un motivo; la lista no borra nada por sí sola.
@@ -238,18 +242,45 @@ function Plazos({ c, onGuardado }: { c: PrivacyConservation; onGuardado: () => v
   );
 }
 
+/** Las palabras de cada baja en la conservación (P-01, 4.18). */
+const CAUSA_EN_CONSERVACION: Record<'ARCHIVED' | 'CANCELED' | 'EXPIRED', string> = {
+  ARCHIVED: 'dado de baja', CANCELED: 'canceló su membresía', EXPIRED: 'terminó y no renovó',
+};
+
 function Rostros({ c }: { c: PrivacyConservation }) {
+  const [abierta, setAbierta] = useState(false);
   return (
-    <div className="row gap-8">
-      <IconTile tone={c.faces.waiting > 0 ? 'warn' : 'neutral'}><ScanFace /></IconTile>
-      <p className="small flex-1 min-w-0">
-        El rostro de quien se da de baja <strong>deja de reconocerse ese mismo día</strong> y se borra a los {c.faceDaysAfterArchive} días si no regresa; si regresa antes, vuelve a reconocerse sin registrarlo otra vez.{' '}
-        {c.faces.waiting === 0 ? 'Hoy no hay rostros de exsocios guardados.'
-          : c.faces.nextDeletionOn
-            ? `Hoy hay ${personas(c.faces.waiting, 'rostro de exsocio guardado', 'rostros de exsocios guardados')}; el próximo se borra el ${fecha(c.faces.nextDeletionOn)}.`
-            : `Hoy hay ${personas(c.faces.waiting, 'rostro de exsocio guardado', 'rostros de exsocios guardados')}; los ${c.faceDaysAfterArchive} días empiezan a contar con el próximo cierre del día.`}
-        {c.startedOn && c.faces.waiting > 0 && ` A quien ya estaba de baja el ${fecha(c.startedOn)}, los ${c.faceDaysAfterArchive} días le cuentan desde ese día.`}
-      </p>
+    <div className="stack-sm">
+      <div className="row gap-8">
+        <IconTile tone={c.faces.waiting > 0 ? 'warn' : 'neutral'}><ScanFace /></IconTile>
+        <p className="small flex-1 min-w-0" data-testid="conservacion-rostros">
+          El rostro de quien <strong>se da de baja en recepción</strong> deja de reconocerse ese mismo día. También cuenta como baja quien <strong>canceló su membresía</strong> o la tiene <strong>terminada hace {c.churnDays} días sin renovar</strong>, salvo que siga viniendo sin membresía (una visita lo cuida {c.churnDays} días; un paquete de visitas, mientras siga vigente); a esos la cámara los sigue reconociendo, pero sin plan no entran.
+          {' '}En todos los casos el rostro se borra a los {c.faceDaysAfterArchive} días de la baja si no regresa; si regresa antes, vuelve a reconocerse sin registrarlo otra vez.{' '}
+          {c.faces.waiting === 0 ? 'Hoy no hay rostros de exsocios guardados.'
+            : c.faces.nextDeletionOn
+              ? `Hoy hay ${personas(c.faces.waiting, 'rostro de exsocio guardado', 'rostros de exsocios guardados')}; el próximo se borra el ${fecha(c.faces.nextDeletionOn)}.`
+              : `Hoy hay ${personas(c.faces.waiting, 'rostro de exsocio guardado', 'rostros de exsocios guardados')}; los ${c.faceDaysAfterArchive} días empiezan a contar con el próximo cierre del día.`}
+          {c.startedOn && c.faces.waiting > 0 && ` A quien ya estaba dado de baja el ${fecha(c.startedOn)}, los ${c.faceDaysAfterArchive} días le cuentan desde ese día.`}
+          {c.calculatedStartedOn && c.faces.waiting > 0 && ` A quien el ${fecha(c.calculatedStartedOn)} ya había cancelado o no había renovado, desde ese día.`}
+        </p>
+      </div>
+      {c.faces.items.length > 0 && (
+        <details className="explica tiny" data-testid="conservacion-rostros-lista" open={abierta} onToggle={(e) => setAbierta((e.target as HTMLDetailsElement).open)}>
+          <summary>A quién se le borra el rostro y cuándo</summary>
+          <ul className="list">
+            {c.faces.items.map((i) => (
+              <li key={i.memberId + i.deletesOn} className="list-item">
+                <div className="flex-1 min-w-0">
+                  {i.fullName && c.canExclude ? <Link href={`/socios/${i.memberId}`} className="strong small">{i.fullName}</Link> : <span className="strong small"><code>{i.memberCode}</code></span>}{' '}
+                  <span className="tiny muted">{i.fullName ? <><code>{i.memberCode}</code> · </> : null}{CAUSA_EN_CONSERVACION[i.cause]} · de baja desde el {fecha(i.since)}</span>
+                </div>
+                <span className="tiny">{i.deletesOn ? `Se borra el ${fecha(i.deletesOn)}` : 'Empieza a contar con el próximo cierre'}</span>
+              </li>
+            ))}
+          </ul>
+          {c.faces.waiting > c.faces.items.length && <p className="tiny muted">Y {c.faces.waiting - c.faces.items.length} más, después de estos.</p>}
+        </details>
+      )}
     </div>
   );
 }
@@ -271,7 +302,7 @@ function ListaDelMes({ c, onCambio }: { c: PrivacyConservation; onCambio: () => 
     <div data-testid="conservacion-lista">
       <div className="card-body stack-sm pt-0">
         <Callout tone="warn" title={`Lista de ${mesDe(lista.period)}: ${personas(enLista.length, 'exsocio por anonimizar', 'exsocios por anonimizar')}`}>
-          Se dieron de baja el {fecha(lista.cutoffOn)} o antes ({lista.monthsAfterArchive} meses). Al firmarla se borran su nombre, teléfono, correo, notas y salud, y su rostro si seguía guardado. No se puede deshacer. Sus pagos y recibos se conservan con su código de socio.
+          Se dieron de baja el {fecha(lista.cutoffOn)} o antes ({lista.monthsAfterArchive} meses): en recepción, o porque cancelaron o no renovaron y no han vuelto. Al firmarla se borran su nombre, teléfono, correo, notas y salud, y su rostro si seguía guardado; a quien no estaba dado de baja en recepción, se le da de baja en el mismo acto. Lo que deban se da por perdido: sale de «Por cobrar», sin borrarse. No se puede deshacer. Sus pagos y recibos se conservan con su código de socio.
           {c.canSign ? '' : ' La firma el dueño, una sola vez; mientras no la firme, no se anonimiza a nadie.'}
         </Callout>
         {c.canSign && (
@@ -289,7 +320,7 @@ function ListaDelMes({ c, onCambio }: { c: PrivacyConservation; onCambio: () => 
             <IconTile tone="warn"><UserMinus /></IconTile>
             <div className="flex-1 min-w-0">
               {c.canExclude ? <Link href={`/socios/${i.memberId}`} className="strong small">{i.fullName ?? i.memberCode}</Link> : <span className="strong small">{i.fullName ?? i.memberCode}</span>}{' '}
-              <span className="tiny muted"><code>{i.memberCode}</code> · baja el {fecha(i.archivedOn)}</span>
+              <span className="tiny muted"><code>{i.memberCode}</code> · {i.cause === 'ARCHIVED' ? 'baja' : CAUSA_EN_CONSERVACION[i.cause]} el {fecha(i.archivedOn)}</span>
             </div>
             {c.canExclude && <Button size="sm" variant="ghost" onClick={() => setSacando(i)}>Sacar de la lista</Button>}
           </li>

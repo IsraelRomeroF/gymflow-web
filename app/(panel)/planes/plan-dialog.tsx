@@ -57,7 +57,7 @@ const MOTIVOS_EDITAR = ['Ajuste de precio', 'Corrección de datos', 'Ya no se ve
  * inscripción, gracia ni duración (16-08, 16-11).
  *
  * Cambiar el precio le cambia a TODOS en su siguiente pago (D-19, bloque
- * 3.6): la vista previa dice a cuántos y cuánto, y si hay socios que
+ * 3.6); un aumento, con 15 días de aviso como mínimo (4.20, P-14). La vista previa dice a cuántos y cuánto, y si hay socios que
  * conservan su precio no se guarda sin decidir qué pasa con ellos.
  */
 export function PlanDialog({ plan, onClose, onDone }: { plan: (Plan & DetalleDePlan) | null; onClose: () => void; onDone: () => Promise<void> }) {
@@ -166,7 +166,7 @@ export function PlanDialog({ plan, onClose, onDone }: { plan: (Plan & DetalleDeP
       await api(plan ? `/plans/${plan.id}` : '/plans', { method: plan ? 'PATCH' : 'POST', body: JSON.stringify(cuerpo) });
       const tocados = cambio ? cambio.touched + (decision === 'tambien' ? cambio.protected : 0) : 0;
       toast('ok', !plan ? 'Plan creado. Ya aparece a la venta en las sucursales elegidas.'
-        : tocados > 0 ? `Plan actualizado. ${socios(tocados)} ${tocados === 1 ? 'paga' : 'pagan'} el precio nuevo desde su siguiente pago; sus avisos quedaron en Mensajes.` : 'Plan actualizado.');
+        : tocados > 0 ? `Plan actualizado. ${socios(tocados)} ${tocados === 1 ? 'paga' : 'pagan'} el precio nuevo ${desdeCuandoPaga(cambio)}; sus avisos quedaron en Mensajes.` : 'Plan actualizado.');
       await onDone();
     } catch (e) {
       // Los errores del dominio traen el campo: se marcan en el formulario.
@@ -328,6 +328,13 @@ export function PlanDialog({ plan, onClose, onDone }: { plan: (Plan & DetalleDeP
   );
 }
 
+/**
+ * Desde cuándo pagan el precio nuevo (4.20, P-14): un aumento, desde su primer pago a partir del día
+ * en que rige (15 días después de guardarlo); una bajada, desde su siguiente pago.
+ */
+const desdeCuandoPaga = (cambio: PlanPriceChangePreview | null) =>
+  cambio?.appliesFrom && (cambio.noticeDays ?? 0) > 0 ? `desde su primer pago a partir del ${fecha(cambio.appliesFrom)}` : 'desde su siguiente pago';
+
 /** «$50 más» / «$50 menos», con la diferencia de un cambio de precio. */
 const diferencia = (deltaCents: string) => { const d = BigInt(deltaCents); return `${pesos(d < 0n ? -d : d, { decimals: false })} ${d < 0n ? 'menos' : 'más'}`; };
 
@@ -355,12 +362,23 @@ function Impacto({ plan, carga, precioNuevo, sedesApagadas, seDesactiva, nombreS
     cifras.push({ etiqueta: 'Precio de lista', valor: `${pesos(plan.priceCents, { decimals: false })} → ${pesos(precioNuevo, { decimals: false })}`, nota: 'Para las ventas nuevas, desde que guardes' });
     if (cambio) {
       if (cambio.touched > 0) {
+        // 4.20 (P-14): un aumento espera 15 días de aviso; una bajada llega en su siguiente pago.
+        const aviso = sube && cambio.appliesFrom && (cambio.noticeDays ?? 0) > 0;
         cifras.push({
-          etiqueta: `${sube ? 'Les sube' : 'Les baja'} en su siguiente pago`, valor: socios(cambio.touched), tono: sube ? 'warn' : undefined,
+          etiqueta: aviso ? `Les sube con ${cambio.noticeDays} días de aviso` : `${sube ? 'Les sube' : 'Les baja'} en su siguiente pago`, valor: socios(cambio.touched), tono: sube ? 'warn' : undefined,
           nota: `Cada quien paga ${diferencia(cambio.deltaCents)} por periodo${cambio.touchedAtOtherPrice > 0 ? ` · ${cambio.touchedAtOtherPrice.toLocaleString('es-MX')} ${cambio.touchedAtOtherPrice === 1 ? 'paga' : 'pagan'} un precio distinto al de lista y ${cambio.touchedAtOtherPrice === 1 ? 'conserva' : 'conservan'} esa distancia` : ''}`,
         });
         cifras.push({ etiqueta: 'Entre todos', valor: `${diferencia(cambio.touchedDeltaCents)} por periodo`, nota: 'Lo ya cobrado y las cuotas ya emitidas no cambian' });
-        if (cambio.firstPaymentOn) cifras.push({ etiqueta: 'El primero lo paga el', valor: fecha(cambio.firstPaymentOn), nota: 'Cada socio, el día de su siguiente pago' });
+        if (cambio.firstPaymentOn) {
+          cifras.push({
+            etiqueta: 'El primero lo paga el', valor: fecha(cambio.firstPaymentOn),
+            nota: aviso ? `Nadie lo paga antes del ${fecha(cambio.appliesFrom!)}: cada socio, en su primer pago desde ese día` : 'Cada socio, el día de su siguiente pago',
+          });
+        }
+        if (aviso && (cambio.touchedBeforeNotice ?? 0) > 0) {
+          const n = cambio.touchedBeforeNotice!;
+          avisos.push(`${socios(n)} ${n === 1 ? 'paga' : 'pagan'} antes del ${fecha(cambio.appliesFrom!)}: esa vez ${n === 1 ? 'paga' : 'pagan'} el precio de hoy y el aumento ${n === 1 ? 'le' : 'les'} llega en el pago que sigue.`);
+        }
       } else if (total > 0) {
         cifras.push({ etiqueta: 'Les cambia en su siguiente pago', valor: 'A nadie', nota: 'Nadie paga hoy el precio de lista de este plan' });
       }
@@ -368,8 +386,8 @@ function Impacto({ plan, carga, precioNuevo, sedesApagadas, seDesactiva, nombreS
       if (cambio.atOwnPriceBranches > 0) avisos.push(`${socios(cambio.atOwnPriceBranches)} ${cambio.atOwnPriceBranches === 1 ? 'lo compró' : 'lo compraron'} en una sucursal con precio propio: este cambio no ${cambio.atOwnPriceBranches === 1 ? 'lo' : 'los'} toca.`);
       if (cambio.touched > 0) {
         avisos.push(cambio.touchedWithoutPhone > 0
-          ? `El aviso de cada socio queda en Mensajes para mandarlo por WhatsApp. ${socios(cambio.touchedWithoutPhone)} no ${cambio.touchedWithoutPhone === 1 ? 'tiene' : 'tienen'} celular: se ${cambio.touchedWithoutPhone === 1 ? 'entera' : 'enteran'} en su recibo.`
-          : 'El aviso de cada socio queda en Mensajes para mandarlo por WhatsApp, y su recibo también lo dice.');
+          ? `El aviso de cada socio, con el día de su primer pago al precio nuevo, queda en Mensajes para mandarlo por WhatsApp. ${socios(cambio.touchedWithoutPhone)} no ${cambio.touchedWithoutPhone === 1 ? 'tiene' : 'tienen'} celular: se ${cambio.touchedWithoutPhone === 1 ? 'entera' : 'enteran'} en su recibo.`
+          : 'El aviso de cada socio, con el día de su primer pago al precio nuevo, queda en Mensajes para mandarlo por WhatsApp, y su recibo también lo dice.');
       }
     }
     const propias = i.branches.filter((b) => b.hasOwnPrice && b.isOpen);

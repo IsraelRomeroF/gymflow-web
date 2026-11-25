@@ -5,9 +5,9 @@
 //  2. Cambiar el precio: la vista previa dice a cuántos les sube en su
 //     siguiente pago, cuánto, y quién conserva su precio; NO deja guardar sin
 //     decidir qué pasa con quien lo conserva.
-//  3. Al guardar: el socio normal paga el precio nuevo en su siguiente pago
-//     (ficha y «Renovar»), el otro conserva el suyo, y el aviso del primero
-//     queda en Mensajes.
+//  3. Al guardar: el socio normal pasa al precio nuevo con 15 días de aviso
+//     (4.20: la ficha y «Renovar» dicen que hoy sigue en el de antes y a cuánto
+//     pasa), el otro conserva el suyo, y el aviso del primero queda en Mensajes.
 //  4. Producto con precio de socio y costo: la gerencia los captura y ve «Deja»;
 //     recepción no ve el costo; la venta desde la ficha de un socio vigente
 //     cobra el precio de socio y el ticket lo dice.
@@ -71,11 +71,12 @@ await recorrido('precios', async (r) => {
   await dlg.getByLabel('Precio por periodo').fill('450');
   const visto = (await (await previa).json()).priceChange;
   const imp = dlg.getByTestId('plan-impacto');
-  await imp.getByText('Les sube en su siguiente pago').waitFor({ timeout: T.respuesta });
+  await imp.getByText('Les sube con 15 días de aviso').waitFor({ timeout: T.respuesta });
   const texto = (await imp.innerText()).replace(/\s+/g, ' ');
   r.ok(texto.includes('2 socios tienen este plan'), 'dice cuántos tienen el plan (2)');
   r.ok(texto.includes('$400 → $450') && /Para las ventas nuevas/.test(texto), 'el precio de lista pasa de $400 a $450 para las ventas nuevas');
-  r.ok(visto.touched === 1 && /Les sube en su siguiente pago Cada quien paga \$50 más por periodo 1 socio/.test(texto), `a 1 socio le sube $50 en su siguiente pago (la API dice ${visto.touched})`);
+  r.ok(visto.touched === 1 && /Les sube con 15 días de aviso Cada quien paga \$50 más por periodo 1 socio/.test(texto), `a 1 socio le sube $50, con 15 días de aviso (4.20; la API dice ${visto.touched})`);
+  r.ok(/El primero lo paga el/.test(texto) && /Nadie lo paga antes del/.test(texto), 'dice cuándo lo paga el primero y que nadie antes de los 15 días (4.20)');
   r.ok(visto.protected === 1 && /Conservan su precio No cambian solos: tú decides abajo 1 socio/.test(texto), `y 1 conserva su precio: «No cambian solos: tú decides abajo» (la API dice ${visto.protected})`);
   r.ok(/queda en Mensajes/.test(texto), 'avisa que el aviso de cada socio queda en Mensajes');
   const conservan = dlg.getByTestId('plan-conservan');
@@ -91,22 +92,23 @@ await recorrido('precios', async (r) => {
   const guardado = await accion(ger, () => dlg.getByRole('button', { name: 'Guardar cambios' }).click(), `/api/plans/${plan.id}`, { metodo: 'PATCH', que: 'el cambio de precio' });
   ger.off('request', cuenta);
   r.ok(guardado.ok(), `eligiendo «Conserva su precio», guarda (${guardado.status()})`);
-  r.ok(await aparece(ger.getByText('Plan actualizado. 1 socio paga el precio nuevo desde su siguiente pago; sus avisos quedaron en Mensajes.'), T.respuesta), 'avisa: «1 socio paga el precio nuevo desde su siguiente pago; sus avisos quedaron en Mensajes.»');
+  r.ok(await aparece(ger.getByText(/^Plan actualizado\. 1 socio paga el precio nuevo desde su primer pago a partir del .+; sus avisos quedaron en Mensajes\.$/), T.respuesta), 'avisa: «1 socio paga el precio nuevo desde su primer pago a partir del …; sus avisos quedaron en Mensajes.» (4.20)');
 
   // ── 3. Lo que quedó ───────────────────────────────────────────────────────
   r.paso('lo que paga cada quien');
   const membresia = async (socio, id) => (await g.get(`/members/${socio.id}/memberships`)).find((m) => m.id === id);
   const [a, b] = [await membresia(paga, mPaga.id), await membresia(conserva, mConserva.id)];
-  r.ok(a?.periodPriceCents === '45000' && b?.periodPriceCents === '40000' && b?.priceProtected === true, `por la API: ${paga.memberCode} paga $450.00 por periodo; ${conserva.memberCode} sigue en $400.00 y conserva su precio`);
+  // 4.20: el aumento espera 15 días: hoy sigue en $400.00 y la API dice a cuánto pasa.
+  r.ok(a?.periodPriceCents === '40000' && a?.pendingPrice?.toPriceCents === '45000' && b?.periodPriceCents === '40000' && !b?.pendingPrice && b?.priceProtected === true, `por la API: ${paga.memberCode} paga $400.00 y pasa a $450.00 con 15 días de aviso; ${conserva.memberCode} sigue en $400.00 y conserva su precio`);
   await ger.goto(`${PANEL}/socios/${conserva.id}`, { waitUntil: 'networkidle' });
   const pp = ger.getByTestId('paga-por-periodo');
   r.ok(await aparece(pp, T.respuesta) && /\$400\.00/.test(await pp.innerText()) && /Conserva su precio/.test(await pp.innerText()), `la ficha de quien conserva: «${(await pp.innerText().catch(() => '')).replace(/\s+/g, ' ').trim()}»`);
   await r.captura(ger, 'precios-3-ficha-conserva');
   await ger.goto(`${PANEL}/socios/${paga.id}`, { waitUntil: 'networkidle' });
-  r.ok(await aparece(pp, T.respuesta) && /\$450\.00/.test(await pp.innerText()) && !/Conserva/.test(await pp.innerText()), `la ficha del otro: «Paga por periodo ${(await pp.innerText().catch(() => '')).trim()}»`);
+  r.ok(await aparece(pp, T.respuesta) && /\$400\.00/.test(await pp.innerText()) && /pasa a \$450\.00/.test(await pp.innerText()) && !/Conserva/.test(await pp.innerText()), `la ficha del otro: «Paga por periodo ${(await pp.innerText().catch(() => '')).trim()}»`);
   await ger.getByRole('button', { name: 'Renovar', exact: true }).click();
   const ren = ger.getByRole('dialog', { name: `Renovar a ${paga.firstName}` });
-  r.ok(await aparece(ren.getByText('$450.00').first(), T.respuesta), '«Renovar» ya cotiza el siguiente periodo en $450.00');
+  r.ok(await aparece(ren.getByText('$400.00').first(), T.respuesta) && await aparece(ren.getByTestId('renovar-aumento-por-llegar'), T.ui), '«Renovar» hoy cotiza $400.00 y dice que el aumento a $450.00 llega después (4.20)');
   await r.captura(ger, 'precios-4-renovar');
   await ren.getByRole('button', { name: 'Cancelar', exact: true }).click();
 

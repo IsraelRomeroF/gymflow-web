@@ -85,7 +85,8 @@ export default function AltasPage() {
   // «Revisar» se puede quitar por persona (9-13): sin él no se pintan botones
   // que la API va a rechazar.
   const revisa = can('members:intake:review');
-  // D-33 (bloque 4.7): la nota de salud la escribe quien puede leerla. Recepción registra el permiso del tutor, no la nota.
+  // D-33 (bloque 4.7): la nota de salud la escribe quien puede leerla. Recepción registra el permiso del tutor, no la nota;
+  // desde P-10 (bloque 4.19) ya no se le enciende a nadie de recepción, así que el alta con nota la aprueba la gerencia.
   const escribeSalud = can('members:health:read');
   const sedes = branches.filter((b) => b.isActive && inScope(b.id));
   const [vista, setVista] = useState<Vista>('SUBMITTED');
@@ -455,11 +456,11 @@ export default function AltasPage() {
                           También acepta que el gimnasio guarde datos de salud de {detalle.intake.firstName}
                         </Switch>
                         {tutor.salud && (escribeSalud ? (
-                          <Field label="Nota de salud (la dice su tutor)" htmlFor="tu-nota" hint="Lesiones, padecimientos o alergias. La ven la gerencia, su coach y a quien la gerencia se lo autorice.">
+                          <Field label="Nota de salud (la dice su tutor)" htmlFor="tu-nota" hint="Lesiones, padecimientos o alergias. La ven la gerencia y su coach.">
                             <textarea id="tu-nota" className="textarea" rows={2} maxLength={1000} value={tutor.nota} onChange={(e) => setTutor({ ...tutor, nota: e.target.value })} />
                           </Field>
                         ) : (
-                          <p className="small muted" data-testid="nota-de-salud-la-escribe-gerencia">Queda registrado que el tutor lo acepta. La nota de salud la escribe quien puede verla: si el tutor quiere dejar una, que esta alta la apruebe la gerencia.</p>
+                          <p className="small muted" data-testid="nota-de-salud-la-escribe-gerencia">Queda registrado que el tutor lo acepta. Recepción no lee ni escribe notas de salud (son un dato sensible): si el tutor quiere dejar una, que esta alta la apruebe la gerencia.</p>
                         ))}
                         <p className="tiny muted">La aceptación queda a nombre del tutor, con la fecha de hoy y quién lo atendió. Sin ella no se guarda ninguna nota de salud.</p>
                       </div>

@@ -62,7 +62,7 @@ export default function ReciboPage({ params }: { params: Promise<{ id: string }>
         {r.priceNotice && (
           <p className="recibo-aviso" data-testid="recibo-aviso-precio">
             {r.priceNotice.kind === 'UPCOMING'
-              ? <>A partir de tu siguiente pago, {r.priceNotice.planName ?? 'tu plan'} cuesta <strong>{pesos(r.priceNotice.toPriceCents)}</strong> (antes {pesos(r.priceNotice.fromPriceCents)}).</>
+              ? <>{r.priceNotice.startsOn ? `A partir del ${fecha(r.priceNotice.startsOn)}` : 'A partir de tu siguiente pago'}, {r.priceNotice.planName ?? 'tu plan'} cuesta <strong>{pesos(r.priceNotice.toPriceCents)}</strong> (antes {pesos(r.priceNotice.fromPriceCents)}).</>
               : <>{r.priceNotice.planName ?? 'Tu plan'} cambió de precio: de {pesos(r.priceNotice.fromPriceCents)} a <strong>{pesos(r.priceNotice.toPriceCents)}</strong> desde este pago.</>}
           </p>
         )}

@@ -11,6 +11,7 @@ import { Badge, Callout, Card, Empty, ErrorCarga, PageHeader, Segmented, Skeleto
 import { useCarga } from '@gymflow/ui/carga';
 import { Exportar } from '@/components/exportar';
 import { CerrarMesDialog, CierresDeMes, useCierresDeMes } from '@/components/cierre-mes';
+import { PlazosDelGimnasio } from '../retencion/plazos';
 import { GLOSARIO } from '@/lib/glosario';
 import { GlosarioDinero } from '@/components/glosario-dinero';
 import type { Dashboard, RetentionSummary } from '@gymflow/core/contracts';
@@ -307,6 +308,8 @@ export default function TableroPage() {
       )}
       </div>
       {!tablero.error && <CierresDeMes cierres={cierres} onCerrar={setCerrar} />}
+      {/* P-02 (bloque 4.19): sin gerente, la dueña ajusta los plazos aquí (la gerencia los tiene en Retención). */}
+      {can('approvals:grant') && (can('retention:terms:set') || can('billing:debt-terms:set')) && <PlazosDelGimnasio onCambio={() => void tablero.recargar()} />}
     </>
   );
 }

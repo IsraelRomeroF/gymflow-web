@@ -9,7 +9,11 @@ import { useCarga } from '@gymflow/ui/carga';
 type Catalogo = {
   groups: Array<{ name: string; permissions: Array<{ key: string; description: string }> }>;
   /** `adjustable`: lo que se le ajusta a ESE puesto (17-02); sin él, todo el catálogo. */
-  roles: Array<{ key: string; permissions: string[]; adjustable?: string[] }>;
+  roles: Array<{
+    key: string; permissions: string[]; adjustable?: string[];
+    /** Lo que nunca se le enciende a ese puesto, con su porqué (P-09 y P-10, bloque 4.19). */
+    never?: Array<{ key: string; description: string; why: string }>;
+  }>;
 };
 export type Ajustes = { add: string[]; remove: string[] };
 
@@ -25,6 +29,10 @@ type Otra = { id: string; fullName: string; isActive: boolean; permissionOverrid
  *
  * Quien no las ajusta (la dueña, mientras haya un gerente que administre) las
  * ve en lectura: lo que no te toca se lee, no desaparece (17-11).
+ *
+ * Lo que antes se ofrecía y ya no se enciende a ese puesto (anular ventas y la
+ * nota de salud, a recepción: P-09 y P-10, bloque 4.19) no desaparece en
+ * silencio: se dice que no se enciende y por qué.
  */
 export function PermisosPersona({ roleKey, valor, onChange, editable = true, otras = [], onCopiar }: {
   roleKey: string; valor: Ajustes; onChange: (a: Ajustes) => void;
@@ -60,6 +68,15 @@ export function PermisosPersona({ roleKey, valor, onChange, editable = true, otr
     onChange({ add, remove });
   };
   const cambios = valor.add.length + valor.remove.length;
+  const nunca = puesto?.never ?? [];
+  const noSeEnciende = nunca.length > 0 && (
+    <div className="mt-8" data-testid="permisos-nunca">
+      <span className="eyebrow">No se le encienden a este puesto</span>
+      <ul className="list small">
+        {nunca.map((n) => <li key={n.key}><span className="strong">{n.description}.</span> {n.why}</li>)}
+      </ul>
+    </div>
+  );
 
   if (!editable) {
     return (
@@ -74,6 +91,7 @@ export function PermisosPersona({ roleKey, valor, onChange, editable = true, otr
             </ul>
           )}
         <p className="hint">Las excepciones al puesto las ajusta la gerencia.</p>
+        {noSeEnciende}
       </div>
     );
   }
@@ -119,6 +137,7 @@ export function PermisosPersona({ roleKey, valor, onChange, editable = true, otr
           </div>
         </div>
       ))}
+      {noSeEnciende}
     </div>
   );
 }

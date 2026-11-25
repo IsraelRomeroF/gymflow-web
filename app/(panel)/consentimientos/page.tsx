@@ -204,8 +204,11 @@ function EditorDialog({ tipo, borrador, onClose, onDone }: { tipo: string; borra
     return d.bodyText;
   }, [borrador]));
   const plazo = useCarga(useCallback(() => api<{ effectiveMonths: number }>('/privacy/settings').then((r) => r.effectiveMonths), []));
+  // P-01 (bloque 4.18, edición puntual): el aviso modelo dice qué es «baja» con el plazo de baja del gimnasio.
+  const diasDeBaja = useCarga(useCallback(() => api<{ terms: { churnDays: number } }>('/member-terms').then((r) => r.terms.churnDays), []));
   const modelo = modeloDeTexto(tipo, {
     razonSocial: org.legalName, nombreComercial: org.tradeName, sucursales: branches.filter((b) => b.isActive).map((b) => b.name), mesesDeConservacion: plazo.datos ?? null,
+    diasDeBaja: diasDeBaja.datos ?? null,
   });
   const faltan = useMemo(() => corchetesSinCompletar(bodyText), [bodyText]);
   const f = useFormulario({

@@ -467,6 +467,8 @@ export default function SocioPage() {
                     <dd data-testid="paga-por-periodo">{pesos(vigente.periodPriceCents)}
                       {vigente.priceProtected && <> · <Badge tone="info">Conserva su precio</Badge>
                         {vigente.priceProtectedReason && <span className="tiny muted"> {vigente.priceProtectedReason}</span>}</>}
+                      {/* Un aumento que espera sus 15 días de aviso (4.20, P-14; edición puntual). */}
+                      {vigente.pendingPrice && <span className="tiny muted" data-testid="aumento-por-llegar"> · pasa a {pesos(vigente.pendingPrice.toPriceCents)} {vigente.pendingPrice.firstChargeOn ? `desde su pago del ${fecha(vigente.pendingPrice.firstChargeOn)}` : `desde su primer pago a partir del ${fecha(vigente.pendingPrice.appliesFrom)}`}</span>}
                     </dd></>
                 )}
                 {vigente.status === 'FROZEN' && vigente.frozenUntil && <><dt>Congelada hasta</dt><dd>{fecha(vigente.frozenUntil)}</dd></>}

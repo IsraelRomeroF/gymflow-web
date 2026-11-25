@@ -18,7 +18,9 @@ import { Button, Callout, CampoMotivo, Card, Dialog, ErrorCarga, Field } from '@
  * las frases, del núcleo: esta pantalla no escribe ninguno.
  *
  * Los de retención los cambia la gerencia, con motivo. Los de la deuda,
- * SIEMPRE con la autorización de quien da la segunda firma.
+ * SIEMPRE con la autorización de quien da la segunda firma. Sin un gerente
+ * que administre, los dos los cambia la dueña (P-02, bloque 4.19), desde su
+ * Tablero; los de la deuda, con SU contraseña: nadie se firma a sí mismo.
  */
 export function PlazosDelGimnasio({ onCambio }: { onCambio: () => void }) {
   const { can } = useSession();
@@ -76,7 +78,7 @@ const MOTIVOS: Record<GrupoDePlazo, readonly string[]> = {
 
 function CambiarPlazos({ grupo, plazos, onClose, onGuardado }: { grupo: GrupoDePlazo; plazos: MemberTerms; onClose: () => void; onGuardado: () => void }) {
   const toast = useToast();
-  const { org } = useSession();
+  const { org, can } = useSession();
   const campos = plazosDelGrupo(grupo);
   const [valores, setValores] = useState<Record<string, string>>(() => Object.fromEntries(campos.map((d) => [d.key, String(plazos.terms[d.key])])));
   const [motivo, setMotivo] = useState('');
@@ -84,6 +86,7 @@ function CambiarPlazos({ grupo, plazos, onClose, onGuardado }: { grupo: GrupoDeP
   const [autorizando, setAutorizando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [fallo, setFallo] = useState<string | null>(null);
+  const [clave, setClave] = useState('');
 
   // Solo se manda lo que cambia; los cruces se comprueban contra lo que rige.
   const propuesto: Partial<Record<PlazoKey, number>> = {};
@@ -96,12 +99,15 @@ function CambiarPlazos({ grupo, plazos, onClose, onGuardado }: { grupo: GrupoDeP
   const faltaMotivo = motivo.trim().length < 3;
   const valido = errores.length === 0 && !sinCambios && !faltaMotivo;
   const conFirma = grupo === 'debt';
+  // Quien da la segunda firma solo tiene el permiso cuando no hay gerente (P-02): los cambia ella, con su contraseña.
+  const sola = conFirma && can('approvals:grant');
+  const faltaClave = sola && clave.length === 0;
 
   async function guardar(token?: string) {
     setEnviando(true); setFallo(null);
     try {
       await api<MemberTerms>(`/member-terms/${grupo === 'debt' ? 'debt' : 'retention'}`, {
-        method: 'PUT', body: JSON.stringify({ ...propuesto, reason: motivo.trim(), ...(token ? { approvalToken: token } : {}) }),
+        method: 'PUT', body: JSON.stringify({ ...propuesto, reason: motivo.trim(), ...(token ? { approvalToken: token } : {}), ...(sola ? { password: clave } : {}) }),
       });
       toast('ok', conFirma ? 'Plazos de la deuda actualizados' : 'Plazos de retención actualizados');
       onGuardado();
@@ -110,8 +116,8 @@ function CambiarPlazos({ grupo, plazos, onClose, onGuardado }: { grupo: GrupoDeP
 
   function seguir() {
     setIntentado(true);
-    if (!valido) return;
-    if (conFirma) setAutorizando(true); else void guardar();
+    if (!valido || faltaClave) return;
+    if (conFirma && !sola) setAutorizando(true); else void guardar();
   }
 
   if (autorizando) {
@@ -126,11 +132,13 @@ function CambiarPlazos({ grupo, plazos, onClose, onGuardado }: { grupo: GrupoDeP
   return (
     <Dialog open onClose={onClose} title={conFirma ? 'Plazos de la deuda' : 'Plazos de retención'}
       error={fallo ?? (intentado && errores.length > 0 ? errores.join(' ') : intentado && sinCambios ? 'No cambiaste ningún plazo.' : null)}
-      sub={conFirma
+      sub={sola
+        ? 'Valen para todas las sucursales. No hay gerente: los cambias tú, con tu contraseña, y queda en la bitácora que lo hiciste sola.'
+        : conFirma
         ? 'Valen para todas las sucursales. Cambiarlos siempre lo autoriza otra persona, con su contraseña.'
         : 'Valen para todas las sucursales y para todas las pantallas: Retención, Recuperar, el Inicio y la ficha del socio.'}
       footer={<><Button variant="secondary" onClick={onClose} disabled={enviando}>Cancelar</Button>
-        <Button loading={enviando} onClick={seguir}>{conFirma ? 'Pedir autorización' : 'Guardar'}</Button></>}>
+        <Button loading={enviando} onClick={seguir}>{conFirma && !sola ? 'Pedir autorización' : 'Guardar'}</Button></>}>
       <div className="stack">
         {campos.map((d) => {
           const def = DEFINICION_DE_PLAZOS.find((x) => x.key === d.key)!;
@@ -152,6 +160,11 @@ function CambiarPlazos({ grupo, plazos, onClose, onGuardado }: { grupo: GrupoDeP
           </Callout>
         )}
         <CampoMotivo id="pl-motivo" value={motivo} onChange={setMotivo} motivos={MOTIVOS[grupo]} error={intentado && faltaMotivo ? 'Escribe el motivo del cambio.' : null} />
+        {sola && (
+          <Field label="Tu contraseña" htmlFor="pl-clave" hint="Con ella confirmas el cambio; queda en la bitácora que lo hiciste tú." error={intentado && faltaClave ? 'Escribe tu contraseña.' : null}>
+            <input id="pl-clave" className="input" type="password" autoComplete="current-password" value={clave} onChange={(e) => setClave(e.target.value)} />
+          </Field>
+        )}
       </div>
     </Dialog>
   );

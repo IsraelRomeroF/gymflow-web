@@ -27,6 +27,10 @@ export type Membresia = {
   periodPriceCents?: string;
   priceProtected?: boolean;
   priceProtectedReason?: string | null;
+  /** Un aumento guardado que todavía no le llega (4.20, P-14: 15 días de aviso). */
+  pendingPrice?: { toPriceCents: string; firstChargeOn: string | null; appliesFrom: string; inNextPeriod: boolean } | null;
+  /** El importe de la cuota del periodo que sigue si se renueva hoy (4.20): lo que cotiza «Renovar». */
+  nextPeriodPriceCents?: string;
 };
 
 type Accion = 'adeudo' | 'renovar' | 'cambiar' | 'congelar' | 'descongelar' | 'cancelar' | 'renovacion';
@@ -125,8 +129,10 @@ function Renovar({ m, plan, nombre, onClose, onDone }: Props & { plan: Plan | nu
   // ya no es un esqueleto eterno: se dice y se reintenta (26-01).
   const cargarTotal = useCallback(() => api<{ lines: Array<{ totalCents: string }> }>(`/plans/${plan?.id}/quote${m.soldAtBranchId ? `?branchId=${m.soldAtBranchId}` : ''}`)
     .then((q) => q.lines.at(-1)?.totalCents ?? null), [plan, m.soldAtBranchId]);
-  const cotizacion = useCarga(plan ? cargarTotal : null);
-  const total = cotizacion.datos ?? null;
+  // 4.20: la API ya dice el importe de SU siguiente cuota (su precio, y el aumento solo si ya rige);
+  // la cotización del plan queda para membresías que no lo traen.
+  const cotizacion = useCarga(plan && m.nextPeriodPriceCents === undefined ? cargarTotal : null);
+  const total = m.nextPeriodPriceCents ?? cotizacion.datos ?? null;
 
   async function renovar() {
     setEnviando(true);
@@ -156,6 +162,12 @@ function Renovar({ m, plan, nombre, onClose, onDone }: Props & { plan: Plan | nu
             <span className="strong num" style={{ fontSize: 20 }}>{total ? pesos(total) : cotizacion.error ? '—' : <Skeleton h={20} w={80} />}</span>
           </div>
         </div>
+        {m.pendingPrice && (
+          <p className="hint" data-testid="renovar-aumento-por-llegar">
+            Tiene un aumento guardado: pasa a {pesos(m.pendingPrice.toPriceCents)} {m.pendingPrice.firstChargeOn ? `desde su pago del ${fecha(m.pendingPrice.firstChargeOn)}` : `desde su primer pago a partir del ${fecha(m.pendingPrice.appliesFrom)}`}.
+            {' '}{m.pendingPrice.inNextPeriod ? 'Este periodo ya lo lleva.' : 'Si renueva hoy, este periodo sale al precio de antes.'}
+          </p>
+        )}
         {cotizacion.error && <ErrorCarga titulo="No se pudo calcular el siguiente periodo" mensaje={cotizacion.error} onReintentar={() => void cotizacion.recargar()} />}
         {cobro.ui}
       </div>
